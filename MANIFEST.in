@@ -1,0 +1,8 @@
+include LICENSE
+include runtests
+include README
+include README.md
+include requirements.txt
+include requirements-dev.txt
+recursive-include config *
+recursive-include tests *

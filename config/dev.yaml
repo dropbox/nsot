@@ -1,0 +1,25 @@
+# Format for logging output.
+# See https://docs.python.org/2/library/logging.html#logrecord-attributes
+# Type: str
+log_format: "%(asctime)-15s\t%(levelname)s\t%(message)s"
+
+# Number of worker processes to fork for receving requests. This option
+# is mutually exclusive with debug.
+# Type: int
+num_processes: 1
+
+# The port to listen to requests on.
+# Type: int
+port: 8990
+
+# Passing debug option down tornado. Useful for development to
+# automatically reload code.
+# Type: bool
+debug: true
+
+# Takes a SqlAlchemy URL to the database. More details
+# can be found at the following URL:
+# http://docs.sqlalchemy.org/en/rel_0_9/core/engines.html#database-urls
+#
+# Type: str
+database: "sqlite:///nsot.sqlite"

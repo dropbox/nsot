@@ -1,0 +1,10 @@
+Jinja2==2.7.3
+MarkupSafe==0.23
+PyYAML==3.11
+argparse==1.2.1
+backports.ssl-match-hostname==3.4.0.2
+certifi==14.05.14
+ipaddress==1.0.7
+pytz==2014.10
+tornado==4.0.2
+wsgiref==0.1.2
