@@ -1,9 +1,15 @@
+import re
+
 from tornado.web import RequestHandler, urlparse
 from tornado.escape import utf8
 
 from sqlalchemy.exc import IntegrityError
 
 from .. import models
+from .. import util
+
+
+ATTRIBUTE_NAME = re.compile(r"^[a-z][a-z0-9_]*$")
 
 
 class ApiHandler(RequestHandler):
@@ -29,15 +35,19 @@ class ApiHandler(RequestHandler):
             "data": data,
         })
 
-    def conflict(self, message):
-        self.set_status(409)
-        self.error([(409, message)])
+    def error_status(self, status, message):
+        self.set_status(status)
+        self.error([(status, message)])
         self.finish()
 
+    def badrequest(self, message):
+        self.error_status(400, message)
+
     def notfound(self, message):
-        self.set_status(404)
-        self.error([(404, message)])
-        self.finish()
+        self.error_status(404, message)
+
+    def conflict(self, message):
+        self.error_status(409, message)
 
     def created(self, location):
         self.set_status(201)
@@ -111,6 +121,109 @@ class SiteHandler(ApiHandler):
 
         self.success({
             "message": "Site {} deleted.".format(site_id),
+        })
+
+
+class AttributesHandler(ApiHandler):
+
+    def post(self, site_id):
+        """ Create a new Attribute."""
+
+        name = self.get_argument("name")
+        required = self.get_argument("required", None)
+        cascade = self.get_argument("cascade", None)
+
+
+        if not ATTRIBUTE_NAME.match(name):
+            return self.badrequest("Invalid name parameter.")
+
+        try:
+            attribute = models.Attribute(site_id=site_id, name=name).add(self.session)
+            if required is not None:
+                attribute.required = util.qp_to_bool(required)
+            if cascade is not None:
+                attribute.cascade = util.qp_to_bool(cascade)
+            self.session.commit()
+        except IntegrityError as err:
+            return self.conflict(str(err.orig))
+
+        self.created("/api/sites/{}/attributes/{}".format(site_id, attribute.id))
+
+    def get(self, site_id):
+        """ Return all Attributes."""
+        attributes = self.session.query(models.Attribute).all()
+        self.success({
+            "attributes": [attribute.to_dict() for attribute in attributes],
+        })
+
+
+class AttributeHandler(ApiHandler):
+    def get(self, site_id, attribute_id):
+        attribute = self.session.query(models.Attribute).filter_by(
+            id=attribute_id,
+            site_id=site_id
+        ).scalar()
+        if not attribute:
+            return self.notfound(
+                "No such Attribute found at (site_id, id) = ({}, {})".format(site_id, attribute_id)
+            )
+
+        self.success({
+            "attribute": attribute.to_dict(),
+        })
+
+    def put(self, site_id, attribute_id):
+        attribute = self.session.query(models.Attribute).filter_by(
+            id=attribute_id,
+            site_id=site_id
+        ).scalar()
+        if not attribute:
+            return self.notfound(
+                "No such Attribute found at (site_id, id) = ({}, {})".format(site_id, attribute_id)
+            )
+
+        name = self.get_argument("name", None)
+        required = self.get_argument("required", None)
+        cascade = self.get_argument("cascade", None)
+
+        try:
+            if name is not None:
+                if not ATTRIBUTE_NAME.match(name):
+                    return self.badrequest("Invalid name parameter.")
+                attribute.name = name
+
+            # TODO(gary): Verify that all networks contain this attribute
+            #             or fail when changed to True
+            if required is not None:
+                attribute.required = util.qp_to_bool(required)
+            # TODO(gary): When changed to true add transitive attributes. When
+            #             changed to false, remove transitive attributes.
+            if cascade is not None:
+                attribute.cascade = util.qp_to_bool(cascade)
+            self.session.commit()
+        except IntegrityError as err:
+            return self.conflict(str(err.orig))
+
+        self.success({
+            "attribute": attribute.to_dict(),
+        })
+
+    def delete(self, site_id, attribute_id):
+        attribute = self.session.query(models.Attribute).filter_by(
+            id=attribute_id,
+            site_id=site_id
+        ).scalar()
+        if not attribute:
+            return self.notfound(
+                "No such Attribute found at (site_id, id) = ({}, {})".format(site_id, attribute_id)
+            )
+
+        # TODO(gary): Remove all references to this attribute
+        self.session.delete(attribute)
+        self.session.commit()
+
+        self.success({
+            "message": "Attribute {} deleted from Site {}.".format(attribute_id, site_id),
         })
 
 

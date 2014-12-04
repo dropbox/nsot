@@ -9,7 +9,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship, object_session, aliased
 from sqlalchemy.orm import sessionmaker, Session as _Session
-from sqlalchemy.schema import Column, ForeignKey
+from sqlalchemy.schema import Column, ForeignKey, Index
 from sqlalchemy.sql import func, label, literal
 from sqlalchemy.types import Integer, String, Text, Boolean, SmallInteger
 from sqlalchemy.types import Enum, DateTime, VARBINARY
@@ -139,14 +139,31 @@ class Hostname(Model):
 class Attribute(Model):
 
     __tablename__ = "attributes"
+    __table_args__ = (
+        Index(
+            "site_id_name_idx",
+            "site_id", "name",
+            unique=True
+        ),
+    )
 
     id = Column(Integer, primary_key=True)
     site_id = Column(Integer, ForeignKey("sites.id"), nullable=False)
 
-    required = Column(Boolean, nullable=False)
-    cascade = Column(Boolean, nullable=False)
-
     name = Column(String, nullable=False)
+
+    required = Column(Boolean, default=False, nullable=False)
+    cascade = Column(Boolean, default=True, nullable=False)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "site_id": self.site_id,
+            "name": self.name,
+            "required": self.required,
+            "cascade": self.cascade,
+        }
+
 
 
 class NetworkAttribute(Model):

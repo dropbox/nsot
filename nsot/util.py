@@ -6,7 +6,7 @@ _TRUTHY = set([
 
 
 def qp_to_bool(arg):
-    return arg.lower() in _TRUTHY
+    return str(arg).lower() in _TRUTHY
 
 
 def get_loglevel(args):
