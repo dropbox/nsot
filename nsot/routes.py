@@ -10,15 +10,15 @@ HANDLERS = [
     (r"/api/sites/(?P<site_id>\d+)/attributes", api.AttributesHandler),
     (r"/api/sites/(?P<site_id>\d+)/attributes/(?P<attribute_id>\d+)", api.AttributeHandler),
 
-    # Subnets
-    (r"/api/sites/(?P<site_id>\d+)/subnets", api.SubnetsHandler),
-    (r"/api/sites/(?P<site_id>\d+)/subnets/(?P<network_id>\d+)", api.SubnetHandler),
-    (r"/api/sites/(?P<site_id>\d+)/subnets/(?P<network_id>\d+)/ips", api.SubnetIpsHandler),
+    # Networks
+    (r"/api/sites/(?P<site_id>\d+)/networks", api.NetworksHandler),
+    (r"/api/sites/(?P<site_id>\d+)/networks/(?P<network_id>\d+)", api.NetworkHandler),
+    (r"/api/sites/(?P<site_id>\d+)/networks/(?P<network_id>\d+)/ips", api.NetworkIpsHandler),
 
     # IP Addresses
     (r"/api/sites/(?P<site_id>\d+)/ips", api.IpsHandler),
     (r"/api/sites/(?P<site_id>\d+)/ips/(?P<network_id>\d+)", api.IpHandler),
-    (r"/api/sites/(?P<site_id>\d+)/ips/(?P<network_id>\d+)/subnets", api.IpSubnetsHandler),
+    (r"/api/sites/(?P<site_id>\d+)/ips/(?P<network_id>\d+)/networks", api.IpNetworksHandler),
     (r"/api/sites/(?P<site_id>\d+)/ips/(?P<network_id>\d+)/hostnames", api.IpHostnamesHandler),
 
     (r"/.*", api.NotFoundHandler),

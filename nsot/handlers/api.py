@@ -227,34 +227,52 @@ class AttributeHandler(ApiHandler):
         })
 
 
-class SubnetsHandler(ApiHandler):
+class NetworksHandler(ApiHandler):
+    def post(self, site_id):
+        """ Create a new Network."""
+
     def get(self, site_id):
-        pass
+        """ Return all Networks. """
 
 
-class SubnetHandler(ApiHandler):
+class NetworkHandler(ApiHandler):
     def get(self, site_id, network_id):
-        pass
+        """ Return a specific Network. """
+
+    def put(self, site_id, network_id):
+        """ Update a Network. """
+
+    def delete(self, site_id, network_id):
+        """ Delete a Network. """
 
 
-class SubnetIpsHandler(ApiHandler):
+class NetworkIpsHandler(ApiHandler):
     def get(self, site_id, network_id):
-        pass
+        """ Return allocated IPs for a Network."""
 
 
 class IpsHandler(ApiHandler):
+    def post(self, site_id):
+        """ Create a new ip address."""
+
     def get(self, site_id):
-        pass
+        """ Return all ip addresses. """
 
 
 class IpHandler(ApiHandler):
     def get(self, site_id, network_id):
-        pass
+        """ Return a specific ip address """
+
+    def put(self, site_id, network_id):
+        """ Update a ip address """
+
+    def delete(self, site_id, network_id):
+        """ Delete a ip address """
 
 
-class IpSubnetsHandler(ApiHandler):
+class IpNetworksHandler(ApiHandler):
     def get(self, site_id, network_id):
-        pass
+        """ Return Networks this that contain this ip address. """
 
 
 class IpHostnamesHandler(ApiHandler):
