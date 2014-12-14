@@ -1,3 +1,9 @@
+Markdown==2.4.1
+argh==0.26.1
+ghp-import==0.4.1
+mkdocs==0.11.1
 mrproxy==0.3.2
+pathtools==0.1.2
 py==1.4.26
 pytest==2.6.4
+watchdog==0.8.2

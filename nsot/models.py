@@ -1,5 +1,8 @@
+from __future__ import unicode_literals
+
 from datetime import datetime
 import functools
+import ipaddress
 import json
 import logging
 
@@ -106,22 +109,56 @@ class Network(Model):
     """ Represents a subnet or ipaddress. """
 
     __tablename__ = "networks"
+    __table_args__ = (
+        Index(
+            "network_broadcast_idx",
+            "site_id", "ip_version", "network_address", "broadcast_address",
+            unique=True
+        ),
+    )
 
     id = Column(Integer, primary_key=True)
-    site_id = Column(Integer, ForeignKey("sites.id"), nullable=False)
+    site_id = Column(Integer, ForeignKey("sites.id"), nullable=False, index=True)
 
-    ip_version = Column(Enum("4", "6"), nullable=False)
+    ip_version = Column(Enum(4, 6), nullable=False, index=True)
 
-    network_address = Column(VARBINARY(16), nullable=False)
-    broadcast_address = Column(VARBINARY(16), nullable=False)
+    # Root networks will be NULL while other networks will point to
+    # their supernet.
+    parent_id = Column(Integer, ForeignKey("networks.id"), nullable=True)
 
-    # If a network, wether an IP Address can be allocated in this subnet
-    can_allocate = Column(Boolean, nullable=False)
+    network_address = Column(VARBINARY(16), nullable=False, index=True)
+    broadcast_address = Column(VARBINARY(16), nullable=False, index=True)
 
-    # Whether the Network is a single IP address
-    is_ipaddress = Column(Boolean, nullable=False)
+    prefix_length = Column(Integer, nullable=False, index=True)
 
-    prefix_length = Column(Integer, nullable=False)
+    # Simple boolean
+    is_ip = Column(Boolean, nullable=False, default=False, index=True)
+
+    @classmethod
+    def create(cls, session, site_id, cidr, attributes=None):
+
+        if attributes is None:
+            attributes = {}
+
+        network = ipaddress.ip_network(cidr)
+
+        is_ip = False
+        if network.network_address == network.broadcast_address:
+            is_ip = True
+
+        kwargs = {
+            "site_id": site_id,
+            "ip_version": network.ip_version,
+            "network_address": network.network_address.packed,
+            "broadcast_address": network.broadcast_address.packed,
+            "prefix_length": network.prefixlen,
+            "is_ip": is_ip,
+        }
+
+        obj = cls(**kwargs)
+
+        # TODO(gary): Find parent id
+        return obj
 
 
 class Hostname(Model):
@@ -130,18 +167,19 @@ class Hostname(Model):
 
     id = Column(Integer, primary_key=True)
     network_id = Column(Integer, ForeignKey("networks.id"), nullable=False)
+    # Not unique to allow for secondary round-robin names for an IP
     name = Column(String, nullable=False)
     # The primary hostname will be used for reverse DNS. Only one primary
     # hostname is allowed.
-    primary = Column(Boolean, nullable=False)
+    primary = Column(Boolean, nullable=False, index=True)
 
 
-class Attribute(Model):
+class NetworkAttribute(Model):
 
-    __tablename__ = "attributes"
+    __tablename__ = "network_attributes"
     __table_args__ = (
         Index(
-            "site_id_name_idx",
+            "name_idx",
             "site_id", "name",
             unique=True
         ),
@@ -166,9 +204,9 @@ class Attribute(Model):
 
 
 
-class NetworkAttribute(Model):
+class NetworkAttributeValue(Model):
 
-    __tablename__ = "network_attributes"
+    __tablename__ = "network_attribute_values"
 
     id = Column(Integer, primary_key=True)
     attribute_id = Column(Integer, ForeignKey("attributes.id"), nullable=False)
@@ -178,16 +216,3 @@ class NetworkAttribute(Model):
     # Whether this attribute was explicitly added. This is important
     # if the attribute has been cascaded to an IP
     explicit = Column(Boolean, nullable=False)
-
-
-class NetworkTree(Model):
-
-    __tablename__ = "network_tree"
-
-    id = Column(Integer, primary_key=True)
-
-    parent_id = Column(Integer, ForeignKey("networks.id"), nullable=True)
-    child_id = Column(Integer, ForeignKey("networks.id"), nullable=False)
-
-    distance = Column(SmallInteger)
-
