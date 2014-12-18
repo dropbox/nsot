@@ -1,23 +1,19 @@
-import json
-import os
 import pytest
 
 from nsot import models
 
+from .fixtures import session
 
-@pytest.fixture
-def session(request, tmpdir):
-    db_path = tmpdir.join("nsot.sqlite")
-    db_engine = models.get_db_engine("sqlite:///%s" % db_path)
 
-    models.Model.metadata.create_all(db_engine)
-    Session.configure(bind=db_engine)
-    session = Session()
+def test_site_creation(session):
+    models.Site(
+        name="Test Site",
+        description="This is a Test Site."
+    ).add(session)
+    session.commit()
 
-    def fin():
-        session.close()
-        # Useful if testing against MySQL
-        #models.Model.metadata.drop_all(db_engine)
-    request.addfinalizer(fin)
-
-    return session
+    sites = session.query(models.Site).all()
+    assert len(sites) == 1
+    assert sites[0].id == 1
+    assert sites[0].name == "Test Site"
+    assert sites[0].description == "This is a Test Site."

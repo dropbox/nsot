@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 from datetime import datetime
+from operator import attrgetter
 import functools
 import ipaddress
 import json
@@ -111,8 +112,8 @@ class Network(Model):
     __tablename__ = "networks"
     __table_args__ = (
         Index(
-            "network_broadcast_idx",
-            "site_id", "ip_version", "network_address", "broadcast_address",
+            "cidr_idx",
+            "site_id", "ip_version", "network_address", "prefix_length",
             unique=True
         ),
     )
@@ -120,13 +121,15 @@ class Network(Model):
     id = Column(Integer, primary_key=True)
     site_id = Column(Integer, ForeignKey("sites.id"), nullable=False, index=True)
 
-    ip_version = Column(Enum(4, 6), nullable=False, index=True)
+    ip_version = Column(Enum("4", "6"), nullable=False, index=True)
 
     # Root networks will be NULL while other networks will point to
     # their supernet.
     parent_id = Column(Integer, ForeignKey("networks.id"), nullable=True)
 
     network_address = Column(VARBINARY(16), nullable=False, index=True)
+    # While derivable from network/prefix this is useful as it enables
+    # easy querys of the nested set variety.
     broadcast_address = Column(VARBINARY(16), nullable=False, index=True)
 
     prefix_length = Column(Integer, nullable=False, index=True)
@@ -134,9 +137,108 @@ class Network(Model):
     # Simple boolean
     is_ip = Column(Boolean, nullable=False, default=False, index=True)
 
+    # Attributes is a Serialized LOB field. Lookups of these attributes
+    # is done against an Inverted Index table
+    _attributes = Column("attributes", Text, nullable=False)
+
+    @property
+    def attributes(self):
+        return json.loads(self._attributes)
+
+    @attributes.setter
+    def attributes(self, attributes):
+        if not isinstance(attributes, dict):
+            raise TypeError("Expected dict.")
+
+        for key, value in attributes.iteritems():
+            if not isinstance(key, basestring):
+                raise ValueError("Attribute keys must be a string type")
+            if not isinstance(value, basestring):
+                raise ValueError("Attribute values must be a string type")
+
+        self._attributes = json.dumps(attributes)
+
+    def supernets(self, session, direct=False, for_update=False):
+        """ Get networks that are a supernet of a network.
+
+            Args:
+                direct: Only return direct supernet.
+                for_update: Lock these rows because they're selected for updating.
+
+        """
+        query = session.query(Network)
+        if for_update:
+            query = query.with_for_update()
+
+        return query.filter(
+            Network.is_ip == False,
+            Network.ip_version == self.ip_version,
+            Network.prefix_length < self.prefix_length,
+            Network.network_address <= self.network_address,
+            Network.broadcast_address >= self.broadcast_address
+        ).all()
+
+    def subnets(self, session, direct=False):
+        """ Get networks that are subnets of a network.
+
+            Args:
+                direct: Only return direct subnets.
+        """
+        query = session.query(Network)
+        return query.filter(
+            Network.is_ip == False,
+            Network.ip_version == self.ip_version,
+            Network.prefix_length > self.prefix_length,
+            Network.network_address >= self.network_address,
+            Network.broadcast_address <= self.broadcast_address
+        ).all()
+
+    def ips(self, session):
+        """ Get IP addresses that are under a network.
+
+            Args:
+                direct: Only return direct IP addresses.
+        """
+        query = session.query(Network)
+        return query.filter(
+            Network.is_ip == True,
+            Network.ip_version == self.ip_version,
+            Network.prefix_length > self.prefix_length,
+            Network.network_address >= self.network_address,
+            Network.broadcast_address <= self.broadcast_address
+        ).all()
+
+    @property
+    def cidr(self):
+        return "{}/{}".format(
+            ipaddress.ip_address(self.network_address),
+            self.prefix_length
+        )
+
+    def __repr__(self):
+        return "Network<{}>".format(self.cidr)
+
+    def reparent_subnets(self, session):
+        query = session.query(Network).filter(
+            Network.parent_id == self.parent_id,
+            Network.id != self.id  # Don't include yourself...
+        )
+
+        # When adding a new root we're going to reparenting a subset
+        # of roots so it's a bit more complicated so limit to all subnetworks
+        if self.parent_id is None:
+            query = query.filter(
+                Network.is_ip == False,
+                Network.ip_version == self.ip_version,
+                Network.prefix_length > self.prefix_length,
+                Network.network_address >= self.network_address,
+                Network.broadcast_address <= self.broadcast_address
+            )
+
+        query.update({Network.parent_id: self.id})
+
     @classmethod
     def create(cls, session, site_id, cidr, attributes=None):
-
         if attributes is None:
             attributes = {}
 
@@ -148,16 +250,31 @@ class Network(Model):
 
         kwargs = {
             "site_id": site_id,
-            "ip_version": network.ip_version,
+            "ip_version": str(network.version),
             "network_address": network.network_address.packed,
             "broadcast_address": network.broadcast_address.packed,
             "prefix_length": network.prefixlen,
             "is_ip": is_ip,
+            "attributes": attributes,
         }
 
-        obj = cls(**kwargs)
+        try:
+            obj = cls(**kwargs)
+            obj.add(session)
+            # Need to get a primary key for the new network to update subnets.
+            session.flush()
 
-        # TODO(gary): Find parent id
+            supernets = obj.supernets(session, for_update=True)
+            if supernets:
+                parent = max(supernets, key=attrgetter("prefix_length"))
+                obj.parent_id = parent.id
+
+            obj.reparent_subnets(session)
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise  # TODO(gary) Raise better exception
+
         return obj
 
 
@@ -203,16 +320,23 @@ class NetworkAttribute(Model):
         }
 
 
+class NetworkAttributeIndex(Model):
+    """ An Inverted Index for looking up Networks by their attributes."""
 
-class NetworkAttributeValue(Model):
-
-    __tablename__ = "network_attribute_values"
+    __tablename__ = "network_attribute_index"
+    __table_args__ = (
+        # Ensure that each network can only have one of each attribute
+        Index(
+            "single_attr_idx",
+            "network_id", "attribute_id",
+            unique=True
+        ),
+    )
 
     id = Column(Integer, primary_key=True)
-    attribute_id = Column(Integer, ForeignKey("attributes.id"), nullable=False)
-    network_id = Column(Integer, ForeignKey("networks.id"), nullable=False)
 
-    value = Column(String, nullable=False)
-    # Whether this attribute was explicitly added. This is important
-    # if the attribute has been cascaded to an IP
-    explicit = Column(Boolean, nullable=False)
+    name = Column(String, nullable=False, index=True)
+    value = Column(String, nullable=False, index=True)
+
+    network_id = Column(Integer, ForeignKey("networks.id"), nullable=False)
+    attribute_id = Column(Integer, ForeignKey("network_attributes.id"), nullable=False)

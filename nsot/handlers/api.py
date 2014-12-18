@@ -1,5 +1,3 @@
-import re
-
 from tornado.web import RequestHandler, urlparse
 from tornado.escape import utf8
 
@@ -7,9 +5,7 @@ from sqlalchemy.exc import IntegrityError
 
 from .. import models
 from .. import util
-
-
-ATTRIBUTE_NAME = re.compile(r"^[a-z][a-z0-9_]*$")
+from .. import constants
 
 
 class ApiHandler(RequestHandler):
@@ -124,21 +120,20 @@ class SiteHandler(ApiHandler):
         })
 
 
-class AttributesHandler(ApiHandler):
+class NetworkAttributesHandler(ApiHandler):
 
     def post(self, site_id):
-        """ Create a new Attribute."""
+        """ Create a new NetworkAttribute."""
 
         name = self.get_argument("name")
         required = self.get_argument("required", None)
         cascade = self.get_argument("cascade", None)
 
-
-        if not ATTRIBUTE_NAME.match(name):
+        if not constants.ATTRIBUTE_NAME.match(name):
             return self.badrequest("Invalid name parameter.")
 
         try:
-            attribute = models.Attribute(site_id=site_id, name=name).add(self.session)
+            attribute = models.NetworkAttribute(site_id=site_id, name=name).add(self.session)
             if required is not None:
                 attribute.required = util.qp_to_bool(required)
             if cascade is not None:
@@ -147,39 +142,39 @@ class AttributesHandler(ApiHandler):
         except IntegrityError as err:
             return self.conflict(str(err.orig))
 
-        self.created("/api/sites/{}/attributes/{}".format(site_id, attribute.id))
+        self.created("/api/sites/{}/network_attributes/{}".format(site_id, attribute.id))
 
     def get(self, site_id):
-        """ Return all Attributes."""
-        attributes = self.session.query(models.Attribute).all()
+        """ Return all NetworkAttributes."""
+        attributes = self.session.query(models.NetworkAttribute).all()
         self.success({
-            "attributes": [attribute.to_dict() for attribute in attributes],
+            "network_attributes": [attribute.to_dict() for attribute in attributes],
         })
 
 
-class AttributeHandler(ApiHandler):
+class NetworkAttributeHandler(ApiHandler):
     def get(self, site_id, attribute_id):
-        attribute = self.session.query(models.Attribute).filter_by(
+        attribute = self.session.query(models.NetworkAttribute).filter_by(
             id=attribute_id,
             site_id=site_id
         ).scalar()
         if not attribute:
             return self.notfound(
-                "No such Attribute found at (site_id, id) = ({}, {})".format(site_id, attribute_id)
+                "No such NetworkAttribute found at (site_id, id) = ({}, {})".format(site_id, attribute_id)
             )
 
         self.success({
-            "attribute": attribute.to_dict(),
+            "network_attribute": attribute.to_dict(),
         })
 
     def put(self, site_id, attribute_id):
-        attribute = self.session.query(models.Attribute).filter_by(
+        attribute = self.session.query(models.NetworkAttribute).filter_by(
             id=attribute_id,
             site_id=site_id
         ).scalar()
         if not attribute:
             return self.notfound(
-                "No such Attribute found at (site_id, id) = ({}, {})".format(site_id, attribute_id)
+                "No such NetworkAttribute found at (site_id, id) = ({}, {})".format(site_id, attribute_id)
             )
 
         name = self.get_argument("name", None)
@@ -205,17 +200,17 @@ class AttributeHandler(ApiHandler):
             return self.conflict(str(err.orig))
 
         self.success({
-            "attribute": attribute.to_dict(),
+            "network_attribute": attribute.to_dict(),
         })
 
     def delete(self, site_id, attribute_id):
-        attribute = self.session.query(models.Attribute).filter_by(
+        attribute = self.session.query(models.NetworkAttribute).filter_by(
             id=attribute_id,
             site_id=site_id
         ).scalar()
         if not attribute:
             return self.notfound(
-                "No such Attribute found at (site_id, id) = ({}, {})".format(site_id, attribute_id)
+                "No such NetworkAttribute found at (site_id, id) = ({}, {})".format(site_id, attribute_id)
             )
 
         # TODO(gary): Remove all references to this attribute
@@ -223,7 +218,7 @@ class AttributeHandler(ApiHandler):
         self.session.commit()
 
         self.success({
-            "message": "Attribute {} deleted from Site {}.".format(attribute_id, site_id),
+            "message": "NetworkAttribute {} deleted from Site {}.".format(attribute_id, site_id),
         })
 
 
