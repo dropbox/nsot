@@ -158,17 +158,28 @@ class Network(Model):
 
         self._attributes = json.dumps(attributes)
 
-    def supernets(self, session, direct=False, for_update=False):
+    def supernets(self, session, direct=False, discover_mode=False, for_update=False):
         """ Get networks that are a supernet of a network.
 
             Args:
                 direct: Only return direct supernet.
+                discover_mode: Prevent new networks from bailing for missing parent_id
                 for_update: Lock these rows because they're selected for updating.
 
         """
+
+        if self.parent_id is None and not discover_mode:
+            return []
+
+        if discover_mode and direct:
+            raise ValueError("direct is incompatible with discover_mode")
+
         query = session.query(Network)
         if for_update:
             query = query.with_for_update()
+
+        if direct:
+            return query.filter(Network.id == self.parent_id).all()
 
         return query.filter(
             Network.is_ip == False,
@@ -178,30 +189,33 @@ class Network(Model):
             Network.broadcast_address >= self.broadcast_address
         ).all()
 
-    def subnets(self, session, direct=False):
+    def subnets(self, session, include_networks=True, include_ips=False, direct=False, for_update=False):
         """ Get networks that are subnets of a network.
 
             Args:
+                include_networks: Whether the response should include non-ip address networks
+                include_ips: Whether the response should include ip addresses
                 direct: Only return direct subnets.
+                for_update: Lock these rows because they're selected for updating.
         """
-        query = session.query(Network)
-        return query.filter(
-            Network.is_ip == False,
-            Network.ip_version == self.ip_version,
-            Network.prefix_length > self.prefix_length,
-            Network.network_address >= self.network_address,
-            Network.broadcast_address <= self.broadcast_address
-        ).all()
 
-    def ips(self, session):
-        """ Get IP addresses that are under a network.
+        if not any([include_networks, include_ips]) or self.is_ip:
+            return []
 
-            Args:
-                direct: Only return direct IP addresses.
-        """
         query = session.query(Network)
+        if for_update:
+            query = query.with_for_update()
+
+        if not all([include_networks, include_ips]):
+            if include_networks:
+                query = query.filter(Network.is_ip == False)
+            if include_ips:
+                query = query.filter(Network.is_ip == True)
+
+        if direct:
+            return query.filter(Network.parent_id == self.id).all()
+
         return query.filter(
-            Network.is_ip == True,
             Network.ip_version == self.ip_version,
             Network.prefix_length > self.prefix_length,
             Network.network_address >= self.network_address,
@@ -264,7 +278,7 @@ class Network(Model):
             # Need to get a primary key for the new network to update subnets.
             session.flush()
 
-            supernets = obj.supernets(session, for_update=True)
+            supernets = obj.supernets(session, discover_mode=True, for_update=True)
             if supernets:
                 parent = max(supernets, key=attrgetter("prefix_length"))
                 obj.parent_id = parent.id

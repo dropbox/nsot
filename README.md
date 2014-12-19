@@ -21,12 +21,16 @@ as:
 pip install nsot
 ```
 
-Running a Test instance
-==========================
+### Running a Test instance
 
 NSoT runs behind a reverse proxy that handles Authentication and so expects
 a valid, authenticated, user account. I've included a test proxy for running
 on development instances.
+
+The first thing you'll want to do is get your environment setup. I reccomend
+setting up a virtualenv for development. Once you've activated your virtualenv
+you can `pip install` either the `requirements.txt` or the `requirements-dev.txt`
+file. The latter is useful if you plan to modify or run the tests and/or docs.
 
 Creating a development instance:
 

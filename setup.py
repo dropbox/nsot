@@ -29,9 +29,6 @@ kwargs = {
     "package_data": package_data,
     "scripts": ["bin/nsot-server", "bin/nsot-ctl"],
     "description": "Network Source of Truth (IP Address Management).",
-    # PyPi, despite not parsing markdown, will prefer the README.md to the
-    # standard README. Explicitly read it here.
-    "long_description": open("README").read(),
     "author": "Gary M. Josack",
     "maintainer": "Gary M. Josack",
     "author_email": "gary@dropbox.com",
