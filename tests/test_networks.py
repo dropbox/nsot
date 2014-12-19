@@ -35,21 +35,26 @@ def test_network_create_hostbits_set(session, site):
 
 
 def test_network_attributes(session, site):
+    models.NetworkAttribute(site_id=site.id, name="vlan").add(session)
+
     network = models.Network.create(session, site.id, u"10.0.0.0/8", {
         "vlan": "34"
     })
 
-    assert network.attributes == {"vlan": "34"}
+    assert network.get_attributes() == {"vlan": "34"}
 
     # Verify property successfully zeros out attributes
-    network.attributes = {}
-    assert network.attributes == {}
+    network.set_attributes({})
+    assert network.get_attributes() == {}
 
     with pytest.raises(TypeError):
-        network.attributes = None
+        network.set_attributes(None)
 
     with pytest.raises(ValueError):
-        network.attributes = {0: "value"}
+        network.set_attributes({0: "value"})
 
     with pytest.raises(ValueError):
-        network.attributes = {"key": 0}
+        network.set_attributes({"key": 0})
+
+    with pytest.raises(ValueError):
+        network.set_attributes({"made_up": "value"})

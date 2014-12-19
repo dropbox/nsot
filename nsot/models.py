@@ -139,22 +139,46 @@ class Network(Model):
 
     # Attributes is a Serialized LOB field. Lookups of these attributes
     # is done against an Inverted Index table
-    _attributes = Column("attributes", Text, nullable=False)
+    _attributes = Column("attributes", Text)
 
-    @property
-    def attributes(self):
+    def get_attributes(self):
+        if self._attributes is None:
+            return {}
         return json.loads(self._attributes)
 
-    @attributes.setter
-    def attributes(self, attributes):
+    def set_attributes(self, attributes, valid_attributes=None):
         if not isinstance(attributes, dict):
             raise TypeError("Expected dict.")
 
-        for key, value in attributes.iteritems():
-            if not isinstance(key, basestring):
-                raise ValueError("Attribute keys must be a string type")
+        if valid_attributes is None:
+            valid_attributes = NetworkAttribute.all_by_name(self.session)
+
+        inserts = []
+        for name, value in attributes.iteritems():
+            if not isinstance(name, basestring):
+                raise ValueError("Attribute names must be a string type")
             if not isinstance(value, basestring):
                 raise ValueError("Attribute values must be a string type")
+            if name not in valid_attributes:
+                raise ValueError("Attribute name (%s) invalid." % name)
+
+            attribute_meta = valid_attributes[name]
+            inserts.append({
+                "network_id": self.id,
+                "attribute_id": attribute_meta["id"],
+                "name": name,
+                "value": value,
+            })
+
+        index_table = NetworkAttributeIndex.__table__
+
+        # Always purge the index
+        self.session.execute(
+            index_table.delete().where(index_table.c.network_id == self.id)
+        )
+
+        if inserts:
+            self.session.execute(index_table.insert(), inserts)
 
         self._attributes = json.dumps(attributes)
 
@@ -269,7 +293,6 @@ class Network(Model):
             "broadcast_address": network.broadcast_address.packed,
             "prefix_length": network.prefixlen,
             "is_ip": is_ip,
-            "attributes": attributes,
         }
 
         try:
@@ -277,6 +300,11 @@ class Network(Model):
             obj.add(session)
             # Need to get a primary key for the new network to update subnets.
             session.flush()
+            # Attributes have to be added after the initial flush since we need the
+            # id to setup the inverted index. This will mean we have to send another
+            # update later. This could be improved by separating the index step but
+            # probably isn't worth it.
+            obj.set_attributes(attributes)
 
             supernets = obj.supernets(session, discover_mode=True, for_update=True)
             if supernets:
@@ -323,6 +351,13 @@ class NetworkAttribute(Model):
 
     required = Column(Boolean, default=False, nullable=False)
     cascade = Column(Boolean, default=True, nullable=False)
+
+    @classmethod
+    def all_by_name(cls, session):
+        return {
+            attribute.name: attribute.to_dict()
+            for attribute in session.query(cls).all()
+        }
 
     def to_dict(self):
         return {
