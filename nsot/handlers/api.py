@@ -127,7 +127,6 @@ class NetworkAttributesHandler(ApiHandler):
 
         name = self.get_argument("name")
         required = self.get_argument("required", None)
-        cascade = self.get_argument("cascade", None)
 
         if not constants.ATTRIBUTE_NAME.match(name):
             return self.badrequest("Invalid name parameter.")
@@ -136,8 +135,6 @@ class NetworkAttributesHandler(ApiHandler):
             attribute = models.NetworkAttribute(site_id=site_id, name=name).add(self.session)
             if required is not None:
                 attribute.required = util.qp_to_bool(required)
-            if cascade is not None:
-                attribute.cascade = util.qp_to_bool(cascade)
             self.session.commit()
         except IntegrityError as err:
             return self.conflict(str(err.orig))
@@ -179,7 +176,6 @@ class NetworkAttributeHandler(ApiHandler):
 
         name = self.get_argument("name", None)
         required = self.get_argument("required", None)
-        cascade = self.get_argument("cascade", None)
 
         try:
             if name is not None:
@@ -187,14 +183,9 @@ class NetworkAttributeHandler(ApiHandler):
                     return self.badrequest("Invalid name parameter.")
                 attribute.name = name
 
-            # TODO(gary): Verify that all networks contain this attribute
-            #             or fail when changed to True
             if required is not None:
                 attribute.required = util.qp_to_bool(required)
-            # TODO(gary): When changed to true add transitive attributes. When
-            #             changed to false, remove transitive attributes.
-            if cascade is not None:
-                attribute.cascade = util.qp_to_bool(cascade)
+
             self.session.commit()
         except IntegrityError as err:
             return self.conflict(str(err.orig))

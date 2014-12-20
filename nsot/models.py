@@ -350,7 +350,6 @@ class NetworkAttribute(Model):
     name = Column(String, nullable=False)
 
     required = Column(Boolean, default=False, nullable=False)
-    cascade = Column(Boolean, default=True, nullable=False)
 
     @classmethod
     def all_by_name(cls, session):
@@ -365,7 +364,6 @@ class NetworkAttribute(Model):
             "site_id": self.site_id,
             "name": self.name,
             "required": self.required,
-            "cascade": self.cascade,
         }
 
 
