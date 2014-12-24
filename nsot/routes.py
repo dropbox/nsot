@@ -19,7 +19,6 @@ HANDLERS = [
     (r"/api/sites/(?P<site_id>\d+)/ips", api.IpsHandler),
     (r"/api/sites/(?P<site_id>\d+)/ips/(?P<network_id>\d+)", api.IpHandler),
     (r"/api/sites/(?P<site_id>\d+)/ips/(?P<network_id>\d+)/networks", api.IpNetworksHandler),
-    (r"/api/sites/(?P<site_id>\d+)/ips/(?P<network_id>\d+)/hostnames", api.IpHostnamesHandler),
 
     (r"/.*", api.NotFoundHandler),
 

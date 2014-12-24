@@ -18,6 +18,8 @@ from sqlalchemy.sql import func, label, literal
 from sqlalchemy.types import Integer, String, Text, Boolean, SmallInteger
 from sqlalchemy.types import Enum, DateTime, VARBINARY
 
+from . import exc
+
 
 class Session(_Session):
     """ Custom session meant to utilize add on the model.
@@ -100,7 +102,8 @@ class User(Model):
     @validates("email")
     def validate_email(self, key, value):
         # TODO(gary): Use a better validator
-        assert "@" in value
+        if "@" not in value:
+            raise exc.ValidationError("Must contain a valid e-mail address")
         return value
 
 
@@ -112,6 +115,12 @@ class Site(Model):
     id = Column(Integer, primary_key=True)
     name = Column(String(length=32), unique=True, nullable=False)
     description = Column(Text)
+
+    @validates("name")
+    def validate_email(self, key, value):
+        if not value:
+            raise exc.ValidationError("Name is a required field.")
+        return value
 
     @classmethod
     def create(cls, session, user_id, **kwargs):
@@ -174,7 +183,9 @@ class Network(Model):
 
     def set_attributes(self, attributes, valid_attributes=None):
         if not isinstance(attributes, dict):
-            raise TypeError("Expected dict.")
+            raise exc.ValidationError("Expected dictionary but received {}".format(
+                type(attributes)
+            ))
 
         if valid_attributes is None:
             valid_attributes = NetworkAttribute.all_by_name(self.session)
@@ -182,11 +193,11 @@ class Network(Model):
         inserts = []
         for name, value in attributes.iteritems():
             if not isinstance(name, basestring):
-                raise ValueError("Attribute names must be a string type")
+                raise exc.ValidationError("Attribute names must be a string type")
             if not isinstance(value, basestring):
-                raise ValueError("Attribute values must be a string type")
+                raise exc.ValidationError("Attribute values must be a string type")
             if name not in valid_attributes:
-                raise ValueError("Attribute name (%s) invalid." % name)
+                raise exc.ValidationError("Attribute name (%s) invalid." % name)
 
             attribute_meta = valid_attributes[name]
             inserts.append({
@@ -338,25 +349,13 @@ class Network(Model):
                 obj.parent_id = parent.id
 
             obj.reparent_subnets(session)
+
             session.commit()
         except Exception:
             session.rollback()
             raise
 
         return obj
-
-
-class Hostname(Model):
-
-    __tablename__ = "hostnames"
-
-    id = Column(Integer, primary_key=True)
-    network_id = Column(Integer, ForeignKey("networks.id"), nullable=False)
-    # Not unique to allow for secondary round-robin names for an IP
-    name = Column(String, nullable=False)
-    # The primary hostname will be used for reverse DNS. Only one primary
-    # hostname is allowed.
-    primary = Column(Boolean, nullable=False, index=True)
 
 
 class NetworkAttribute(Model):

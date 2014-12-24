@@ -1,5 +1,6 @@
 import pytest
 
+from nsot import exc
 from nsot import models
 
 from .fixtures import session, site, user
@@ -47,14 +48,14 @@ def test_network_attributes(session, site):
     network.set_attributes({})
     assert network.get_attributes() == {}
 
-    with pytest.raises(TypeError):
+    with pytest.raises(exc.ValidationError):
         network.set_attributes(None)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(exc.ValidationError):
         network.set_attributes({0: "value"})
 
-    with pytest.raises(ValueError):
+    with pytest.raises(exc.ValidationError):
         network.set_attributes({"key": 0})
 
-    with pytest.raises(ValueError):
+    with pytest.raises(exc.ValidationError):
         network.set_attributes({"made_up": "value"})
