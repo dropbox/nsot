@@ -23,3 +23,7 @@ debug: true
 #
 # Type: str
 database: "sqlite:///nsot.sqlite"
+
+# Header to check for Authenticated Email
+# Type: str
+user_auth_header: "X-NSoT-Email"

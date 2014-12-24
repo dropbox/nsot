@@ -2,7 +2,7 @@ import pytest
 
 from nsot import models
 
-from .fixtures import session, site
+from .fixtures import session, site, user
 
 
 def test_networks_creation_reparenting(session, site):

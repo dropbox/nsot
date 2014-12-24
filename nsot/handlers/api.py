@@ -6,6 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from .. import models
 from .. import util
 from .. import constants
+from ..settings import settings
 
 
 class ApiHandler(RequestHandler):
@@ -14,6 +15,23 @@ class ApiHandler(RequestHandler):
 
     def on_finish(self):
         self.session.close()
+
+    def get_current_user(self):
+        email = self.request.headers.get(settings.user_auth_header)
+        if not email:
+            return
+
+        user = self.session.query(models.User).filter_by(email=email).first()
+        if not user:
+            user = models.User(email=email).add(self.session)
+            self.session.commit()
+
+        return user
+
+    def prepare(self):
+        if not self.current_user or not self.current_user.enabled:
+            self.error_status(403, "Not logged in.")
+            return
 
     def error(self, errors):
         errors = [
@@ -62,8 +80,9 @@ class SitesHandler(ApiHandler):
         description = self.get_argument("description", "")
 
         try:
-            site = models.Site(name=name, description=description).add(self.session)
-            self.session.commit()
+            site = models.Site.create(
+                self.session, self.current_user.id, name=name, description=description
+            )
         except IntegrityError as err:
             return self.conflict(str(err.orig))
 

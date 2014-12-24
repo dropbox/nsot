@@ -11,7 +11,7 @@ from sqlalchemy import create_engine, or_, union_all, desc
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import relationship, object_session, aliased
+from sqlalchemy.orm import relationship, object_session, aliased, validates
 from sqlalchemy.orm import sessionmaker, Session as _Session
 from sqlalchemy.schema import Column, ForeignKey, Index
 from sqlalchemy.sql import func, label, literal
@@ -89,6 +89,21 @@ def flush_transaction(method):
     return wrapper
 
 
+class User(Model):
+
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True)
+    email = Column(String, unique=True, nullable=False)
+    enabled = Column(Boolean, default=True, nullable=False)
+
+    @validates("email")
+    def validate_email(self, key, value):
+        # TODO(gary): Use a better validator
+        assert "@" in value
+        return value
+
+
 class Site(Model):
     """ A namespace for subnets, ipaddresses, attributes. """
 
@@ -97,6 +112,17 @@ class Site(Model):
     id = Column(Integer, primary_key=True)
     name = Column(String(length=32), unique=True, nullable=False)
     description = Column(Text)
+
+    @classmethod
+    def create(cls, session, user_id, **kwargs):
+        try:
+            site = cls(**kwargs).add(session)
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
+
+        return site
 
     def to_dict(self):
         return {
@@ -315,7 +341,7 @@ class Network(Model):
             session.commit()
         except Exception:
             session.rollback()
-            raise  # TODO(gary) Raise better exception
+            raise
 
         return obj
 
@@ -387,3 +413,28 @@ class NetworkAttributeIndex(Model):
 
     network_id = Column(Integer, ForeignKey("networks.id"), nullable=False)
     attribute_id = Column(Integer, ForeignKey("network_attributes.id"), nullable=False)
+
+
+class Counter(Model):
+
+    __tablename__ = "counters"
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String, unique=True, nullable=False)
+    count = Column(Integer, nullable=False, default=0)
+    last_modified = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    @classmethod
+    def incr(cls, session, name, count=1):
+        counter = session.query(cls).filter_by(name=name).scalar()
+        if counter is None:
+            counter = cls(name=name, count=count).add(session)
+            session.flush()
+            return counter
+        counter.count = cls.count + count
+        session.flush()
+        return counter
+
+    @classmethod
+    def decr(cls, session, name, count=1):
+        return cls.incr(session, name, -count)
