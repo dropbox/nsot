@@ -29,14 +29,23 @@ class ApiHandler(RequestHandler):
             self.error_status(403, "Not logged in.")
             return
 
-    def error(self, errors):
-        errors = [
-            {"code": code, "message": message} for code, message in errors
-        ]
+    def head(self, *args, **kwargs):
+        self.error_status(405, "Method not supported.")
 
+    get     = head
+    post    = head
+    delete  = head
+    patch   = head
+    put     = head
+    options = head
+
+    def error(self, code, message):
         self.write({
             "status": "error",
-            "errors": errors,
+            "error": {
+                "code": code,
+                "message": message,
+            },
         })
 
     def success(self, data):
@@ -47,7 +56,7 @@ class ApiHandler(RequestHandler):
 
     def error_status(self, status, message):
         self.set_status(status)
-        self.error([(status, message)])
+        self.error(status, message)
         self.finish()
 
     def badrequest(self, message):
