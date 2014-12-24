@@ -12,8 +12,12 @@ class SitesHandler(ApiHandler):
 
     def post(self):
         """ Create a new Site."""
-        name = self.get_argument("name")
-        description = self.get_argument("description", "")
+
+        try:
+            name = self.jbody["name"]
+            description = self.jbody.get("description", "")
+        except KeyError as err:
+            return self.badrequest("Missing Required Argument: {}".format(err.message))
 
         try:
             site = models.Site.create(
@@ -48,14 +52,15 @@ class SiteHandler(ApiHandler):
         if not site:
             return self.notfound("No such Site found at id {}".format(site_id))
 
-        name = self.get_argument("name", None)
-        description = self.get_argument("description", None)
+        try:
+            name = self.jbody["name"]
+            description = self.jbody.get("description", "")
+        except KeyError as err:
+            return self.badrequest("Missing Required Argument: {}".format(err.message))
 
         try:
-            if name is not None:
-                site.name = name
-            if description is not None:
-                site.description = description
+            site.name = name
+            site.description = description
             self.session.commit()
         except IntegrityError as err:
             return self.conflict(str(err.orig))
@@ -82,14 +87,19 @@ class NetworkAttributesHandler(ApiHandler):
     def post(self, site_id):
         """ Create a new NetworkAttribute."""
 
-        name = self.get_argument("name")
-        required = self.get_argument("required", None)
+        try:
+            name = self.jbody["name"]
+            required = self.jbody.get("required")
+        except KeyError as err:
+            return self.badrequest("Missing Required Argument: {}".format(err.message))
 
         if not constants.ATTRIBUTE_NAME.match(name):
             return self.badrequest("Invalid name parameter.")
 
         try:
-            attribute = models.NetworkAttribute(site_id=site_id, name=name).add(self.session)
+            attribute = models.NetworkAttribute(
+                site_id=site_id, name=name
+            ).add(self.session)
             if required is not None:
                 attribute.required = util.qp_to_bool(required)
             self.session.commit()
@@ -114,7 +124,9 @@ class NetworkAttributeHandler(ApiHandler):
         ).scalar()
         if not attribute:
             return self.notfound(
-                "No such NetworkAttribute found at (site_id, id) = ({}, {})".format(site_id, attribute_id)
+                "No such NetworkAttribute found at (site_id, id) = ({}, {})".format(
+                    site_id, attribute_id
+                )
             )
 
         self.success({
@@ -128,21 +140,23 @@ class NetworkAttributeHandler(ApiHandler):
         ).scalar()
         if not attribute:
             return self.notfound(
-                "No such NetworkAttribute found at (site_id, id) = ({}, {})".format(site_id, attribute_id)
+                "No such NetworkAttribute found at (site_id, id) = ({}, {})".format(
+                    site_id, attribute_id
+                )
             )
 
-        name = self.get_argument("name", None)
-        required = self.get_argument("required", None)
+        try:
+            name = self.jbody["name"]
+            required = self.jbody.get("required")
+        except KeyError as err:
+            return self.badrequest("Missing Required Argument: {}".format(err.message))
+
+        if not constants.ATTRIBUTE_NAME.match(name):
+            return self.badrequest("Invalid name parameter.")
 
         try:
-            if name is not None:
-                if not ATTRIBUTE_NAME.match(name):
-                    return self.badrequest("Invalid name parameter.")
-                attribute.name = name
-
-            if required is not None:
-                attribute.required = util.qp_to_bool(required)
-
+            attribute.name = name
+            attribute.required = util.qp_to_bool(required)
             self.session.commit()
         except IntegrityError as err:
             return self.conflict(str(err.orig))
@@ -158,7 +172,9 @@ class NetworkAttributeHandler(ApiHandler):
         ).scalar()
         if not attribute:
             return self.notfound(
-                "No such NetworkAttribute found at (site_id, id) = ({}, {})".format(site_id, attribute_id)
+                "No such NetworkAttribute found at (site_id, id) = ({}, {})".format(
+                    site_id, attribute_id
+                )
             )
 
         # TODO(gary): Remove all references to this attribute
@@ -166,7 +182,9 @@ class NetworkAttributeHandler(ApiHandler):
         self.session.commit()
 
         self.success({
-            "message": "NetworkAttribute {} deleted from Site {}.".format(attribute_id, site_id),
+            "message": "NetworkAttribute {} deleted from Site {}.".format(
+                attribute_id, site_id
+            ),
         })
 
 

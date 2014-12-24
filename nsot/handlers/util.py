@@ -1,3 +1,4 @@
+import json
 from tornado.web import RequestHandler, urlparse
 from tornado.escape import utf8
 
@@ -8,6 +9,7 @@ from ..settings import settings
 class ApiHandler(RequestHandler):
     def initialize(self):
         self.session = self.application.my_settings.get("db_session")()
+        self._jbody = None
 
     def on_finish(self):
         self.session.close()
@@ -24,10 +26,22 @@ class ApiHandler(RequestHandler):
 
         return user
 
+    @property
+    def jbody(self):
+        if self._jbody is None:
+            if self.request.body:
+                self._jbody = json.loads(self.request.body)
+            else:
+                self._jbody = {}
+        return self._jbody
+
     def prepare(self):
         if not self.current_user or not self.current_user.enabled:
-            self.error_status(403, "Not logged in.")
-            return
+            return self.error_status(403, "Not logged in.")
+
+        if self.request.method.lower() in ("put", "post"):
+            if self.request.headers.get("Content-Type").lower() != "application/json":
+                return self.badrequest("Invalid Content-Type for POST/PUT request.")
 
     def head(self, *args, **kwargs):
         self.error_status(405, "Method not supported.")
