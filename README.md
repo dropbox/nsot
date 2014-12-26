@@ -1,5 +1,7 @@
 # nsot
 
+[![Build Status](https://travis-ci.org/dropbox/nsot.png?branch=master)](https://travis-ci.org/dropbox/nsot)
+
 ### Description
 
 NSoT is a Network Source of Truth API and FE for managing Network Assets.
