@@ -117,7 +117,7 @@ class Site(Model):
     description = Column(Text)
 
     @validates("name")
-    def validate_email(self, key, value):
+    def validate_name(self, key, value):
         if not value:
             raise exc.ValidationError("Name is a required field.")
         return value
@@ -370,11 +370,28 @@ class NetworkAttribute(Model):
     )
 
     id = Column(Integer, primary_key=True)
+
     site_id = Column(Integer, ForeignKey("sites.id"), nullable=False)
-
+    # This is purposely not unique as there is a compound index with site_id.
     name = Column(String, nullable=False)
-
     required = Column(Boolean, default=False, nullable=False)
+
+    @validates("name")
+    def validate_name(self, key, value):
+        if not value:
+            raise exc.ValidationError("Name is a required field.")
+        return value
+
+    @classmethod
+    def create(cls, session, user_id, **kwargs):
+        try:
+            site = cls(**kwargs).add(session)
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
+
+        return site
 
     @classmethod
     def all_by_name(cls, session):

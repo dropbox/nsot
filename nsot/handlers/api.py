@@ -97,16 +97,16 @@ class NetworkAttributesHandler(ApiHandler):
             return self.badrequest("Invalid name parameter.")
 
         try:
-            attribute = models.NetworkAttribute(
-                site_id=site_id, name=name
-            ).add(self.session)
-            if required is not None:
-                attribute.required = util.qp_to_bool(required)
-            self.session.commit()
+            attribute = models.NetworkAttribute.create(
+                session, current_user.id,
+                site_id=site_id, name=name, required=util.qp_to_bool(required)
+            )
         except IntegrityError as err:
             return self.conflict(str(err.orig))
 
-        self.created("/api/sites/{}/network_attributes/{}".format(site_id, attribute.id))
+        self.created("/api/sites/{}/network_attributes/{}".format(
+            site_id, attribute.id
+        ))
 
     def get(self, site_id):
         """ Return all NetworkAttributes."""
@@ -177,7 +177,8 @@ class NetworkAttributeHandler(ApiHandler):
                 )
             )
 
-        # TODO(gary): Remove all references to this attribute
+        # TODO(gary): Remove all references to this attribute or fail via
+        # ON DELETE RESTRICT
         self.session.delete(attribute)
         self.session.commit()
 

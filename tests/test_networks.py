@@ -35,8 +35,8 @@ def test_network_create_hostbits_set(session, site):
         models.Network.create(session, site.id, u"10.0.0.0/0")
 
 
-def test_network_attributes(session, site):
-    models.NetworkAttribute(site_id=site.id, name="vlan").add(session)
+def test_network_attributes(session, user, site):
+    models.NetworkAttribute.create(session, user.id, site_id=site.id, name="vlan")
 
     network = models.Network.create(session, site.id, u"10.0.0.0/8", {
         "vlan": "34"
