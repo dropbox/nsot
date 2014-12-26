@@ -6,19 +6,29 @@ import functools
 import ipaddress
 import json
 import logging
+import time
 
 from sqlalchemy import create_engine, or_, union_all, desc
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship, object_session, aliased, validates
-from sqlalchemy.orm import sessionmaker, Session as _Session
+from sqlalchemy.orm import synonym, sessionmaker, Session as _Session
 from sqlalchemy.schema import Column, ForeignKey, Index
 from sqlalchemy.sql import func, label, literal
 from sqlalchemy.types import Integer, String, Text, Boolean, SmallInteger
 from sqlalchemy.types import Enum, DateTime, VARBINARY
 
 from . import exc
+
+
+RESOURCE_BY_IDX = (
+    "Site", "Network", "NetworkAttribute",
+)
+RESOURCE_BY_NAME = {
+    obj_type: idx
+    for idx, obj_type in enumerate(RESOURCE_BY_IDX)
+}
 
 
 class Session(_Session):
@@ -59,6 +69,27 @@ class Model(object):
         instance.add(session)
 
         return instance, True
+
+    @property
+    def resource_type(self):
+        obj_name = type(self).__name__
+        obj_idx = RESOURCE_BY_NAME.get(obj_name)
+        if obj_idx is None:
+            raise NotImplementedError()
+        return obj_idx
+
+    @classmethod
+    def create(cls, session, user_id, **kwargs):
+        try:
+            obj = cls(**kwargs).add(session)
+            session.flush()
+            Change.create(session, user_id, "Create", obj)
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
+
+        return obj
 
     def add(self, session):
         session._add(self)
@@ -116,22 +147,14 @@ class Site(Model):
     name = Column(String(length=32), unique=True, nullable=False)
     description = Column(Text)
 
+    # All generic resources are expected to have a site_id attribute.
+    site_id = synonym("id")
+
     @validates("name")
     def validate_name(self, key, value):
         if not value:
             raise exc.ValidationError("Name is a required field.")
         return value
-
-    @classmethod
-    def create(cls, session, user_id, **kwargs):
-        try:
-            site = cls(**kwargs).add(session)
-            session.commit()
-        except Exception:
-            session.rollback()
-            raise
-
-        return site
 
     def to_dict(self):
         return {
@@ -175,6 +198,18 @@ class Network(Model):
     # Attributes is a Serialized LOB field. Lookups of these attributes
     # is done against an Inverted Index table
     _attributes = Column("attributes", Text)
+
+    def to_dict(self):
+        network_address = ipaddress.ip_address(self.network_address)
+
+        return {
+            "id": self.id,
+            "site_id": self.site_id,
+            "ip_version": self.ip_version,
+            "network_address": network_address.exploded,
+            "prefix_length": self.prefix_length,
+            "attributes": self.get_attributes(),
+        }
 
     def get_attributes(self):
         if self._attributes is None:
@@ -250,7 +285,8 @@ class Network(Model):
             Network.broadcast_address >= self.broadcast_address
         ).all()
 
-    def subnets(self, session, include_networks=True, include_ips=False, direct=False, for_update=False):
+    def subnets(self, session, include_networks=True, include_ips=False,
+                direct=False, for_update=False):
         """ Get networks that are subnets of a network.
 
             Args:
@@ -313,7 +349,7 @@ class Network(Model):
         query.update({Network.parent_id: self.id})
 
     @classmethod
-    def create(cls, session, site_id, cidr, attributes=None):
+    def create(cls, session, user_id, site_id, cidr, attributes=None):
         if attributes is None:
             attributes = {}
 
@@ -350,6 +386,9 @@ class Network(Model):
 
             obj.reparent_subnets(session)
 
+            session.flush()
+            Change.create(session, user_id, "Create", obj)
+
             session.commit()
         except Exception:
             session.rollback()
@@ -383,17 +422,6 @@ class NetworkAttribute(Model):
         return value
 
     @classmethod
-    def create(cls, session, user_id, **kwargs):
-        try:
-            site = cls(**kwargs).add(session)
-            session.commit()
-        except Exception:
-            session.rollback()
-            raise
-
-        return site
-
-    @classmethod
     def all_by_name(cls, session):
         return {
             attribute.name: attribute.to_dict()
@@ -407,6 +435,67 @@ class NetworkAttribute(Model):
             "name": self.name,
             "required": self.required,
         }
+
+
+class Change(Model):
+    """ Record of all changes in NSoT."""
+
+    __tablename__ = "changes"
+
+    id = Column(Integer, primary_key=True)
+    site_id = Column(Integer, ForeignKey("sites.id"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    change_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    event = Column(Enum("Create", "Update", "Delete"), nullable=False)
+
+    resource_type = Column(Integer, nullable=False)
+    resource_pk = Column(Integer, nullable=False)
+
+    # The full resource at CREATE/UPDATE. NULL for Delete
+    _resource = Column("resource", Text, nullable=True)
+
+    @property
+    def resource(self):
+        return json.loads(self._resource)
+
+    @resource.setter
+    def resource(self, value):
+        self._resource = json.dumps(value)
+
+    @classmethod
+    def create(cls, session, user_id, event, resource):
+
+        kwargs = {
+            "site_id": resource.site_id,
+            "user_id": user_id,
+            "event": event,
+            "resource_type": resource.resource_type,
+            "resource_pk": resource.id,
+            "resource": resource.to_dict(),
+        }
+
+        obj = cls(**kwargs).add(session)
+        session.flush()
+
+        return obj
+
+    def to_dict(self):
+        resource = None
+        if self.resource is not None:
+            resource = self.resource
+
+        return {
+            "id": self.id,
+            "site_id": self.site_id,
+            "user_id": self.user_id,
+            "change_at": time.mktime(self.change_at.timetuple()),
+            "event": self.event,
+            "resource_type": RESOURCE_BY_IDX[self.resource_type],
+            "resource_pk": self.resource_pk,
+            "resource": resource,
+        }
+
 
 
 class NetworkAttributeIndex(Model):

@@ -110,7 +110,9 @@ class NetworkAttributesHandler(ApiHandler):
 
     def get(self, site_id):
         """ Return all NetworkAttributes."""
-        attributes = self.session.query(models.NetworkAttribute).all()
+        attributes = self.session.query(models.NetworkAttribute).filter_by(
+            site_id=site_id
+        ).all()
         self.success({
             "network_attributes": [attribute.to_dict() for attribute in attributes],
         })
@@ -235,6 +237,22 @@ class IpHandler(ApiHandler):
 class IpNetworksHandler(ApiHandler):
     def get(self, site_id, network_id):
         """ Return Networks this that contain this ip address. """
+
+
+class ChangesHandler(ApiHandler):
+    def get(self, site_id=None):
+        """ Return Change events."""
+
+        changes = self.session.query(models.Change)
+        if site_id is not None:
+            site = self.session.query(models.Site).filter_by(id=site_id).scalar()
+            if not site:
+                return self.notfound("No such Site found at id {}".format(site_id))
+            changes = changes.filter_by(site_id=site_id)
+
+        self.success({
+            "changes": [change.to_dict() for change in changes],
+        })
 
 
 class NotFoundHandler(ApiHandler):

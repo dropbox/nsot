@@ -6,11 +6,11 @@ from nsot import models
 from .fixtures import session, site, user
 
 
-def test_networks_creation_reparenting(session, site):
-    net_8  = models.Network.create(session, site.id, u"10.0.0.0/8")
-    net_24 = models.Network.create(session, site.id, u"10.0.0.0/24")
-    net_16 = models.Network.create(session, site.id, u"10.0.0.0/16")
-    net_0  = models.Network.create(session, site.id, u"0.0.0.0/0")
+def test_networks_creation_reparenting(session, user, site):
+    net_8  = models.Network.create(session, user.id, site.id, u"10.0.0.0/8")
+    net_24 = models.Network.create(session, user.id, site.id, u"10.0.0.0/24")
+    net_16 = models.Network.create(session, user.id, site.id, u"10.0.0.0/16")
+    net_0  = models.Network.create(session, user.id, site.id, u"0.0.0.0/0")
 
     assert net_0.parent_id is None
     assert net_8.parent_id == net_0.id
@@ -30,15 +30,15 @@ def test_networks_creation_reparenting(session, site):
     assert sorted(net_24.subnets(session)) == sorted([])
 
 
-def test_network_create_hostbits_set(session, site):
+def test_network_create_hostbits_set(session, user, site):
     with pytest.raises(ValueError):
-        models.Network.create(session, site.id, u"10.0.0.0/0")
+        models.Network.create(session, user.id, site.id, u"10.0.0.0/0")
 
 
 def test_network_attributes(session, user, site):
     models.NetworkAttribute.create(session, user.id, site_id=site.id, name="vlan")
 
-    network = models.Network.create(session, site.id, u"10.0.0.0/8", {
+    network = models.Network.create(session, user.id, site.id, u"10.0.0.0/8", {
         "vlan": "34"
     })
 

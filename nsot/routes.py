@@ -20,6 +20,10 @@ HANDLERS = [
     (r"/api/sites/(?P<site_id>\d+)/ips/(?P<network_id>\d+)", api.IpHandler),
     (r"/api/sites/(?P<site_id>\d+)/ips/(?P<network_id>\d+)/networks", api.IpNetworksHandler),
 
+    # Change Log
+    (r"/api/changes", api.ChangesHandler),
+    (r"/api/sites/(?P<site_id>\d+)/changes", api.ChangesHandler),
+
     (r"/.*", api.NotFoundHandler),
 
 ]
