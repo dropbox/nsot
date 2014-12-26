@@ -7,3 +7,5 @@ install:
     - pip install .
 
 script: py.test -v tests/
+
+after_success: curl -X POST http://readthedocs.org/build/nsot

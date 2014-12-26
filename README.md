@@ -1,6 +1,8 @@
 # nsot
 
 [![Build Status](https://travis-ci.org/dropbox/nsot.png?branch=master)](https://travis-ci.org/dropbox/nsot)
+[![Documentation Status](https://readthedocs.org/projects/nsot/badge/?version=latest)](https://readthedocs.org/projects/nsot/?badge=latest)
+
 
 ### Description
 
