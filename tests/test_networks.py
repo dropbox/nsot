@@ -59,3 +59,11 @@ def test_network_attributes(session, user, site):
 
     with pytest.raises(exc.ValidationError):
         network.set_attributes({"made_up": "value"})
+
+
+def test_ip_address_no_network(session, user, site):
+    with pytest.raises(exc.ValidationError):
+        models.Network.create(session, user.id, site.id, u"10.0.0.1/32")
+
+    models.Network.create(session, user.id, site.id, u"10.0.0.0/8")
+    models.Network.create(session, user.id, site.id, u"10.0.0.1/32")

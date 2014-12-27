@@ -424,6 +424,10 @@ class Network(Model):
                 parent = max(supernets, key=attrgetter("prefix_length"))
                 obj.parent_id = parent.id
 
+
+            if obj.parent_id is None and is_ip:
+                raise exc.ValidationError("IP Address needs base network.")
+
             obj.reparent_subnets(session)
 
             session.flush()

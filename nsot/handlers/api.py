@@ -209,10 +209,9 @@ class NetworksHandler(ApiHandler):
                 self.session, self.current_user.id, site_id,
                 cidr=cidr, attributes=attributes,
             )
-        #TODO(gary): catch bad network failure
         except IntegrityError as err:
             return self.conflict(err.orig.message)
-        except ValidationError as err:
+        except (ValueError, ValidationError) as err:
             return self.badrequest(err.message)
 
         self.created("/api/networks/{}".format(network.id))
