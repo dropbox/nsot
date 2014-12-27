@@ -1,6 +1,5 @@
 from sqlalchemy.exc import IntegrityError
 
-from .. import constants
 from .. import exc
 from .. import models
 from .. import util
@@ -74,8 +73,10 @@ class SiteHandler(ApiHandler):
         if not site:
             return self.notfound("No such Site found at id {}".format(site_id))
 
-        self.session.delete(site)
-        self.session.commit()
+        try:
+            site.delete(self.current_user.id)
+        except IntegrityError as err:
+            return self.conflict(err.orig.message)
 
         self.success({
             "message": "Site {} deleted.".format(site_id),
@@ -93,9 +94,6 @@ class NetworkAttributesHandler(ApiHandler):
         except KeyError as err:
             return self.badrequest("Missing Required Argument: {}".format(err.message))
 
-        if not constants.ATTRIBUTE_NAME.match(name):
-            return self.badrequest("Invalid name parameter.")
-
         try:
             attribute = models.NetworkAttribute.create(
                 session, current_user.id,
@@ -103,6 +101,8 @@ class NetworkAttributesHandler(ApiHandler):
             )
         except IntegrityError as err:
             return self.conflict(str(err.orig))
+        except ValidationError as err:
+            return self.badrequest(err.message)
 
         self.created("/api/sites/{}/network_attributes/{}".format(
             site_id, attribute.id
@@ -124,6 +124,7 @@ class NetworkAttributeHandler(ApiHandler):
             id=attribute_id,
             site_id=site_id
         ).scalar()
+
         if not attribute:
             return self.notfound(
                 "No such NetworkAttribute found at (site_id, id) = ({}, {})".format(
@@ -140,6 +141,7 @@ class NetworkAttributeHandler(ApiHandler):
             id=attribute_id,
             site_id=site_id
         ).scalar()
+
         if not attribute:
             return self.notfound(
                 "No such NetworkAttribute found at (site_id, id) = ({}, {})".format(
@@ -153,15 +155,14 @@ class NetworkAttributeHandler(ApiHandler):
         except KeyError as err:
             return self.badrequest("Missing Required Argument: {}".format(err.message))
 
-        if not constants.ATTRIBUTE_NAME.match(name):
-            return self.badrequest("Invalid name parameter.")
-
         try:
             attribute.name = name
             attribute.required = util.qp_to_bool(required)
             self.session.commit()
         except IntegrityError as err:
             return self.conflict(str(err.orig))
+        except ValidationError as err:
+            return self.badrequest(err.message)
 
         self.success({
             "network_attribute": attribute.to_dict(),
@@ -172,6 +173,7 @@ class NetworkAttributeHandler(ApiHandler):
             id=attribute_id,
             site_id=site_id
         ).scalar()
+
         if not attribute:
             return self.notfound(
                 "No such NetworkAttribute found at (site_id, id) = ({}, {})".format(
@@ -179,10 +181,10 @@ class NetworkAttributeHandler(ApiHandler):
                 )
             )
 
-        # TODO(gary): Remove all references to this attribute or fail via
-        # ON DELETE RESTRICT
-        self.session.delete(attribute)
-        self.session.commit()
+        try:
+            attribute.delete(self.current_user.id)
+        except IntegrityError as err:
+            return self.conflict(err.orig.message)
 
         self.success({
             "message": "NetworkAttribute {} deleted from Site {}.".format(
@@ -192,51 +194,118 @@ class NetworkAttributeHandler(ApiHandler):
 
 
 class NetworksHandler(ApiHandler):
+
     def post(self, site_id):
         """ Create a new Network."""
 
+        try:
+            cidr = self.jbody["cidr"]
+            attributes = self.jbody.get("attributes", {})
+        except KeyError as err:
+            return self.badrequest("Missing Required Argument: {}".format(err.message))
+
+        try:
+            network = models.Network.create(
+                self.session, self.current_user.id, site_id,
+                cidr=cidr, attributes=attributes,
+            )
+        #TODO(gary): catch bad network failure
+        except IntegrityError as err:
+            return self.conflict(err.orig.message)
+        except ValidationError as err:
+            return self.badrequest(err.message)
+
+        self.created("/api/networks/{}".format(network.id))
+
     def get(self, site_id):
         """ Return all Networks. """
+
+        networks = self.session.query(models.Network).filter_by(
+            site_id=site_id, is_ip=False
+        ).all()
+
+        self.success({
+            "networks": [network.to_dict() for network in networks],
+        })
 
 
 class NetworkHandler(ApiHandler):
     def get(self, site_id, network_id):
         """ Return a specific Network. """
 
+        network = self.session.query(models.Network).filter_by(
+            id=network_id,
+            site_id=site_id
+        ).scalar()
+
+        if not network:
+            return self.notfound(
+                "No such Network found at (site_id, id) = ({}, {})".format(
+                    site_id, attribute_id
+                )
+            )
+
+        self.success({
+            "network": network.to_dict(),
+        })
+
     def put(self, site_id, network_id):
         """ Update a Network. """
+
+        network = self.session.query(models.Network).filter_by(
+            id=network_id,
+            site_id=site_id
+        ).scalar()
+
+        if not network:
+            return self.notfound(
+                "No such Network found at (site_id, id) = ({}, {})".format(
+                    site_id, network_id
+                )
+            )
+
+        try:
+            attributes = self.jbody.get("attributes", {})
+        except KeyError as err:
+            return self.badrequest("Missing Required Argument: {}".format(err.message))
+
+        try:
+            network.set_attributes(attributes)
+            self.session.commit()
+        except IntegrityError as err:
+            return self.conflict(err.orig.message)
+        except ValidationError as err:
+            return self.badrequest(err.message)
+
+        self.success({
+            "network": network.to_dict(),
+        })
 
     def delete(self, site_id, network_id):
         """ Delete a Network. """
 
+        network = self.session.query(models.Network).filter_by(
+            id=network_id,
+            site_id=site_id
+        ).scalar()
 
-class NetworkIpsHandler(ApiHandler):
-    def get(self, site_id, network_id):
-        """ Return allocated IPs for a Network."""
+        if not network:
+            return self.notfound(
+                "No such Network found at (site_id, id) = ({}, {})".format(
+                    site_id, network_id
+                )
+            )
 
+        try:
+            network.delete(self.current_user.id)
+        except IntegrityError as err:
+            return self.conflict(err.orig.message)
 
-class IpsHandler(ApiHandler):
-    def post(self, site_id):
-        """ Create a new ip address."""
-
-    def get(self, site_id):
-        """ Return all ip addresses. """
-
-
-class IpHandler(ApiHandler):
-    def get(self, site_id, network_id):
-        """ Return a specific ip address """
-
-    def put(self, site_id, network_id):
-        """ Update a ip address """
-
-    def delete(self, site_id, network_id):
-        """ Delete a ip address """
-
-
-class IpNetworksHandler(ApiHandler):
-    def get(self, site_id, network_id):
-        """ Return Networks this that contain this ip address. """
+        self.success({
+            "message": "Network {} deleted from Site {}.".format(
+                network_id, site_id
+            ),
+        })
 
 
 class ChangesHandler(ApiHandler):

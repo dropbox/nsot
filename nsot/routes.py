@@ -13,12 +13,6 @@ HANDLERS = [
     # Networks
     (r"/api/sites/(?P<site_id>\d+)/networks", api.NetworksHandler),
     (r"/api/sites/(?P<site_id>\d+)/networks/(?P<network_id>\d+)", api.NetworkHandler),
-    (r"/api/sites/(?P<site_id>\d+)/networks/(?P<network_id>\d+)/ips", api.NetworkIpsHandler),
-
-    # IP Addresses
-    (r"/api/sites/(?P<site_id>\d+)/ips", api.IpsHandler),
-    (r"/api/sites/(?P<site_id>\d+)/ips/(?P<network_id>\d+)", api.IpHandler),
-    (r"/api/sites/(?P<site_id>\d+)/ips/(?P<network_id>\d+)/networks", api.IpNetworksHandler),
 
     # Change Log
     (r"/api/changes", api.ChangesHandler),

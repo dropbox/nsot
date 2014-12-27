@@ -9,6 +9,7 @@ import logging
 import time
 
 from sqlalchemy import create_engine, or_, union_all, desc
+from sqlalchemy.event import listen
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -19,6 +20,7 @@ from sqlalchemy.sql import func, label, literal
 from sqlalchemy.types import Integer, String, Text, Boolean, SmallInteger
 from sqlalchemy.types import Enum, DateTime, VARBINARY
 
+from . import constants
 from . import exc
 
 
@@ -41,12 +43,16 @@ class Session(_Session):
 
     _add = _Session.add
     _add_all = _Session.add_all
+    _delete = _Session.delete
 
     def add(self, *args, **kwargs):
         raise NotImplementedError("Use add method on models instead.")
 
     def add_all(self, *args, **kwargs):
         raise NotImplementedError("Use add method on models instead.")
+
+    def delete(self, *args, **kwargs):
+        raise NotImplementedError("Use delete method on models instead.")
 
 
 Session = sessionmaker(class_=Session)
@@ -95,12 +101,37 @@ class Model(object):
         session._add(self)
         return self
 
+    def before_delete(self):
+        """ Hook for extra model cleanup before delete. """
+
+    def delete(self, user_id):
+        session = self.session
+        try:
+            Change.create(session, user_id, "Delete", self)
+            self.before_delete()
+            session._delete(self)
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
+
 
 Model = declarative_base(cls=Model)
 
 
+# Foreign Keys are ignored by default in SQLite. Don't do that.
+def _set_sqlite_pragma(dbapi_connection, connection_record):
+    cursor = dbapi_connection.cursor()
+    cursor.execute("PRAGMA foreign_keys=ON;")
+    cursor.close()
+
+
 def get_db_engine(url):
-    return create_engine(url, pool_recycle=300)
+    engine = create_engine(url, pool_recycle=300)
+    if engine.driver == "pysqlite":
+        listen(engine, "connect", _set_sqlite_pragma)
+
+    return engine
 
 
 def flush_transaction(method):
@@ -205,11 +236,23 @@ class Network(Model):
         return {
             "id": self.id,
             "site_id": self.site_id,
+            "is_ip": self.is_ip,
             "ip_version": self.ip_version,
             "network_address": network_address.exploded,
             "prefix_length": self.prefix_length,
             "attributes": self.get_attributes(),
         }
+
+    def _purge_attribute_index(self):
+        index_table = NetworkAttributeIndex.__table__
+
+        # Always purge the index
+        self.session.execute(
+            index_table.delete().where(index_table.c.network_id == self.id)
+        )
+
+    def before_delete(self):
+        self._purge_attribute_index()
 
     def get_attributes(self):
         if self._attributes is None:
@@ -232,7 +275,9 @@ class Network(Model):
             if not isinstance(value, basestring):
                 raise exc.ValidationError("Attribute values must be a string type")
             if name not in valid_attributes:
-                raise exc.ValidationError("Attribute name (%s) invalid." % name)
+                raise exc.ValidationError("Attribute name (%s) does not exist.".format(
+                    name
+                ))
 
             attribute_meta = valid_attributes[name]
             inserts.append({
@@ -242,14 +287,10 @@ class Network(Model):
                 "value": value,
             })
 
-        index_table = NetworkAttributeIndex.__table__
 
-        # Always purge the index
-        self.session.execute(
-            index_table.delete().where(index_table.c.network_id == self.id)
-        )
-
+        self._purge_attribute_index()
         if inserts:
+            index_table = NetworkAttributeIndex.__table__
             self.session.execute(index_table.insert(), inserts)
 
         self._attributes = json.dumps(attributes)
@@ -321,16 +362,13 @@ class Network(Model):
 
     @property
     def cidr(self):
-        return "{}/{}".format(
-            ipaddress.ip_address(self.network_address),
-            self.prefix_length
-        )
+        return ipaddress.ip_network(self.network_address).exploded
 
     def __repr__(self):
         return "Network<{}>".format(self.cidr)
 
     def reparent_subnets(self, session):
-        query = session.query(Network).filter(
+        query = session.query(Network).with_for_update().filter(
             Network.parent_id == self.parent_id,
             Network.id != self.id  # Don't include yourself...
         )
@@ -353,7 +391,9 @@ class Network(Model):
         if attributes is None:
             attributes = {}
 
-        network = ipaddress.ip_network(cidr)
+        network = cidr
+        if isinstance(cidr, unicode):
+            network = ipaddress.ip_network(cidr)
 
         is_ip = False
         if network.network_address == network.broadcast_address:
@@ -419,6 +459,10 @@ class NetworkAttribute(Model):
     def validate_name(self, key, value):
         if not value:
             raise exc.ValidationError("Name is a required field.")
+
+        if not constants.ATTRIBUTE_NAME.match(value):
+            raise exc.ValidationError("Invalid name.")
+
         return value
 
     @classmethod
@@ -452,8 +496,7 @@ class Change(Model):
     resource_type = Column(Integer, nullable=False)
     resource_pk = Column(Integer, nullable=False)
 
-    # The full resource at CREATE/UPDATE. NULL for Delete
-    _resource = Column("resource", Text, nullable=True)
+    _resource = Column("resource", Text, nullable=False)
 
     @property
     def resource(self):
