@@ -15,7 +15,7 @@ def session(request, tmpdir):
     def fin():
         session.close()
         # Useful if testing against MySQL
-        #models.Model.metadata.drop_all(db_engine)
+        # models.Model.metadata.drop_all(db_engine)
     request.addfinalizer(fin)
 
     return session

@@ -158,7 +158,7 @@ class User(Model):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True)
-    email = Column(String, unique=True, nullable=False)
+    email = Column(String(length=255), unique=True, nullable=False)
     enabled = Column(Boolean, default=True, nullable=False)
 
     @validates("email")
@@ -175,7 +175,7 @@ class Site(Model):
     __tablename__ = "sites"
 
     id = Column(Integer, primary_key=True)
-    name = Column(String(length=32), unique=True, nullable=False)
+    name = Column(String(length=255), unique=True, nullable=False)
     description = Column(Text)
 
     # All generic resources are expected to have a site_id attribute.
@@ -452,7 +452,7 @@ class NetworkAttribute(Model):
 
     site_id = Column(Integer, ForeignKey("sites.id"), nullable=False)
     # This is purposely not unique as there is a compound index with site_id.
-    name = Column(String, nullable=False)
+    name = Column(String(length=64), nullable=False)
     required = Column(Boolean, default=False, nullable=False)
 
     @validates("name")
@@ -556,8 +556,8 @@ class NetworkAttributeIndex(Model):
 
     id = Column(Integer, primary_key=True)
 
-    name = Column(String, nullable=False, index=True)
-    value = Column(String, nullable=False, index=True)
+    name = Column(String(length=64), nullable=False, index=True)
+    value = Column(String(length=255), nullable=False, index=True)
 
     network_id = Column(Integer, ForeignKey("networks.id"), nullable=False)
     attribute_id = Column(Integer, ForeignKey("network_attributes.id"), nullable=False)
@@ -568,7 +568,7 @@ class Counter(Model):
     __tablename__ = "counters"
 
     id = Column(Integer, primary_key=True)
-    name = Column(String, unique=True, nullable=False)
+    name = Column(String(length=64), unique=True, nullable=False)
     count = Column(Integer, nullable=False, default=0)
     last_modified = Column(DateTime, default=datetime.utcnow, nullable=False)
 
