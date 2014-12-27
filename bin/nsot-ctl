@@ -34,7 +34,7 @@ def user_proxy_command(args):
     class ServerArgs(object):
         def __init__(self, backend_port, username):
             self.backend_port = backend_port
-            self.header = ["X-NSoT-User: %s" % username]
+            self.header = ["X-NSoT-Email: %s" % username]
 
     username = args.username
     if username is None:
@@ -88,7 +88,7 @@ def main():
     user_proxy_parser.set_defaults(func=user_proxy_command)
     user_proxy_parser.add_argument("-p", "--listen-port", default=8888, type=int,
                                    help="Port to listen on.")
-    user_proxy_parser.add_argument("-P", "--backend-port", default=8989, type=int,
+    user_proxy_parser.add_argument("-P", "--backend-port", default=8990, type=int,
                                    help="Port to proxy to.")
     user_proxy_parser.add_argument("username", nargs="?", default=None)
 

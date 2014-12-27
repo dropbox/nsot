@@ -2,6 +2,7 @@ import json
 from tornado.web import RequestHandler, urlparse
 from tornado.escape import utf8
 
+from .. import exc
 from .. import models
 from ..settings import settings
 
@@ -36,8 +37,11 @@ class ApiHandler(RequestHandler):
         return self._jbody
 
     def prepare(self):
-        if not self.current_user or not self.current_user.enabled:
-            return self.error_status(403, "Not logged in.")
+        try:
+            if not self.current_user or not self.current_user.enabled:
+                return self.error_status(403, "Not logged in.")
+        except exc.ValidationError as err:
+            return self.badrequest(err.message)
 
         if self.request.method.lower() in ("put", "post"):
             if self.request.headers.get("Content-Type").lower() != "application/json":
