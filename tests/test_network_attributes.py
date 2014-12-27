@@ -84,3 +84,36 @@ def test_deletion(session, site, user):
 
     network.delete(user.id)
     attribute.delete(user.id)
+
+def test_required(session, site, user):
+    attribute_1 = models.NetworkAttribute.create(
+        session, user.id,
+        site_id=site.id, name="required_1", required=True
+    )
+
+    attribute_2 = models.NetworkAttribute.create(
+        session, user.id,
+        site_id=site.id, name="required_2", required=True
+    )
+
+    with pytest.raises(exc.ValidationError):
+        network = models.Network.create(
+            session, user.id, site.id,
+            cidr=u"10.0.0.0/8"
+        )
+
+    with pytest.raises(exc.ValidationError):
+        network = models.Network.create(
+            session, user.id, site.id,
+            cidr=u"10.0.0.0/8", attributes={
+                "required_1": "foo",
+            }
+        )
+
+    network = models.Network.create(
+        session, user.id, site.id,
+        cidr=u"10.0.0.0/8", attributes={
+            "required_1": "foo",
+            "required_2": "bar",
+        }
+    )

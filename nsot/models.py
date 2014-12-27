@@ -268,6 +268,17 @@ class Network(Model):
         if valid_attributes is None:
             valid_attributes = NetworkAttribute.all_by_name(self.session)
 
+        missing_attributes = {
+            value["name"]
+            for value in valid_attributes.itervalues()
+            if value["required"] and value["name"] not in attributes
+        }
+
+        if missing_attributes:
+            raise exc.ValidationError("Missing required attributes: {}".format(
+                ", ".join(missing_attributes)
+            ))
+
         inserts = []
         for name, value in attributes.iteritems():
             if not isinstance(name, basestring):
@@ -457,7 +468,8 @@ class Network(Model):
             if obj.parent_id is None and is_ip:
                 raise exc.ValidationError("IP Address needs base network.")
 
-            obj.reparent_subnets(session)
+            if not is_ip:
+                obj.reparent_subnets(session)
 
             session.flush()
             Change.create(session, user_id, "Create", obj)
@@ -571,7 +583,6 @@ class Change(Model):
             "resource_pk": self.resource_pk,
             "resource": resource,
         }
-
 
 
 class NetworkAttributeIndex(Model):
