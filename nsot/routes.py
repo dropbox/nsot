@@ -13,6 +13,12 @@ HANDLERS = [
     # Networks
     (r"/api/sites/(?P<site_id>\d+)/networks", api.NetworksHandler),
     (r"/api/sites/(?P<site_id>\d+)/networks/(?P<network_id>\d+)", api.NetworkHandler),
+    (   r"/api/sites/(?P<site_id>\d+)/networks/(?P<network_id>\d+)/subnets",
+        api.NetworkSubnetsHandler
+    ),
+    (   r"/api/sites/(?P<site_id>\d+)/networks/(?P<network_id>\d+)/supernets",
+        api.NetworkSupernetsHandler
+    ),
 
     # Change Log
     (r"/api/changes", api.ChangesHandler),

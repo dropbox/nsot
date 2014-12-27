@@ -24,7 +24,7 @@ class SitesHandler(ApiHandler):
             )
         except IntegrityError as err:
             return self.conflict(err.orig.message)
-        except ValidationError as err:
+        except exc.ValidationError as err:
             return self.badrequest(err.message)
 
         self.created("/api/sites/{}".format(site.id))
@@ -96,12 +96,12 @@ class NetworkAttributesHandler(ApiHandler):
 
         try:
             attribute = models.NetworkAttribute.create(
-                session, current_user.id,
+                self.session, self.current_user.id,
                 site_id=site_id, name=name, required=qpbool(required)
             )
         except IntegrityError as err:
             return self.conflict(str(err.orig))
-        except ValidationError as err:
+        except exc.ValidationError as err:
             return self.badrequest(err.message)
 
         self.created("/api/sites/{}/network_attributes/{}".format(
@@ -161,7 +161,7 @@ class NetworkAttributeHandler(ApiHandler):
             self.session.commit()
         except IntegrityError as err:
             return self.conflict(str(err.orig))
-        except ValidationError as err:
+        except exc.ValidationError as err:
             return self.badrequest(err.message)
 
         self.success({
@@ -211,7 +211,7 @@ class NetworksHandler(ApiHandler):
             )
         except IntegrityError as err:
             return self.conflict(err.orig.message)
-        except (ValueError, ValidationError) as err:
+        except (ValueError, exc.ValidationError) as err:
             return self.badrequest(err.message)
 
         self.created("/api/networks/{}".format(network.id))
@@ -223,7 +223,7 @@ class NetworksHandler(ApiHandler):
         include_networks = qpbool(self.get_argument("include_networks", True))
         include_ips = qpbool(self.get_argument("include_ips", False))
 
-        networks = Network.networks(
+        networks = models.Network.networks(
             self.session, root=root_only,
             include_ips=include_ips, include_networks=include_networks
         )
@@ -245,7 +245,7 @@ class NetworkHandler(ApiHandler):
         if not network:
             return self.notfound(
                 "No such Network found at (site_id, id) = ({}, {})".format(
-                    site_id, attribute_id
+                    site_id, network_id
                 )
             )
 
@@ -278,7 +278,7 @@ class NetworkHandler(ApiHandler):
             self.session.commit()
         except IntegrityError as err:
             return self.conflict(err.orig.message)
-        except ValidationError as err:
+        except exc.ValidationError as err:
             return self.badrequest(err.message)
 
         self.success({
@@ -309,6 +309,60 @@ class NetworkHandler(ApiHandler):
             "message": "Network {} deleted from Site {}.".format(
                 network_id, site_id
             ),
+        })
+
+class NetworkSubnetsHandler(ApiHandler):
+    def get(self, site_id, network_id):
+        """ Return subnets of a specific Network. """
+
+        network = self.session.query(models.Network).filter_by(
+            id=network_id,
+            site_id=site_id
+        ).scalar()
+
+        if not network:
+            return self.notfound(
+                "No such Network found at (site_id, id) = ({}, {})".format(
+                    site_id, network_id
+                )
+            )
+
+        direct = qpbool(self.get_argument("direct", False))
+        include_networks = qpbool(self.get_argument("include_networks", True))
+        include_ips = qpbool(self.get_argument("include_ips", False))
+
+        networks = network.subnets(
+            self.session, direct=direct,
+            include_ips=include_ips, include_networks=include_networks
+        )
+
+        self.success({
+            "networks": [network.to_dict() for network in networks],
+        })
+
+
+class NetworkSupernetsHandler(ApiHandler):
+    def get(self, site_id, network_id):
+        """ Return supernets of a specific Network. """
+
+        network = self.session.query(models.Network).filter_by(
+            id=network_id,
+            site_id=site_id
+        ).scalar()
+
+        if not network:
+            return self.notfound(
+                "No such Network found at (site_id, id) = ({}, {})".format(
+                    site_id, network_id
+                )
+            )
+
+        direct = qpbool(self.get_argument("direct", False))
+
+        networks = network.supernets(self.session, direct=direct)
+
+        self.success({
+            "networks": [network.to_dict() for network in networks],
         })
 
 
