@@ -110,9 +110,16 @@ class NetworkAttributesHandler(ApiHandler):
 
     def get(self, site_id):
         """ Return all NetworkAttributes."""
+
+        required = qpbool(self.get_argument("required", None))
+
         attributes = self.session.query(models.NetworkAttribute).filter_by(
             site_id=site_id
-        ).all()
+        )
+
+        if required:
+            attributes = attributes.filter_by(required==True)
+
         self.success({
             "network_attributes": [attribute.to_dict() for attribute in attributes],
         })
@@ -192,6 +199,27 @@ class NetworkAttributeHandler(ApiHandler):
             ),
         })
 
+
+class NetworkAttributeNetworksHandler(ApiHandler):
+    def get(self, site_id, attribute_id):
+        attribute = self.session.query(models.NetworkAttribute).filter_by(
+            id=attribute_id,
+            site_id=site_id
+        ).scalar()
+
+        if not attribute:
+            return self.notfound(
+                "No such NetworkAttribute found at (site_id, id) = ({}, {})".format(
+                    site_id, attribute_id
+                )
+            )
+
+        #TODO(gary): do.
+        networks = []
+
+        self.success({
+            "networks": networks
+        })
 
 class NetworksHandler(ApiHandler):
 
