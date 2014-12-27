@@ -295,6 +295,32 @@ class Network(Model):
 
         self._attributes = json.dumps(attributes)
 
+    @classmethod
+    def networks(cls, session, include_networks=True, include_ips=False, root=False):
+        """ Get networks that are subnets of a network.
+
+            Args:
+                include_networks: Whether the response should include non-ip address networks
+                include_ips: Whether the response should include ip addresses
+                root: Only return networks at the root.
+        """
+
+        if not any([include_networks, include_ips]):
+            return []
+
+        query = session.query(Network)
+
+        if not all([include_networks, include_ips]):
+            if include_networks:
+                query = query.filter(Network.is_ip == False)
+            if include_ips:
+                query = query.filter(Network.is_ip == True)
+
+        if root:
+            query = query.filter(Network.parent_id == None)
+
+        return query.all()
+
     def supernets(self, session, direct=False, discover_mode=False, for_update=False):
         """ Get networks that are a supernet of a network.
 
@@ -362,7 +388,10 @@ class Network(Model):
 
     @property
     def cidr(self):
-        return ipaddress.ip_network(self.network_address).exploded
+        return u"{}/{}".format(
+            ipaddress.ip_address(self.network_address).exploded,
+            self.prefix_length
+        )
 
     def __repr__(self):
         return "Network<{}>".format(self.cidr)

@@ -1,10 +1,10 @@
 from sqlalchemy.exc import IntegrityError
 
-from .. import exc
-from .. import models
-from .. import util
 
 from .util import ApiHandler
+from .. import exc
+from .. import models
+from ..util import qp_to_bool as qpbool
 
 
 class SitesHandler(ApiHandler):
@@ -97,7 +97,7 @@ class NetworkAttributesHandler(ApiHandler):
         try:
             attribute = models.NetworkAttribute.create(
                 session, current_user.id,
-                site_id=site_id, name=name, required=util.qp_to_bool(required)
+                site_id=site_id, name=name, required=qpbool(required)
             )
         except IntegrityError as err:
             return self.conflict(str(err.orig))
@@ -157,7 +157,7 @@ class NetworkAttributeHandler(ApiHandler):
 
         try:
             attribute.name = name
-            attribute.required = util.qp_to_bool(required)
+            attribute.required = qpbool(required)
             self.session.commit()
         except IntegrityError as err:
             return self.conflict(str(err.orig))
@@ -219,9 +219,14 @@ class NetworksHandler(ApiHandler):
     def get(self, site_id):
         """ Return all Networks. """
 
-        networks = self.session.query(models.Network).filter_by(
-            site_id=site_id, is_ip=False
-        ).all()
+        root_only = qpbool(self.get_argument("root_only", False))
+        include_networks = qpbool(self.get_argument("include_networks", True))
+        include_ips = qpbool(self.get_argument("include_ips", False))
+
+        networks = Network.networks(
+            self.session, root=root_only,
+            include_ips=include_ips, include_networks=include_networks
+        )
 
         self.success({
             "networks": [network.to_dict() for network in networks],
