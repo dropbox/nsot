@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 from datetime import datetime
+from email.utils import parseaddr
 from operator import attrgetter
 import functools
 import ipaddress
@@ -177,8 +178,8 @@ class User(Model):
 
     @validates("email")
     def validate_email(self, key, value):
-        # TODO(gary): Use a better validator
-        if "@" not in value:
+        _, email = parseaddr(value)
+        if email == '' or "@" not in value:
             raise exc.ValidationError("Must contain a valid e-mail address")
         return value
 
