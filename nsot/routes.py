@@ -9,10 +9,6 @@ HANDLERS = [
     # NetworkAttributes
     (r"/api/sites/(?P<site_id>\d+)/network_attributes", api.NetworkAttributesHandler),
     (r"/api/sites/(?P<site_id>\d+)/network_attributes/(?P<attribute_id>\d+)", api.NetworkAttributeHandler),
-    (
-        r"/api/sites/(?P<site_id>\d+)/network_attributes/(?P<attribute_id>\d+)/networks",
-        api.NetworkAttributeNetworksHandler
-    ),
 
     # Networks
     (r"/api/sites/(?P<site_id>\d+)/networks", api.NetworksHandler),

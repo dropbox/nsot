@@ -69,26 +69,47 @@ def test_ip_address_no_network(session, user, site):
     models.Network.create(session, user.id, site.id, u"10.0.0.1/32")
 
 def test_retrieve_networks(session, user, site):
-    net_8 = models.Network.create(session, user.id, site.id, u"10.0.0.0/8")
-    net_24 = models.Network.create(session, user.id, site.id, u"10.0.0.0/24")
-    ip = models.Network.create(session, user.id, site.id, u"10.0.0.1/32")
+    models.NetworkAttribute.create(session, user.id, site_id=site.id, name="test")
 
-    assert sorted(models.Network.networks(
-        session, root=True
+    net_8 = models.Network.create(
+        session, user.id, site.id, cidr=u"10.0.0.0/8",
+        attributes={"test": "foo"}
+    )
+    net_24 = models.Network.create(
+        session, user.id, site.id, cidr=u"10.0.0.0/24",
+        attributes={"test": "bar"}
+    )
+    ip = models.Network.create(
+        session, user.id, site.id, cidr=u"10.0.0.1/32"
+    )
+
+    assert sorted(site.networks(
+        root=True
     )) == sorted([net_8])
 
-    assert sorted(models.Network.networks(
-        session, include_networks=True, include_ips=False
+    assert sorted(site.networks(
+        include_networks=True, include_ips=False
     )) == sorted([net_8, net_24])
 
-    assert sorted(models.Network.networks(
-        session, include_networks=False, include_ips=False
+    assert sorted(site.networks(
+        include_networks=False, include_ips=False
     )) == sorted([])
 
-    assert sorted(models.Network.networks(
-        session, include_networks=True, include_ips=True
+    assert sorted(site.networks(
+        include_networks=True, include_ips=True
     )) == sorted([net_8, net_24, ip])
 
-    assert sorted(models.Network.networks(
-        session, include_networks=False, include_ips=True
+    assert sorted(site.networks(
+        include_networks=False, include_ips=True
     )) == sorted([ip])
+
+    with pytest.raises(ValueError):
+        assert site.networks(attribute_value="foo")
+
+    assert sorted(site.networks(
+        include_ips=True, attribute_name="test"
+    )) == sorted([net_8, net_24])
+
+    assert sorted(site.networks(
+        include_ips=True, attribute_name="test", attribute_value="foo"
+    )) == sorted([net_8])

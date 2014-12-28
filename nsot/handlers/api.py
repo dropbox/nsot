@@ -88,17 +88,22 @@ class NetworkAttributesHandler(ApiHandler):
 
     def post(self, site_id):
         """ Create a new NetworkAttribute."""
+        site = self.session.query(models.Site).filter_by(id=site_id).scalar()
+        if not site:
+            return self.notfound("No such Site found at id {}".format(site_id))
 
         try:
             name = self.jbody["name"]
-            required = self.jbody.get("required")
+            description = self.jbody.get("description")
+            required = qpbool(self.jbody.get("required"))
         except KeyError as err:
             return self.badrequest("Missing Required Argument: {}".format(err.message))
 
         try:
             attribute = models.NetworkAttribute.create(
                 self.session, self.current_user.id,
-                site_id=site_id, name=name, required=qpbool(required)
+                site_id=site_id, name=name, description=description,
+                required=required
             )
         except IntegrityError as err:
             return self.conflict(str(err.orig))
@@ -111,15 +116,22 @@ class NetworkAttributesHandler(ApiHandler):
 
     def get(self, site_id):
         """ Return all NetworkAttributes."""
+        site = self.session.query(models.Site).filter_by(id=site_id).scalar()
+        if not site:
+            return self.notfound("No such Site found at id {}".format(site_id))
 
+        name = self.get_arguement("name", None)
         required = qpbool(self.get_argument("required", None))
 
         attributes = self.session.query(models.NetworkAttribute).filter_by(
             site_id=site_id
         )
 
+        if name is not None:
+            attributes = attributes.filter_by(name=name)
+
         if required:
-            attributes = attributes.filter_by(required==True)
+            attributes = attributes.filter_by(required=True)
 
         self.success({
             "network_attributes": [attribute.to_dict() for attribute in attributes],
@@ -128,6 +140,10 @@ class NetworkAttributesHandler(ApiHandler):
 
 class NetworkAttributeHandler(ApiHandler):
     def get(self, site_id, attribute_id):
+        site = self.session.query(models.Site).filter_by(id=site_id).scalar()
+        if not site:
+            return self.notfound("No such Site found at id {}".format(site_id))
+
         attribute = self.session.query(models.NetworkAttribute).filter_by(
             id=attribute_id,
             site_id=site_id
@@ -145,6 +161,10 @@ class NetworkAttributeHandler(ApiHandler):
         })
 
     def put(self, site_id, attribute_id):
+        site = self.session.query(models.Site).filter_by(id=site_id).scalar()
+        if not site:
+            return self.notfound("No such Site found at id {}".format(site_id))
+
         attribute = self.session.query(models.NetworkAttribute).filter_by(
             id=attribute_id,
             site_id=site_id
@@ -158,7 +178,7 @@ class NetworkAttributeHandler(ApiHandler):
             )
 
         try:
-            name = self.jbody["name"]
+            description = self.jbody.get("description")
             required = qpbool(self.jbody.get("required"))
         except KeyError as err:
             return self.badrequest("Missing Required Argument: {}".format(err.message))
@@ -166,7 +186,7 @@ class NetworkAttributeHandler(ApiHandler):
         try:
             attribute.update(
                 self.current_user.id,
-                name=name, required=required
+                description=description, required=required,
             )
         except IntegrityError as err:
             return self.conflict(str(err.orig))
@@ -178,6 +198,10 @@ class NetworkAttributeHandler(ApiHandler):
         })
 
     def delete(self, site_id, attribute_id):
+        site = self.session.query(models.Site).filter_by(id=site_id).scalar()
+        if not site:
+            return self.notfound("No such Site found at id {}".format(site_id))
+
         attribute = self.session.query(models.NetworkAttribute).filter_by(
             id=attribute_id,
             site_id=site_id
@@ -202,31 +226,13 @@ class NetworkAttributeHandler(ApiHandler):
         })
 
 
-class NetworkAttributeNetworksHandler(ApiHandler):
-    def get(self, site_id, attribute_id):
-        attribute = self.session.query(models.NetworkAttribute).filter_by(
-            id=attribute_id,
-            site_id=site_id
-        ).scalar()
-
-        if not attribute:
-            return self.notfound(
-                "No such NetworkAttribute found at (site_id, id) = ({}, {})".format(
-                    site_id, attribute_id
-                )
-            )
-
-        #TODO(gary): do.
-        networks = []
-
-        self.success({
-            "networks": networks
-        })
-
 class NetworksHandler(ApiHandler):
 
     def post(self, site_id):
         """ Create a new Network."""
+        site = self.session.query(models.Site).filter_by(id=site_id).scalar()
+        if not site:
+            return self.notfound("No such Site found at id {}".format(site_id))
 
         try:
             cidr = self.jbody["cidr"]
@@ -248,14 +254,17 @@ class NetworksHandler(ApiHandler):
 
     def get(self, site_id):
         """ Return all Networks. """
+        site = self.session.query(models.Site).filter_by(id=site_id).scalar()
+        if not site:
+            return self.notfound("No such Site found at id {}".format(site_id))
 
         root_only = qpbool(self.get_argument("root_only", False))
         include_networks = qpbool(self.get_argument("include_networks", True))
         include_ips = qpbool(self.get_argument("include_ips", False))
 
-        networks = models.Network.networks(
-            self.session, root=root_only,
-            include_ips=include_ips, include_networks=include_networks
+        networks = site.networks(
+            root=root_only, include_ips=include_ips,
+            include_networks=include_networks
         )
 
         self.success({
@@ -266,6 +275,9 @@ class NetworksHandler(ApiHandler):
 class NetworkHandler(ApiHandler):
     def get(self, site_id, network_id):
         """ Return a specific Network. """
+        site = self.session.query(models.Site).filter_by(id=site_id).scalar()
+        if not site:
+            return self.notfound("No such Site found at id {}".format(site_id))
 
         network = self.session.query(models.Network).filter_by(
             id=network_id,
@@ -285,6 +297,9 @@ class NetworkHandler(ApiHandler):
 
     def put(self, site_id, network_id):
         """ Update a Network. """
+        site = self.session.query(models.Site).filter_by(id=site_id).scalar()
+        if not site:
+            return self.notfound("No such Site found at id {}".format(site_id))
 
         network = self.session.query(models.Network).filter_by(
             id=network_id,
@@ -316,6 +331,9 @@ class NetworkHandler(ApiHandler):
 
     def delete(self, site_id, network_id):
         """ Delete a Network. """
+        site = self.session.query(models.Site).filter_by(id=site_id).scalar()
+        if not site:
+            return self.notfound("No such Site found at id {}".format(site_id))
 
         network = self.session.query(models.Network).filter_by(
             id=network_id,
@@ -343,6 +361,9 @@ class NetworkHandler(ApiHandler):
 class NetworkSubnetsHandler(ApiHandler):
     def get(self, site_id, network_id):
         """ Return subnets of a specific Network. """
+        site = self.session.query(models.Site).filter_by(id=site_id).scalar()
+        if not site:
+            return self.notfound("No such Site found at id {}".format(site_id))
 
         network = self.session.query(models.Network).filter_by(
             id=network_id,
@@ -373,6 +394,9 @@ class NetworkSubnetsHandler(ApiHandler):
 class NetworkSupernetsHandler(ApiHandler):
     def get(self, site_id, network_id):
         """ Return supernets of a specific Network. """
+        site = self.session.query(models.Site).filter_by(id=site_id).scalar()
+        if not site:
+            return self.notfound("No such Site found at id {}".format(site_id))
 
         network = self.session.query(models.Network).filter_by(
             id=network_id,

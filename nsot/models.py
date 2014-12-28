@@ -201,6 +201,50 @@ class Site(Model):
     # All generic resources are expected to have a site_id attribute.
     site_id = synonym("id")
 
+    def networks(self, include_networks=True, include_ips=False, root=False,
+                 attribute_name=None, attribute_value=None):
+        """ Helper method for grabbing Networks.
+
+            Args:
+                include_networks: Whether the response should include non-ip
+                                  address networks
+                include_ips: Whether the response should include ip addresses
+                root: Only return networks at the root.
+                attribute_name: Filter to networks that contain this attribute name
+                attribute_value: Filter to networks that contain this attribute value
+        """
+
+        if not any([include_networks, include_ips]):
+            return []
+
+        if attribute_value is not None and attribute_name is None:
+            raise ValueError("attribute_value requires attribute_name to be set.")
+
+        query = self.session.query(Network)
+
+
+        if attribute_name is not None:
+            query = query.outerjoin(Network.attr_idx).filter(
+                NetworkAttributeIndex.name == attribute_name
+            )
+            if attribute_value is not None:
+                query = query.filter(NetworkAttributeIndex.value == attribute_value)
+
+        query = query.filter(Network.site_id==self.id)
+
+        if not all([include_networks, include_ips]):
+            if include_networks:
+                query = query.filter(Network.is_ip == False)
+            if include_ips:
+                query = query.filter(Network.is_ip == True)
+
+        if root:
+            query = query.filter(Network.parent_id == None)
+
+        networks = query.all()
+        return networks
+
+
     @validates("name")
     def validate_name(self, key, value):
         if not value:
@@ -325,32 +369,6 @@ class Network(Model):
             self.session.execute(index_table.insert(), inserts)
 
         self._attributes = json.dumps(attributes)
-
-    @classmethod
-    def networks(cls, session, include_networks=True, include_ips=False, root=False):
-        """ Get networks that are subnets of a network.
-
-            Args:
-                include_networks: Whether the response should include non-ip address networks
-                include_ips: Whether the response should include ip addresses
-                root: Only return networks at the root.
-        """
-
-        if not any([include_networks, include_ips]):
-            return []
-
-        query = session.query(Network)
-
-        if not all([include_networks, include_ips]):
-            if include_networks:
-                query = query.filter(Network.is_ip == False)
-            if include_ips:
-                query = query.filter(Network.is_ip == True)
-
-        if root:
-            query = query.filter(Network.parent_id == None)
-
-        return query.all()
 
     def supernets(self, session, direct=False, discover_mode=False, for_update=False):
         """ Get networks that are a supernet of a network.
@@ -533,6 +551,7 @@ class NetworkAttribute(Model):
     site_id = Column(Integer, ForeignKey("sites.id"), nullable=False)
     # This is purposely not unique as there is a compound index with site_id.
     name = Column(String(length=64), nullable=False)
+    description = Column(Text, default="", nullable=False)
     required = Column(Boolean, default=False, nullable=False)
 
     @validates("name")
@@ -544,6 +563,7 @@ class NetworkAttribute(Model):
             raise exc.ValidationError("Invalid name.")
 
         return value
+
 
     @classmethod
     def all_by_name(cls, session):
@@ -639,7 +659,10 @@ class NetworkAttributeIndex(Model):
     value = Column(String(length=255), nullable=False, index=True)
 
     network_id = Column(Integer, ForeignKey("networks.id"), nullable=False)
+    network = relationship(Network, backref="attr_idx")
+
     attribute_id = Column(Integer, ForeignKey("network_attributes.id"), nullable=False)
+    attribute = relationship(NetworkAttribute)
 
 
 class Counter(Model):
