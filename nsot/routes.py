@@ -28,6 +28,11 @@ HANDLERS = [
     (r"/api/changes", api.ChangesHandler),
     (r"/api/sites/(?P<site_id>\d+)/changes", api.ChangesHandler),
 
+    # Users
+    (r"/api/users", api.UsersHandler),
+    (r"/api/users/(?P<user_id>\d+)", api.UserHandler),
+
+
     (r"/.*", api.NotFoundHandler),
 
 ]

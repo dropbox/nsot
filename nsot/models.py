@@ -31,6 +31,7 @@ RESOURCE_BY_NAME = {
     obj_type: idx
     for idx, obj_type in enumerate(RESOURCE_BY_IDX)
 }
+CHANGE_EVENTS = ("Create", "Update", "Delete")
 
 
 class Session(_Session):
@@ -159,7 +160,6 @@ class User(Model):
 
     id = Column(Integer, primary_key=True)
     email = Column(String(length=255), unique=True, nullable=False)
-    enabled = Column(Boolean, default=True, nullable=False)
 
     @validates("email")
     def validate_email(self, key, value):
@@ -167,6 +167,12 @@ class User(Model):
         if "@" not in value:
             raise exc.ValidationError("Must contain a valid e-mail address")
         return value
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "email": self.email,
+        }
 
 
 class Site(Model):
@@ -536,10 +542,10 @@ class Change(Model):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     change_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
-    event = Column(Enum("Create", "Update", "Delete"), nullable=False)
+    event = Column(Enum(*CHANGE_EVENTS), nullable=False)
 
     resource_type = Column(Integer, nullable=False)
-    resource_pk = Column(Integer, nullable=False)
+    resource_id = Column(Integer, nullable=False)
 
     _resource = Column("resource", Text, nullable=False)
 
@@ -559,7 +565,7 @@ class Change(Model):
             "user_id": user_id,
             "event": event,
             "resource_type": resource.resource_type,
-            "resource_pk": resource.id,
+            "resource_id": resource.id,
             "resource": resource.to_dict(),
         }
 
@@ -580,7 +586,7 @@ class Change(Model):
             "change_at": time.mktime(self.change_at.timetuple()),
             "event": self.event,
             "resource_type": RESOURCE_BY_IDX[self.resource_type],
-            "resource_pk": self.resource_pk,
+            "resource_id": self.resource_id,
             "resource": resource,
         }
 

@@ -398,17 +398,67 @@ class ChangesHandler(ApiHandler):
     def get(self, site_id=None):
         """ Return Change events."""
 
+        event = self.get_argument("event", None)
+        if event is not None and event not in models.CHANGE_EVENTS:
+            return self.badrequest("Invalid event.")
+
+        resource_type = self.get_argument("resource_type", None)
+        if resource_type is not None and resource_type not in models.RESOURCE_BY_NAME:
+            return self.badrequest("Invalid resource type.")
+
+        resource_id = self.get_arguement("resource_id", None)
+        if resource_id is not None and resource_type is None:
+            return self.badrequest("resource_id requires resource_type to be set.")
+
         changes = self.session.query(models.Change)
+
         if site_id is not None:
             site = self.session.query(models.Site).filter_by(id=site_id).scalar()
             if not site:
                 return self.notfound("No such Site found at id {}".format(site_id))
             changes = changes.filter_by(site_id=site_id)
 
+        if event is not None:
+            changes = change.filter_by(event=event)
+
+        if resource_type is not None:
+            changes = change.filter_by(resource_type=resource_type)
+
+        if resource_id is not None:
+            changes = change.filter_by(resource_id=resource_id)
+
+
         self.success({
             "changes": [change.to_dict() for change in changes],
         })
 
+
+class UsersHandler(ApiHandler):
+    def get(self):
+        """ Return Users."""
+
+        users = self.session.query(models.User)
+
+        self.success({
+            "users": [user.to_dict() for user in users],
+        })
+
+class UserHandler(ApiHandler):
+    def get(self, user_id):
+        """ Return a User."""
+
+        user = self.session.query(models.User).filter_by(
+            id=user_id,
+        ).scalar()
+
+        if not user:
+            return self.notfound(
+                "No such User found at (id) = ({})".format(user_id)
+            )
+
+        self.success({
+            "user": user.to_dict(),
+        })
 
 class NotFoundHandler(ApiHandler):
     def get(self):
