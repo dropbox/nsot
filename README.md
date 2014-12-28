@@ -5,14 +5,14 @@
 
 ## Warning
 
-AThis project is still very much in flux and likely to have database changes without
-migration support for the time being. Also some documentation may describe steps not yes possible.
+This project is still very much in flux and likely to have database changes without
+migration support for the time being. Also some documentation may describe steps not yet possible.
 
 ### Description
 
 NSoT is a Network Source of Truth API and FE for managing Network Assets.
 
-Currently only IP Address Management on on the road-map but it will evolve
+Currently only IP Address Management is on the road-map but it will evolve
 into more over time.
 
 
@@ -34,7 +34,7 @@ virtualenvwrapper you can just do
 $ mkvirtualenv nsot
 ```
 
-After that, clone the repo into whichever directory where you do development
+After that, clone the repo into whichever directory you use for development
 and install the dependencies.
 
 ```bash
@@ -44,8 +44,8 @@ $ pip install -r requirements-dev.txt
 $ python setup.py develop
 ```
 #### Running Tests
-All tests will automatically be run on Travis CI when pull requests are sent
-however it's beneficial to run the tests often during development.
+All tests will automatically be run on Travis CI when pull requests are sent.
+However, it's beneficial to run the tests often during development.
 
 ```bash
 py.test -v tests/
