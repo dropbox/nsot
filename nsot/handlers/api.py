@@ -58,9 +58,10 @@ class SiteHandler(ApiHandler):
             return self.badrequest("Missing Required Argument: {}".format(err.message))
 
         try:
-            site.name = name
-            site.description = description
-            self.session.commit()
+            site.update(
+                self.current_user.id,
+                name=name, description=description
+            )
         except IntegrityError as err:
             return self.conflict(str(err.orig))
 
@@ -158,14 +159,15 @@ class NetworkAttributeHandler(ApiHandler):
 
         try:
             name = self.jbody["name"]
-            required = self.jbody.get("required")
+            required = qpbool(self.jbody.get("required"))
         except KeyError as err:
             return self.badrequest("Missing Required Argument: {}".format(err.message))
 
         try:
-            attribute.name = name
-            attribute.required = qpbool(required)
-            self.session.commit()
+            attribute.update(
+                self.current_user.id,
+                name=name, required=required
+            )
         except IntegrityError as err:
             return self.conflict(str(err.orig))
         except exc.ValidationError as err:
@@ -302,8 +304,7 @@ class NetworkHandler(ApiHandler):
             return self.badrequest("Missing Required Argument: {}".format(err.message))
 
         try:
-            network.set_attributes(attributes)
-            self.session.commit()
+            network.update(self.current_user.id, attributes=attributes)
         except IntegrityError as err:
             return self.conflict(err.orig.message)
         except exc.ValidationError as err:

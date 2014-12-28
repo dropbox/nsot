@@ -45,20 +45,20 @@ def test_network_attributes(session, user, site):
     assert network.get_attributes() == {"vlan": "34"}
 
     # Verify property successfully zeros out attributes
-    network.set_attributes({})
+    network.update(user.id, attributes={})
     assert network.get_attributes() == {}
 
     with pytest.raises(exc.ValidationError):
-        network.set_attributes(None)
+        network.update(user.id, attributes=None)
 
     with pytest.raises(exc.ValidationError):
-        network.set_attributes({0: "value"})
+        network.update(user.id, attributes={0: "value"})
 
     with pytest.raises(exc.ValidationError):
-        network.set_attributes({"key": 0})
+        network.update(user.id, attributes={"key": 0})
 
     with pytest.raises(exc.ValidationError):
-        network.set_attributes({"made_up": "value"})
+        network.update(user.id, attributes={"made_up": "value"})
 
 
 def test_ip_address_no_network(session, user, site):

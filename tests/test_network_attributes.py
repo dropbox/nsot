@@ -59,12 +59,12 @@ def test_validation(session, site, user):
     )
 
     with pytest.raises(exc.ValidationError):
-        attribute.name = ""
+        attribute.update(user.id, name="")
 
     with pytest.raises(exc.ValidationError):
-        attribute.name = None
+        attribute.update(user.id, name=None)
 
-    attribute.name = "test_attribute_new"
+    attribute.update(user.id, name="test_attribute_new")
     session.commit()
 
 

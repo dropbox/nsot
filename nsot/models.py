@@ -98,6 +98,20 @@ class Model(object):
 
         return obj
 
+    def update(self, user_id, **kwargs):
+        session = self.session
+        try:
+            for key, value in kwargs.iteritems():
+                setattr(self, key, value)
+
+            session.flush()
+            Change.create(session, user_id, "Update", self)
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
+
+
     def add(self, session):
         session._add(self)
         return self
@@ -486,6 +500,21 @@ class Network(Model):
             raise
 
         return obj
+
+    def update(self, user_id, **kwargs):
+        session = self.session
+        try:
+            for key, value in kwargs.iteritems():
+                if key == "attributes":
+                    self.set_attributes(value)
+                else:
+                    setattr(self, key, value)
+            session.flush()
+            Change.create(session, user_id, "Update", self)
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
 
 
 class NetworkAttribute(Model):

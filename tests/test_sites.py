@@ -65,10 +65,10 @@ def test_site_validation(session, user):
     )
 
     with pytest.raises(exc.ValidationError):
-        site.name = ""
+        site.update(user.id, name="")
 
     with pytest.raises(exc.ValidationError):
-        site.name = None
+        site.update(user.id, name=None)
 
-    site.name = "Test Site New"
+    site.update(user.id, name="Test Site New")
     session.commit()
