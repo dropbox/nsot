@@ -25,7 +25,7 @@ get_package_data("nsot", "nsot/templates")
 kwargs = {
     "name": "nsot",
     "version": str(__version__),
-    "packages": ["nsot"],
+    "packages": ["nsot", "nsot.handlers"],
     "package_data": package_data,
     "scripts": ["bin/nsot-server", "bin/nsot-ctl"],
     "description": "Network Source of Truth (IP Address Management).",
