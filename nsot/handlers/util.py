@@ -38,7 +38,7 @@ class ApiHandler(RequestHandler):
 
     def prepare(self):
         try:
-            if not self.current_user or not self.current_user.enabled:
+            if not self.current_user:
                 return self.error_status(403, "Not logged in.")
         except exc.ValidationError as err:
             return self.badrequest(err.message)

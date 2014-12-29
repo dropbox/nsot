@@ -10,3 +10,4 @@ livereload==2.3.2
 pathtools==0.1.2
 sphinx-autobuild==0.4.0
 watchdog==0.8.2
+requests==2.5.1

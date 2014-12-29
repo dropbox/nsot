@@ -14,18 +14,12 @@ import nsot
 from nsot.routes import HANDLERS
 from nsot.settings import settings
 from nsot.models import get_db_engine, Session
-from nsot.util import get_loglevel
+from nsot.util import get_loglevel, Application
 
 
 from sqlalchemy.exc import OperationalError
 
 sa_log = logging.getLogger("sqlalchemy.engine.base.Engine")
-
-
-class Application(tornado.web.Application):
-    def __init__(self, *args, **kwargs):
-        self.my_settings = kwargs.pop("my_settings", {})
-        super(Application, self).__init__(*args, **kwargs)
 
 
 def main(argv):
