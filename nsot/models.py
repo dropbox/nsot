@@ -232,7 +232,8 @@ class Permission(Model):
 
     def to_dict(self):
         return {
-            "id": self.id,
+            # Not including primary key here since all operations
+            # will be on the composite key of site_id and user_id.
             "site_id": self.site_id,
             "user_id": self.user_id,
             "permissions": self.permissions,

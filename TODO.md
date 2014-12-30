@@ -1,7 +1,8 @@
-* User permissions
-    - Creator of Site is Site Admin
-    - Creator of first site is Global Admin
-    - Admin vs RW perms
+* Handler Tests
+    - Site: Update/Delete
+    - Network: Create/Update/Delete
+    - Network Attributes: Create/Update/Delete
+    - Permissions: Create/Update
 * Documentation
 * Hostnames and reverse
 * Web UI

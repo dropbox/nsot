@@ -453,13 +453,13 @@ class ChangesHandler(ApiHandler):
             changes = changes.filter_by(site_id=site_id)
 
         if event is not None:
-            changes = change.filter_by(event=event)
+            changes = changes.filter_by(event=event)
 
         if resource_type is not None:
-            changes = change.filter_by(resource_type=resource_type)
+            changes = changes.filter_by(resource_type=resource_type)
 
         if resource_id is not None:
-            changes = change.filter_by(resource_id=resource_id)
+            changes = changes.filter_by(resource_id=resource_id)
 
 
         self.success({
@@ -493,6 +493,78 @@ class UserHandler(ApiHandler):
         self.success({
             "user": user.to_dict(),
         })
+
+class UserPermissionsHandler(ApiHandler):
+    def get(self, user_id):
+        """ Return available Permissions for a User."""
+
+        permissions = self.session.query(models.Permission).filter_by(
+            user_id=user_id
+        )
+
+        self.success({
+            "permissions": [permission.to_dict() for permission in permissions],
+        })
+
+class UserPermissionHandler(ApiHandler):
+    def get(self, user_id, site_id):
+        """ Return Site permissions for a User."""
+
+        permission = self.session.query(models.Permission).filter_by(
+            user_id=user_id, site_id=site_id
+        ).scalar()
+
+        if not permission:
+            return self.notfound(
+                "No such Permission found at (user_id, site_id) = ({})".format(
+                    user_id, site_id
+                )
+            )
+
+        self.success({
+            "permission": permission.to_dict(),
+        })
+
+    @any_perm("admin")
+    def put(self, user_id, site_id):
+        permission = self.session.query(models.Permission).filter_by(
+                user_id=user_id, site_id=site_id
+        ).scalar()
+
+        # If the permission exists it's safe to assume the user/site exists. If not
+        # we're adding a new permission so verify that the user/site are valid.
+        if not permission:
+            user = self.session.query(models.User).filter_by(id=user_id).scalar()
+            if not user:
+                return self.notfound("No such User found at (id) = ({})".format(user_id))
+
+            site = self.session.query(models.Site).filter_by(id=site_id).scalar()
+            if not site:
+                return self.notfound("No such Site found at id {}".format(site_id))
+
+        try:
+            permissions = self.jbody["permissions"]
+        except KeyError as err:
+            return self.badrequest("Missing Required Argument: {}".format(err.message))
+
+        try:
+            if not permission:
+                permission = models.Permission.create(
+                    self.session, self.current_user.id,
+                    permissions=permissions
+                )
+            else:
+                permission.update(
+                    self.current_user.id,
+                    permissions=permissions
+                )
+        except IntegrityError as err:
+            return self.conflict(str(err.orig))
+
+        self.success({
+            "permission": permission.to_dict(),
+        })
+
 
 class NotFoundHandler(ApiHandler):
     def get(self):
