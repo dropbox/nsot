@@ -1,7 +1,7 @@
 * Handler Tests
     - Site: Delete
     - Network: Create/Update/Delete
-    - Network Attributes: Create/Update/Delete
+    - Network Attributes: Delete
     - Permissions: Create/Update
 * Documentation
 * Hostnames and reverse

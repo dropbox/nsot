@@ -24,7 +24,7 @@ def any_perm(*perms):
                     "without site_id keyword argument."
                 )
             if not _has_any_perm(self.current_user, kwargs["site_id"], perms):
-                return self.unauthorized()
+                return self.forbidden("Lacking appropriate permissions.")
             return method(self, *args, **kwargs)
         return wrapper
     return dec

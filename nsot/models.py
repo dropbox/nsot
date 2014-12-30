@@ -247,7 +247,7 @@ class Site(Model):
 
     id = Column(Integer, primary_key=True)
     name = Column(String(length=255), unique=True, nullable=False)
-    description = Column(Text)
+    description = Column(Text, default="", nullable=False)
 
     # All generic resources are expected to have a site_id attribute.
     site_id = synonym("id")
@@ -633,6 +633,7 @@ class NetworkAttribute(Model):
         return {
             "id": self.id,
             "site_id": self.site_id,
+            "description": self.description,
             "name": self.name,
             "required": self.required,
         }

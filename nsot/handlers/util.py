@@ -39,7 +39,7 @@ class ApiHandler(RequestHandler):
     def prepare(self):
         try:
             if not self.current_user:
-                return self.error_status(403, "Not logged in.")
+                return self.unauthorized("Not logged in.")
         except exc.ValidationError as err:
             return self.badrequest(err.message)
 
@@ -79,6 +79,12 @@ class ApiHandler(RequestHandler):
 
     def badrequest(self, message):
         self.error_status(400, message)
+
+    def unauthorized(self, message):
+        self.error_status(401, message)
+
+    def forbidden(self, message):
+        self.error_status(401, message)
 
     def notfound(self, message):
         self.error_status(404, message)

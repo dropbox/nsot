@@ -18,6 +18,8 @@ class SitesHandler(ApiHandler):
             description = self.jbody.get("description", "")
         except KeyError as err:
             return self.badrequest("Missing Required Argument: {}".format(err.message))
+        except ValueError as err:
+            return self.badrequest("GARY" + err.message)
 
         try:
             site = models.Site.create(
@@ -124,7 +126,7 @@ class NetworkAttributesHandler(ApiHandler):
         if not site:
             return self.notfound("No such Site found at id {}".format(site_id))
 
-        name = self.get_arguement("name", None)
+        name = self.get_argument("name", None)
         required = qpbool(self.get_argument("required", None))
 
         attributes = self.session.query(models.NetworkAttribute).filter_by(
@@ -183,7 +185,7 @@ class NetworkAttributeHandler(ApiHandler):
             )
 
         try:
-            description = self.jbody.get("description")
+            description = self.jbody.get("description", "")
             required = qpbool(self.jbody.get("required"))
         except KeyError as err:
             return self.badrequest("Missing Required Argument: {}".format(err.message))
@@ -440,7 +442,7 @@ class ChangesHandler(ApiHandler):
         if resource_type is not None and resource_type not in models.RESOURCE_BY_NAME:
             return self.badrequest("Invalid resource type.")
 
-        resource_id = self.get_arguement("resource_id", None)
+        resource_id = self.get_argument("resource_id", None)
         if resource_id is not None and resource_type is None:
             return self.badrequest("resource_id requires resource_type to be set.")
 
