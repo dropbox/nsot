@@ -1,5 +1,5 @@
 * Handler Tests
-    - Site: Update/Delete
+    - Site: Delete
     - Network: Create/Update/Delete
     - Network Attributes: Create/Update/Delete
     - Permissions: Create/Update

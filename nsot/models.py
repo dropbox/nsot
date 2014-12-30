@@ -203,10 +203,10 @@ class User(Model):
             "email": self.email,
         }
 
-    def get_permission(self, site_id):
+    def get_permissions(self, site_id):
         perm = self.session.query(Permission).filter_by(
             site_id=site_id,
-            user_id=self.user_id
+            user_id=self.id
         ).scalar()
 
         if perm is not None:
@@ -215,7 +215,7 @@ class User(Model):
         return PermissionsFlag(0)
 
     def is_admin(self, site_id):
-        return get_permission(site_id).has("admin")
+        return get_permissions(site_id).has("admin")
 
 
 class Permission(Model):
