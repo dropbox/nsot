@@ -84,7 +84,7 @@ class ApiHandler(RequestHandler):
         self.error_status(401, message)
 
     def forbidden(self, message):
-        self.error_status(401, message)
+        self.error_status(403, message)
 
     def notfound(self, message):
         self.error_status(404, message)

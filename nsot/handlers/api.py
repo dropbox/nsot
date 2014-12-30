@@ -259,7 +259,7 @@ class NetworksHandler(ApiHandler):
         except (ValueError, exc.ValidationError) as err:
             return self.badrequest(err.message)
 
-        self.created("/api/networks/{}".format(network.id))
+        self.created("/api/sites/{}/networks/{}".format(site_id, network.id))
 
     def get(self, site_id):
         """ Return all Networks. """

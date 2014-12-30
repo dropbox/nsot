@@ -13,16 +13,19 @@ def test_creation(tornado_server):
 
     client.create("/sites", name="Test Site")  # 1
 
+    # Test invalid attribute name
     assert_error(
         client.create("/sites/1/network_attributes", name="invalid attr1"),
         400
     )
 
+    # Successfully create an attribute
     assert_created(
         client.create("/sites/1/network_attributes", name="attr1"),
         "/api/sites/1/network_attributes/1"
     )
 
+    # Successfully get all Network Attributes
     assert_success(
         client.get("/sites/1/network_attributes"),
         {"network_attributes": [
@@ -34,6 +37,7 @@ def test_creation(tornado_server):
 
     )
 
+    # Successfully get a single Network Attribute
     assert_success(
         client.get("/sites/1/network_attributes/1"),
         {"network_attribute": {

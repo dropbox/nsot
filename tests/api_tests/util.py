@@ -2,12 +2,6 @@ import requests
 import json
 import urlparse
 
-USERS = {
-    "admin": "admin@localhost",
-    "user": "gary@localhost",
-}
-EMAIL_HEADER = "X-NSoT-Email"
-
 
 def assert_error(response, code):
     output = response.json()
@@ -29,7 +23,7 @@ def assert_created(response, location):
 class Client(object):
     def __init__(self, tornado_server, user="user"):
         self.tornado_server = tornado_server
-        self.user = USERS[user]
+        self.user = "{}@localhost".format(user)
 
     @property
     def base_url(self):
@@ -38,7 +32,7 @@ class Client(object):
     def request(self, method, url, user="admin", **kwargs):
 
         headers = {
-            EMAIL_HEADER: self.user
+            "X-NSoT-Email": self.user
         }
 
         if method.lower() in ("put", "post"):
