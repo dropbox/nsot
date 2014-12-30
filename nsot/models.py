@@ -23,10 +23,11 @@ from sqlalchemy.types import Enum, DateTime, VARBINARY
 
 from . import constants
 from . import exc
+from .permissions import PermissionsFlag
 
 
 RESOURCE_BY_IDX = (
-    "Site", "Network", "NetworkAttribute",
+    "Site", "Network", "NetworkAttribute", "Permission",
 )
 RESOURCE_BY_NAME = {
     obj_type: idx
@@ -87,11 +88,20 @@ class Model(object):
         return obj_idx
 
     @classmethod
-    def create(cls, session, user_id, **kwargs):
+    def before_create(cls, session, user_id):
+        """ Hook for before object creation."""
+
+    def after_create(self, user_id):
+        """ Hook for after object creation."""
+
+    @classmethod
+    def create(cls, session, _user_id, **kwargs):
         try:
+            cls.before_create(session, _user_id)
             obj = cls(**kwargs).add(session)
             session.flush()
-            Change.create(session, user_id, "Create", obj)
+            obj.after_create(_user_id)
+            Change.create(session, _user_id, "Create", obj)
             session.commit()
         except Exception:
             session.rollback()
@@ -120,12 +130,16 @@ class Model(object):
     def before_delete(self):
         """ Hook for extra model cleanup before delete. """
 
+    def after_delete(self):
+        """ Hook for extra model cleanup after delete. """
+
     def delete(self, user_id):
         session = self.session
         try:
             Change.create(session, user_id, "Delete", self)
             self.before_delete()
             session._delete(self)
+            self.after_delete()
             session.commit()
         except Exception:
             session.rollback()
@@ -189,6 +203,41 @@ class User(Model):
             "email": self.email,
         }
 
+    def get_permission(self, site_id):
+        perm = self.session.query(Permission).filter_by(
+            site_id=site_id,
+            user_id=self.user_id
+        ).scalar()
+
+        if perm is not None:
+            return PermissionsFlag(perm.permissions)
+
+        return PermissionsFlag(0)
+
+    def is_admin(self, site_id):
+        return get_permission(site_id).has("admin")
+
+
+class Permission(Model):
+    __tablename__ = "permissions"
+    __table_args__ = (
+        Index("site_user_idx", "site_id", "user_id", unique=True),
+    )
+
+    id = Column(Integer, primary_key=True)
+    site_id = Column(Integer, ForeignKey("sites.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+
+    permissions = Column(Integer, default=0, nullable=False)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "site_id": self.site_id,
+            "user_id": self.user_id,
+            "permissions": self.permissions,
+        }
+
 
 class Site(Model):
     """ A namespace for subnets, ipaddresses, attributes. """
@@ -201,6 +250,11 @@ class Site(Model):
 
     # All generic resources are expected to have a site_id attribute.
     site_id = synonym("id")
+
+    def after_create(self, user_id):
+        flag = PermissionsFlag()
+        flag.set("admin")
+        Permission.create(self.session, user_id, site_id=self.id, user_id=user_id, permissions=flag.dump())
 
     def networks(self, include_networks=True, include_ips=False, root=False,
                  attribute_name=None, attribute_value=None):
@@ -251,6 +305,7 @@ class Site(Model):
         if not value:
             raise exc.ValidationError("Name is a required field.")
         return value
+
 
     def to_dict(self):
         return {

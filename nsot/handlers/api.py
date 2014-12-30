@@ -3,6 +3,7 @@ from sqlalchemy.exc import IntegrityError
 
 from .util import ApiHandler
 from .. import exc
+from ..decorators import any_perm
 from .. import models
 from ..util import qp_to_bool as qpbool
 
@@ -46,6 +47,7 @@ class SiteHandler(ApiHandler):
             "site": site.to_dict(),
         })
 
+    @any_perm("admin")
     def put(self, site_id):
         site = self.session.query(models.Site).filter_by(id=site_id).scalar()
         if not site:
@@ -69,6 +71,7 @@ class SiteHandler(ApiHandler):
             "site": site.to_dict(),
         })
 
+    @any_perm("admin")
     def delete(self, site_id):
         site = self.session.query(models.Site).filter_by(id=site_id).scalar()
         if not site:
@@ -86,6 +89,7 @@ class SiteHandler(ApiHandler):
 
 class NetworkAttributesHandler(ApiHandler):
 
+    @any_perm("admin", "network_attrs")
     def post(self, site_id):
         """ Create a new NetworkAttribute."""
         site = self.session.query(models.Site).filter_by(id=site_id).scalar()
@@ -160,6 +164,7 @@ class NetworkAttributeHandler(ApiHandler):
             "network_attribute": attribute.to_dict(),
         })
 
+    @any_perm("admin", "network_attrs")
     def put(self, site_id, attribute_id):
         site = self.session.query(models.Site).filter_by(id=site_id).scalar()
         if not site:
@@ -197,6 +202,7 @@ class NetworkAttributeHandler(ApiHandler):
             "network_attribute": attribute.to_dict(),
         })
 
+    @any_perm("admin", "network_attrs")
     def delete(self, site_id, attribute_id):
         site = self.session.query(models.Site).filter_by(id=site_id).scalar()
         if not site:
@@ -228,6 +234,7 @@ class NetworkAttributeHandler(ApiHandler):
 
 class NetworksHandler(ApiHandler):
 
+    @any_perm("admin", "networks")
     def post(self, site_id):
         """ Create a new Network."""
         site = self.session.query(models.Site).filter_by(id=site_id).scalar()
@@ -295,6 +302,7 @@ class NetworkHandler(ApiHandler):
             "network": network.to_dict(),
         })
 
+    @any_perm("admin", "networks")
     def put(self, site_id, network_id):
         """ Update a Network. """
         site = self.session.query(models.Site).filter_by(id=site_id).scalar()
@@ -329,6 +337,7 @@ class NetworkHandler(ApiHandler):
             "network": network.to_dict(),
         })
 
+    @any_perm("admin", "networks")
     def delete(self, site_id, network_id):
         """ Delete a Network. """
         site = self.session.query(models.Site).filter_by(id=site_id).scalar()
