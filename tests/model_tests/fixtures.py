@@ -22,15 +22,21 @@ def session(request, tmpdir):
 
 @pytest.fixture
 def user(session):
-    user = models.User(email="gary@foo").add(session)
+    user = models.User(email="gary@localhost").add(session)
+    session.commit()
+    return user
+
+@pytest.fixture
+def admin(session):
+    user = models.User(email="admin@localhost").add(session)
     session.commit()
     return user
 
 
 @pytest.fixture
-def site(session, user):
+def site(session, admin):
     site = models.Site.create(
-        session, user.id,
+        session, admin.id,
         name="Test Site",
         description="This is a Test Site."
     )
