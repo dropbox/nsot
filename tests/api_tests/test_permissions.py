@@ -109,6 +109,7 @@ def test_permissions(tornado_server):
         user_client.update("/sites/1/networks/2", attributes={"attr2": "bar"}),
         {"network": {
             "attributes": {"attr2": "bar"},
+            "parent_id": None,
             "id": 2,
             "ip_version": "4",
             "is_ip": False,

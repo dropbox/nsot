@@ -9,4 +9,6 @@ Contents:
    :maxdepth: 2
 
    intro
+   config
    api
+   api-ref

@@ -357,6 +357,7 @@ class Network(Model):
 
         return {
             "id": self.id,
+            "parent_id": self.parent_id,
             "site_id": self.site_id,
             "is_ip": self.is_ip,
             "ip_version": self.ip_version,

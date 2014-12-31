@@ -6,3 +6,4 @@
 * API Tokens for role accounts
 * Setup support for migrations before first preview release
 * Pagination
+* Restrict requests to specific IPs/Networks

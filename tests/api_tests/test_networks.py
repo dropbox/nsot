@@ -45,6 +45,7 @@ def test_creation(tornado_server):
         {"networks": [{
             "attributes": {"attr1": "foo"},
             "id": 1,
+            "parent_id": None,
             "ip_version": "4",
             "is_ip": False,
             "network_address": "10.0.0.0",
@@ -60,6 +61,7 @@ def test_creation(tornado_server):
         {"network": {
             "attributes": {"attr1": "foo"},
             "id": 1,
+            "parent_id": None,
             "ip_version": "4",
             "is_ip": False,
             "network_address": "10.0.0.0",
@@ -85,6 +87,7 @@ def test_update(tornado_server):
         {"network": {
             "attributes": {},
             "id": 1,
+            "parent_id": None,
             "ip_version": "4",
             "is_ip": False,
             "network_address": "10.0.0.0",
@@ -99,6 +102,7 @@ def test_update(tornado_server):
         {"network": {
             "attributes": {"attr1": "foo"},
             "id": 1,
+            "parent_id": None,
             "ip_version": "4",
             "is_ip": False,
             "network_address": "10.0.0.0",

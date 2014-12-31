@@ -193,6 +193,8 @@ class SiteHandler(ApiHandler):
             }
 
 
+        :permissions: * **admin**
+
         :param site_id: ID of the Site that should be updated.
         :type site_id: int
 
@@ -255,6 +257,7 @@ class SiteHandler(ApiHandler):
                 }
             }
 
+        :permissions: * **admin**
 
         :param site_id: ID of the Site that should be updated.
         :type site_id: int
@@ -308,6 +311,8 @@ class NetworkAttributesHandler(ApiHandler):
 
             HTTP/1.1 201 OK
             Location: /api/sites/1/network_attributes/1
+
+        :permissions: * **admin**, **network_attrs**
 
         :param site_id: ID of the Site where this should be created.
         :type site_id: int
@@ -525,6 +530,8 @@ class NetworkAttributeHandler(ApiHandler):
             }
 
 
+        :permissions: * **admin**, **network_attrs**
+
         :param site_id: ID of the Site that should be updated.
         :type site_id: int
 
@@ -608,6 +615,8 @@ class NetworkAttributeHandler(ApiHandler):
             }
 
 
+        :permissions: * **admin**, **network_attrs**
+
         :param site_id: ID of the Site that should be updated.
         :type site_id: int
 
@@ -679,6 +688,8 @@ class NetworksHandler(ApiHandler):
             HTTP/1.1 201 OK
             Location: /api/sites/1/networks/1
 
+        :permissions: * **admin**, **networks**
+
         :param site_id: ID of the Site where this should be created.
         :type site_id: int
 
@@ -745,6 +756,7 @@ class NetworksHandler(ApiHandler):
                     "networks": [
                         {
                             "id": 1,
+                            "parent_id": null,
                             "site_id": 1,
                             "is_ip": false,
                             "ip_version": "4",
@@ -756,7 +768,7 @@ class NetworksHandler(ApiHandler):
                 }
             }
 
-        :param site_id: ID of the Site to retrieve Network Attributes from.
+        :param site_id: ID of the Site to retrieve Networks from.
         :type site_id: int
 
         :query bool root_only: (*optional*) Filter to root networks.
@@ -814,6 +826,7 @@ class NetworkHandler(ApiHandler):
                 "data": {
                     "network": {
                         "id": 1,
+                        "parent_id": null,
                         "site_id": 1,
                         "is_ip": false,
                         "ip_version": "4",
@@ -885,6 +898,7 @@ class NetworkHandler(ApiHandler):
                 "data": {
                     "network": {
                         "id": 1,
+                        "parent_id": null,
                         "site_id": 1,
                         "is_ip": false,
                         "ip_version": "4",
@@ -895,6 +909,8 @@ class NetworkHandler(ApiHandler):
                 }
             }
 
+
+        :permissions: * **admin**, **networks**
 
         :param site_id: ID of the Site that should be updated.
         :type site_id: int
@@ -974,10 +990,12 @@ class NetworkHandler(ApiHandler):
             }
 
 
+        :permissions: * **admin**, **networks**
+
         :param site_id: ID of the Site that should be updated.
         :type site_id: int
 
-        :param network_id: ID of the NetworkAttribute being deleted.
+        :param network_id: ID of the Network being deleted.
         :type network_id: int
 
         :reqheader X-NSoT-Email: required for all api requests.
@@ -1017,7 +1035,60 @@ class NetworkHandler(ApiHandler):
 
 class NetworkSubnetsHandler(ApiHandler):
     def get(self, site_id, network_id):
-        """ Return subnets of a specific Network. """
+        """ **Get subnets of a Network**
+
+        **Example Request**:
+
+        .. sourcecode:: http
+
+            GET /api/sites/1/networks/1/subnets HTTP/1.1
+            Host: localhost
+            X-NSoT-Email: user@localhost
+
+        **Example response**:
+
+        .. sourcecode:: http
+
+            HTTP/1.1 200 OK
+            Content-Type: application/json
+
+            {
+                "status": "ok",
+                "data": {
+                    "networks": [
+                        {
+                            "id": 2,
+                            "parent_id": 1,
+                            "site_id": 1,
+                            "is_ip": false,
+                            "ip_version": "4",
+                            "network_address": "10.0.0.0",
+                            "prefix_length": "24",
+                            "attributes": {}
+                        }
+                    ]
+                }
+            }
+
+        :param site_id: ID of the Site to retrieve Networks from.
+        :type site_id: int
+
+        :param network_id: ID of the Network we're requesting subnets from.
+        :type network_id: int
+
+        :query bool direct: (*optional*) Return only direct subnets.
+                            Default: false
+        :query bool include_networks: (*optional*) Include non-IP networks.
+                                      Default: true
+        :query bool include_ips: (*optional*) Include IP addresses.
+                                 Default: false
+
+        :reqheader X-NSoT-Email: required for all api requests.
+
+        :statuscode 200: The request was successful.
+        :statuscode 401: The request was made without being logged in.
+        :statuscode 404: The Site or Network was not found.
+        """
         site = self.session.query(models.Site).filter_by(id=site_id).scalar()
         if not site:
             return self.notfound("No such Site found at id {}".format(site_id))
@@ -1050,7 +1121,56 @@ class NetworkSubnetsHandler(ApiHandler):
 
 class NetworkSupernetsHandler(ApiHandler):
     def get(self, site_id, network_id):
-        """ Return supernets of a specific Network. """
+        """ **Get supernets of a Network**
+
+        **Example Request**:
+
+        .. sourcecode:: http
+
+            GET /api/sites/1/networks/2/supernets HTTP/1.1
+            Host: localhost
+            X-NSoT-Email: user@localhost
+
+        **Example response**:
+
+        .. sourcecode:: http
+
+            HTTP/1.1 200 OK
+            Content-Type: application/json
+
+            {
+                "status": "ok",
+                "data": {
+                    "networks": [
+                        {
+                            "id": 1,
+                            "parent_id": null,
+                            "site_id": 1,
+                            "is_ip": false,
+                            "ip_version": "4",
+                            "network_address": "10.0.0.0",
+                            "prefix_length": "8",
+                            "attributes": {}
+                        }
+                    ]
+                }
+            }
+
+        :param site_id: ID of the Site to retrieve Networks from.
+        :type site_id: int
+
+        :param network_id: ID of the Network we're requesting supernets from.
+        :type network_id: int
+
+        :query bool direct: (*optional*) Return only direct supernets.
+                            Default: false
+
+        :reqheader X-NSoT-Email: required for all api requests.
+
+        :statuscode 200: The request was successful.
+        :statuscode 401: The request was made without being logged in.
+        :statuscode 404: The Site or Network was not found.
+        """
         site = self.session.query(models.Site).filter_by(id=site_id).scalar()
         if not site:
             return self.notfound("No such Site found at id {}".format(site_id))
