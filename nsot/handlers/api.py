@@ -133,7 +133,7 @@ class SiteHandler(ApiHandler):
                 "status": "ok",
                 "data": {
                     "site": {
-                        "id": 1
+                        "id": 1,
                         "name": "Site 1",
                         "description": ""
                     }
@@ -185,7 +185,7 @@ class SiteHandler(ApiHandler):
                 "status": "ok",
                 "data": {
                     "site": {
-                        "id": 1
+                        "id": 1,
                         "name": "Old Site",
                         "description": "A better description."
                     }
@@ -196,9 +196,12 @@ class SiteHandler(ApiHandler):
         :param site_id: ID of the Site that should be updated.
         :type site_id: int
 
+        :reqheader Content-Type: The server expects a json body specified with
+                                 this header.
         :reqheader X-NSoT-Email: required for all api requests.
 
         :statuscode 200: The request was successful.
+        :statuscode 400: The request was malformed.
         :statuscode 401: The request was made without being logged in.
         :statuscode 403: The request was made with insufficient permissions.
         :statuscode 404: The Site at site_id was not found.
@@ -228,7 +231,7 @@ class SiteHandler(ApiHandler):
 
     @any_perm("admin")
     def delete(self, site_id):
-        """ **Update a Site**
+        """ **Delete a Site**
 
         **Example Request**:
 
@@ -354,7 +357,50 @@ class NetworkAttributesHandler(ApiHandler):
         ))
 
     def get(self, site_id):
-        """ Return all NetworkAttributes."""
+        """ **Get all Network Attributes**
+
+        **Example Request**:
+
+        .. sourcecode:: http
+
+            GET /api/sites/1/network_attributes HTTP/1.1
+            Host: localhost
+            X-NSoT-Email: user@localhost
+
+        **Example response**:
+
+        .. sourcecode:: http
+
+            HTTP/1.1 200 OK
+            Content-Type: application/json
+
+            {
+                "status": "ok",
+                "data": {
+                    "network_attributes": [
+                        {
+                            "id": 1,
+                            "site_id": 1,
+                            "name": "vlan",
+                            "description": "",
+                            "required": false
+                        }
+                    ]
+                }
+            }
+
+        :param site_id: ID of the Site to retrieve Network Attributes from.
+        :type site_id: int
+
+        :query string name: (*optional*) Filter to attribute with name
+        :query bool required: (*optional*) Filter to attributes that are required
+
+        :reqheader X-NSoT-Email: required for all api requests.
+
+        :statuscode 200: The request was successful.
+        :statuscode 401: The request was made without being logged in.
+        :statuscode 404: The Site at site_id was not found.
+        """
         site = self.session.query(models.Site).filter_by(id=site_id).scalar()
         if not site:
             return self.notfound("No such Site found at id {}".format(site_id))
@@ -379,6 +425,48 @@ class NetworkAttributesHandler(ApiHandler):
 
 class NetworkAttributeHandler(ApiHandler):
     def get(self, site_id, attribute_id):
+        """ **Get a specific Network Attribute**
+
+        **Example Request**:
+
+        .. sourcecode:: http
+
+            GET /api/sites/1/network_attributes/1 HTTP/1.1
+            Host: localhost
+            X-NSoT-Email: user@localhost
+
+        **Example response**:
+
+        .. sourcecode:: http
+
+            HTTP/1.1 200 OK
+            Content-Type: application/json
+
+            {
+                "status": "ok",
+                "data": {
+                    "network_attribute": {
+                        "id": 1,
+                        "site_id": 1,
+                        "name": "vlan",
+                        "description": "",
+                        "required": false
+                    }
+                }
+            }
+
+        :param site_id: ID of the Site this Attribute is under.
+        :type site_id: int
+
+        :param attribute_id: ID of the NetworkAttribute being retrieved.
+        :type attribute_id: int
+
+        :reqheader X-NSoT-Email: required for all api requests.
+
+        :statuscode 200: The request was successful.
+        :statuscode 401: The request was made without being logged in.
+        :statuscode 404: The Site or Attribute was not found.
+        """
         site = self.session.query(models.Site).filter_by(id=site_id).scalar()
         if not site:
             return self.notfound("No such Site found at id {}".format(site_id))
@@ -401,6 +489,62 @@ class NetworkAttributeHandler(ApiHandler):
 
     @any_perm("admin", "network_attrs")
     def put(self, site_id, attribute_id):
+        """ **Update a Network Attribute**
+
+        **Example Request**:
+
+        .. sourcecode:: http
+
+            PUT /api/sites/1/network_attributes/1 HTTP/1.1
+            Host: localhost
+            Content-Type: application/json
+            X-NSoT-Email: user@localhost
+
+            {
+                "description": "Attribute Description",
+                "required": true
+            }
+
+        **Example response**:
+
+        .. sourcecode:: http
+
+            HTTP/1.1 200 OK
+            Content-Type: application/json
+
+            {
+                "status": "ok",
+                "data": {
+                    "network_attribute": {
+                        "id": 1,
+                        "name": "vlan",
+                        "description": "Attribute Description",
+                        "required": true
+                    }
+                }
+            }
+
+
+        :param site_id: ID of the Site that should be updated.
+        :type site_id: int
+
+        :param attribute_id: ID of the NetworkAttribute being updated.
+        :type attribute_id: int
+
+        :reqjson string description: (*optional*) A helpful description of
+                                     the Attribute
+        :reqjson bool required: (*optional*) Whether this attribute should be required.
+
+        :reqheader Content-Type: The server expects application/json.
+        :reqheader X-NSoT-Email: required for all api requests.
+
+        :statuscode 200: The request was successful.
+        :statuscode 400: The request was malformed.
+        :statuscode 401: The request was made without being logged in.
+        :statuscode 403: The request was made with insufficient permissions.
+        :statuscode 404: The Site or Attribute was not found.
+        :statuscode 409: There was a conflict with another resource.
+        """
         site = self.session.query(models.Site).filter_by(id=site_id).scalar()
         if not site:
             return self.notfound("No such Site found at id {}".format(site_id))
@@ -439,6 +583,45 @@ class NetworkAttributeHandler(ApiHandler):
 
     @any_perm("admin", "network_attrs")
     def delete(self, site_id, attribute_id):
+        """ **Delete a Network Attribute**
+
+        **Example Request**:
+
+        .. sourcecode:: http
+
+            DELETE /api/sites/1/network_attribute/1 HTTP/1.1
+            Host: localhost
+            X-NSoT-Email: user@localhost
+
+        **Example response**:
+
+        .. sourcecode:: http
+
+            HTTP/1.1 200 OK
+            Content-Type: application/json
+
+            {
+                "status": "ok",
+                "data": {
+                    "message": NetworkDeleted 1 deleted."
+                }
+            }
+
+
+        :param site_id: ID of the Site that should be updated.
+        :type site_id: int
+
+        :param attribute_id: ID of the NetworkAttribute being deleted.
+        :type attribute_id: int
+
+        :reqheader X-NSoT-Email: required for all api requests.
+
+        :statuscode 200: The request was successful.
+        :statuscode 401: The request was made without being logged in.
+        :statuscode 403: The request was made with insufficient permissions.
+        :statuscode 404: The Site or Attribute was not found.
+        :statuscode 409: There was a conflict with another resource.
+        """
         site = self.session.query(models.Site).filter_by(id=site_id).scalar()
         if not site:
             return self.notfound("No such Site found at id {}".format(site_id))
