@@ -99,8 +99,6 @@ class SitesHandler(ApiHandler):
                 }
             }
 
-        :resjson object sites: A list of site objects
-
         :reqheader X-NSoT-Email: required for all api requests.
         :resheader Content-Type: Specifies that response is json
 
@@ -142,8 +140,6 @@ class SiteHandler(ApiHandler):
 
         :param site_id: ID of the Site where this should be created.
         :type site_id: int
-
-        :resjson object site: A Site object.
 
         :reqheader X-NSoT-Email: required for all api requests.
         :resheader Content-Type: Specifies that response is json

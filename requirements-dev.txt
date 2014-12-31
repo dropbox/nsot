@@ -13,3 +13,4 @@ watchdog==0.8.2
 requests==2.5.1
 sphinxcontrib-httpdomain==1.3.0
 six==1.8.0
+sphinx-rtd-theme==0.1.6
