@@ -17,22 +17,22 @@ class SitesHandler(ApiHandler):
 
         .. sourcecode:: http
 
-           POST /api/sites HTTP/1.1
-           Host: localhost
-           Content-Type: application/json
-           X-NSoT-Email: user@localhost
+            POST /api/sites HTTP/1.1
+            Host: localhost
+            Content-Type: application/json
+            X-NSoT-Email: user@localhost
 
-           {
-             "name": "New Site",
-             "description": "This is our new Site."
-           }
+            {
+                "name": "New Site",
+                "description": "This is our new Site."
+            }
 
         **Example response**:
 
         .. sourcecode:: http
 
-           HTTP/1.1 201 OK
-           Location: /api/sites/1
+            HTTP/1.1 201 OK
+            Location: /api/sites/1
 
         :reqjson string name: The name of the Site
         :reqjson string description: (*optional*) A helpful description for the Site
@@ -40,6 +40,8 @@ class SitesHandler(ApiHandler):
         :reqheader Content-Type: The server expects a json body specified with
                                  this header.
         :reqheader X-NSoT-Email: required for all api requests.
+
+        :resheader Location: URL to the created resource.
 
         :statuscode 201: The site was successfully created.
         :statuscode 400: The request was malformed.
@@ -67,7 +69,44 @@ class SitesHandler(ApiHandler):
         self.created("/api/sites/{}".format(site.id))
 
     def get(self):
-        """ Return all Sites."""
+        """ **Get all Sites**
+
+        **Example Request**:
+
+        .. sourcecode:: http
+
+            GET /api/sites HTTP/1.1
+            Host: localhost
+            X-NSoT-Email: user@localhost
+
+        **Example response**:
+
+        .. sourcecode:: http
+
+            HTTP/1.1 200 OK
+            Content-Type: application/json
+
+            {
+                "status": "ok",
+                "data": {
+                    "sites": [
+                        {
+                            "id": 1
+                            "name": "Site 1",
+                            "description": ""
+                        }
+                    ]
+                }
+            }
+
+        :resjson object sites: A list of site objects
+
+        :reqheader X-NSoT-Email: required for all api requests.
+        :resheader Content-Type: Specifies that response is json
+
+        :statuscode 200: The request was successful.
+        :statuscode 401: The request was made without being logged in.
+        """
         sites = self.session.query(models.Site).all()
         self.success({
             "sites": [site.to_dict() for site in sites],
@@ -76,6 +115,43 @@ class SitesHandler(ApiHandler):
 
 class SiteHandler(ApiHandler):
     def get(self, site_id):
+        """ **Get a specific Site**
+
+        **Example Request**:
+
+        .. sourcecode:: http
+
+            GET /api/sites/1 HTTP/1.1
+            Host: localhost
+            X-NSoT-Email: user@localhost
+
+        **Example response**:
+
+        .. sourcecode:: http
+
+            HTTP/1.1 200 OK
+            Content-Type: application/json
+
+            {
+                "sites: {
+                    "id": 1
+                    "name": "Site 1",
+                    "description": ""
+                }
+            }
+
+        :param site_id: ID of the Site where this should be created.
+        :type site_id: int
+
+        :resjson object site: A Site object.
+
+        :reqheader X-NSoT-Email: required for all api requests.
+        :resheader Content-Type: Specifies that response is json
+
+        :statuscode 200: The request was successful.
+        :statuscode 401: The request was made without being logged in.
+        :statuscode 404: The Site at site_id was not found.
+        """
         site = self.session.query(models.Site).filter_by(id=site_id).scalar()
         if not site:
             return self.notfound("No such Site found at id {}".format(site_id))
@@ -127,7 +203,51 @@ class NetworkAttributesHandler(ApiHandler):
 
     @any_perm("admin", "network_attrs")
     def post(self, site_id):
-        """ Create a new NetworkAttribute."""
+        """ **Create a Network Attribute**
+
+        **Example Request**:
+
+        .. sourcecode:: http
+
+            POST /api/sites/1/network_attributes HTTP/1.1
+            Host: localhost
+            Content-Type: application/json
+            X-NSoT-Email: user@localhost
+
+            {
+                "name": "owner",
+                "description": "This is our new Site.",
+                "required": false
+            }
+
+        **Example response**:
+
+        .. sourcecode:: http
+
+            HTTP/1.1 201 OK
+            Location: /api/sites/1/network_attributes/1
+
+        :param site_id: ID of the Site where this should be created.
+        :type site_id: int
+
+        :reqjson string name: The name of the Attribute
+        :reqjson string description: (*optional*) A helpful description of
+                                     the Attribute
+        :reqjson bool required: (*optional*) Whether this attribute should be required.
+
+        :reqheader Content-Type: The server expects a json body specified with
+                                 this header.
+        :reqheader X-NSoT-Email: required for all api requests.
+
+        :resheader Location: URL to the created resource.
+
+        :statuscode 201: The site was successfully created.
+        :statuscode 400: The request was malformed.
+        :statuscode 401: The request was made without being logged in.
+        :statuscode 403: The request was made with insufficient permissions.
+        :statuscode 404: The Site at site_id was not found.
+        :statuscode 409: There was a conflict with another resource.
+        """
         site = self.session.query(models.Site).filter_by(id=site_id).scalar()
         if not site:
             return self.notfound("No such Site found at id {}".format(site_id))
@@ -272,7 +392,51 @@ class NetworksHandler(ApiHandler):
 
     @any_perm("admin", "networks")
     def post(self, site_id):
-        """ Create a new Network."""
+        """ **Create a Network**
+
+        **Example Request**:
+
+        .. sourcecode:: http
+
+            POST /api/sites/1/networks HTTP/1.1
+            Host: localhost
+            Content-Type: application/json
+            X-NSoT-Email: user@localhost
+
+            {
+                "cidr": "10.0.0.0/8",
+                "attributes": {
+                    "vlan": "23"
+                }
+            }
+
+        **Example response**:
+
+        .. sourcecode:: http
+
+            HTTP/1.1 201 OK
+            Location: /api/sites/1/networks/1
+
+        :param site_id: ID of the Site where this should be created.
+        :type site_id: int
+
+        :reqjson string cidr: A network or ip address in CIDR notation.
+        :reqjson object attributes: (*optional*) An object of key/value pairs
+                                    attached to this network.
+
+        :reqheader Content-Type: The server expects a json body specified with
+                                 this header.
+        :reqheader X-NSoT-Email: required for all api requests.
+
+        :resheader Location: URL to the created resource.
+
+        :statuscode 201: The site was successfully created.
+        :statuscode 400: The request was malformed.
+        :statuscode 401: The request was made without being logged in.
+        :statuscode 403: The request was made with insufficient permissions.
+        :statuscode 404: The Site at site_id was not found.
+        :statuscode 409: There was a conflict with another resource.
+        """
         site = self.session.query(models.Site).filter_by(id=site_id).scalar()
         if not site:
             return self.notfound("No such Site found at id {}".format(site_id))

@@ -5,3 +5,4 @@
 * Python Client Library
 * API Tokens for role accounts
 * Setup support for migrations before first preview release
+* Pagination
