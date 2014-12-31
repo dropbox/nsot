@@ -25,6 +25,10 @@ as:
 $ pip install nsot
 ```
 
+### Documentation
+
+The latest documentation will always be available at http://nsot.readthedocs.org/en/latest/
+
 ### Development
 
 I suggest setting up your test environment in a virtual environment. If you use
