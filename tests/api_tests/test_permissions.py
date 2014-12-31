@@ -30,7 +30,7 @@ def test_permissions(tornado_server):
 
     # Explicitly Set permissions for user_client to have none.
     assert_success(admin_client.update(
-        "/users/2/permissions/1", permissions=0
+        "/users/2/permissions/1", permissions=[]
     ),
         {"permission": {"permissions": [], "site_id": 1, "user_id": 2}}
     )
@@ -58,7 +58,7 @@ def test_permissions(tornado_server):
     )
 
     # Update permissions to have network_attrs perms
-    admin_client.update("/users/2/permissions/1", permissions=4)
+    admin_client.update("/users/2/permissions/1", permissions=["network_attrs"])
     assert_error(
         user_client.update("/sites/1", name="attr1"),
         403
@@ -84,7 +84,7 @@ def test_permissions(tornado_server):
     )
 
     # Update permissions to have network perms
-    admin_client.update("/users/2/permissions/1", permissions=2)
+    admin_client.update("/users/2/permissions/1", permissions=["networks"])
     assert_error(
         user_client.update("/sites/1", name="attr1"),
         403

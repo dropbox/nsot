@@ -1386,7 +1386,54 @@ class UserHandler(ApiHandler):
 
 class UserPermissionsHandler(ApiHandler):
     def get(self, user_id):
-        """ Return available Permissions for a User."""
+        """ **Get permissions for a specific User**
+
+        **Example Request**:
+
+        .. sourcecode:: http
+
+            GET /api/users/1/permissions HTTP/1.1
+            Host: localhost
+            X-NSoT-Email: user@localhost
+
+        **Example response**:
+
+        .. sourcecode:: http
+
+            HTTP/1.1 200 OK
+            Content-Type: application/json
+
+            {
+                "status": "ok",
+                "data": {
+                    "permissions": [
+                        {
+                            "user_id": 1,
+                            "site_id": 1,
+                            "permissions": ["admin"]
+                        }
+                    ]
+                }
+            }
+
+        :param user_id: ID of the User to retrieve.
+        :type user_id: int
+
+        :reqheader X-NSoT-Email: required for all api requests.
+
+        :statuscode 200: The request was successful.
+        :statuscode 401: The request was made without being logged in.
+        :statuscode 404: The User was not found.
+        """
+
+        user = self.session.query(models.User).filter_by(
+            id=user_id,
+        ).scalar()
+
+        if not user:
+            return self.notfound(
+                "No such User found at (id) = ({})".format(user_id)
+            )
 
         permissions = self.session.query(models.Permission).filter_by(
             user_id=user_id
@@ -1398,7 +1445,54 @@ class UserPermissionsHandler(ApiHandler):
 
 class UserPermissionHandler(ApiHandler):
     def get(self, user_id, site_id):
-        """ Return Site permissions for a User."""
+        """ **Get permissions for a specific User and Site**
+
+        **Example Request**:
+
+        .. sourcecode:: http
+
+            GET /api/users/1/permissions/1 HTTP/1.1
+            Host: localhost
+            X-NSoT-Email: user@localhost
+
+        **Example response**:
+
+        .. sourcecode:: http
+
+            HTTP/1.1 200 OK
+            Content-Type: application/json
+
+            {
+                "status": "ok",
+                "data": {
+                    "permission": {
+                        "user_id": 1,
+                        "site_id": 1,
+                        "permissions": ["admin"]
+                    }
+                }
+            }
+
+        :param user_id: ID of the User
+        :type user_id: int
+
+        :param site_id: ID of the Site
+        :type site_id: int
+
+        :reqheader X-NSoT-Email: required for all api requests.
+
+        :statuscode 200: The request was successful.
+        :statuscode 401: The request was made without being logged in.
+        :statuscode 404: The User or Site was not found.
+        """
+
+        user = self.session.query(models.User).filter_by(id=user_id).scalar()
+        if not user:
+            return self.notfound("No such User found at (id) = ({})".format(user_id))
+
+        site = self.session.query(models.Site).filter_by(id=site_id).scalar()
+        if not site:
+            return self.notfound("No such Site found at id {}".format(site_id))
 
         permission = self.session.query(models.Permission).filter_by(
             user_id=user_id, site_id=site_id
@@ -1417,6 +1511,59 @@ class UserPermissionHandler(ApiHandler):
 
     @any_perm("admin")
     def put(self, user_id, site_id):
+        """ **Create/Update a Users Permissions for a Site**
+
+        **Example Request**:
+
+        .. sourcecode:: http
+
+            PUT /api/users/2/permissions/1 HTTP/1.1
+            Host: localhost
+            Content-Type: application/json
+            X-NSoT-Email: user@localhost
+
+            {
+                "permissions": ["networks", "network_attrs"]
+            }
+
+        **Example response**:
+
+        .. sourcecode:: http
+
+            HTTP/1.1 200 OK
+            Content-Type: application/json
+
+            {
+                "status": "ok",
+                "data": {
+                    "permission": {
+                        "user_id": 2,
+                        "site_id": 1,
+                        "permissions": ["networks", "network_attrs"]
+                    }
+                }
+            }
+
+        :permissions: * **admin**, **networks**
+
+        :param user_id: ID of the User
+        :type user_id: int
+
+        :param site_id: ID of the Site
+        :type site_id: int
+
+        :reqjson array permissions: A list of permissions the user should have.
+
+        :reqheader Content-Type: The server expects application/json.
+        :reqheader X-NSoT-Email: required for all api requests.
+
+        :statuscode 200: The request was successful.
+        :statuscode 400: The request was malformed.
+        :statuscode 401: The request was made without being logged in.
+        :statuscode 403: The request was made with insufficient permissions.
+        :statuscode 404: The Site or User was not found.
+        :statuscode 409: There was a conflict with another resource.
+        """
         permission = self.session.query(models.Permission).filter_by(
                 user_id=user_id, site_id=site_id
         ).scalar()

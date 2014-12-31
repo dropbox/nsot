@@ -4,9 +4,9 @@ from .permissions import PermissionsFlag
 
 
 def _has_any_perm(user, site_id, perms):
-    permissions_flag = user.get_permissions(site_id)
+    permissions = user.get_permissions(site_id)
     for perm in perms:
-        if permissions_flag.has(perm):
+        if perm in permissions:
             return True
     return False
 

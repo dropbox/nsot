@@ -210,9 +210,9 @@ class User(Model):
         ).scalar()
 
         if perm is not None:
-            return PermissionsFlag(perm.permissions)
+            return set(perm.permissions)
 
-        return PermissionsFlag(0)
+        return set()
 
     def is_admin(self, site_id):
         return get_permissions(site_id).has("admin")
@@ -228,16 +228,23 @@ class Permission(Model):
     site_id = Column(Integer, ForeignKey("sites.id", ondelete="CASCADE"), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
 
-    permissions = Column(Integer, default=0, nullable=False)
+    permissions_flag = Column(Integer, default=0, nullable=False)
 
     @property
-    def permissions_list(self):
+    def permissions(self):
         perms = []
-        flag = PermissionsFlag(self.permissions)
+        flag = PermissionsFlag(self.permissions_flag)
         for word in PermissionsFlag.words:
             if flag.has(word):
                 perms.append(word)
         return perms
+
+    @permissions.setter
+    def permissions(self, value):
+        flag = PermissionsFlag()
+        for word in value:
+            flag.set(word)
+        self.permissions_flag = flag.dump()
 
     def to_dict(self):
         return {
@@ -245,7 +252,7 @@ class Permission(Model):
             # will be on the composite key of site_id and user_id.
             "site_id": self.site_id,
             "user_id": self.user_id,
-            "permissions": self.permissions_list,
+            "permissions": self.permissions,
         }
 
 
@@ -263,9 +270,10 @@ class Site(Model):
 
 
     def after_create(self, user_id):
-        flag = PermissionsFlag()
-        flag.set("admin")
-        Permission.create(self.session, user_id, site_id=self.id, user_id=user_id, permissions=flag.dump())
+        Permission.create(
+            self.session, user_id, site_id=self.id, user_id=user_id,
+            permissions=["admin"]
+        )
 
     def networks(self, include_networks=True, include_ips=False, root=False,
                  attribute_name=None, attribute_value=None):

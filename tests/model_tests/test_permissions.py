@@ -11,7 +11,7 @@ def test_permission_creation(session, user, site):
     models.Permission.create(
         session, user.id,
         user_id=user.id, site_id=site.id,
-        permissions=0
+        permissions=[]
     )
 
     permission = session.query(models.Permission).filter_by(
@@ -20,30 +20,30 @@ def test_permission_creation(session, user, site):
 
     assert permission.user_id == user.id
     assert permission.site_id == site.id
-    assert permission.permissions == 0
+    assert permission.permissions == []
 
 
 def test_permission_conflict(session, user, site):
     models.Permission.create(
         session, user.id,
         user_id=user.id, site_id=site.id,
-        permissions=0
+        permissions=[]
     )
 
     with pytest.raises(IntegrityError):
         models.Permission.create(
             session, user.id,
             user_id=user.id, site_id=site.id,
-            permissions=1
+            permissions=["admin"]
         )
 
 def test_permission_update(session, user, site):
     perm = models.Permission.create(
         session, user.id,
         user_id=user.id, site_id=site.id,
-        permissions=0
+        permissions=[]
     )
 
-    perm.update(user.id, permissions=1)
+    perm.update(user.id, permissions=["admin"])
 
-    assert perm.permissions == 1
+    assert perm.permissions == ["admin"]
