@@ -1197,8 +1197,62 @@ class NetworkSupernetsHandler(ApiHandler):
 
 
 class ChangesHandler(ApiHandler):
-    def get(self, site_id=None):
-        """ Return Change events."""
+    def get(self, site_id):
+        """ **Get all Changes**
+
+        **Example Request**:
+
+        .. sourcecode:: http
+
+            GET /api/sites/1/changes HTTP/1.1
+            Host: localhost
+            X-NSoT-Email: user@localhost
+
+        **Example response**:
+
+        .. sourcecode:: http
+
+            HTTP/1.1 200 OK
+            Content-Type: application/json
+
+            {
+                "status": "ok",
+                "data": {
+                    "changes": [
+                        {
+                            "id": 1,
+                            "site_id": 1,
+                            "user_id": 1,
+                            "change_at": 1420062748,
+                            "event": "Create",
+                            "resource_type": "Site",
+                            "resource_id": 1,
+                            "resource": {
+                                "name": "New Site",
+                                "description": ""
+                            },
+                        }
+                    ]
+                }
+            }
+
+        :param site_id: ID of the Site to retrieve Changes from.
+        :type site_id: int
+
+        :query string event: (*optional*) Filter result to specific event.
+                             Default: false
+        :query string resource_type: (*optional*) Filter result to specific
+                                     resource type. Default: false
+        :query string resource_id: (*optional*) Filter result to specific resource id.
+                                   Requires: resource_type, Default: false
+
+        :reqheader X-NSoT-Email: required for all api requests.
+
+        :statuscode 200: The request was successful.
+        :statuscode 400: Invalid query parameter values.
+        :statuscode 401: The request was made without being logged in.
+        :statuscode 404: The Site at site_id was not found.
+        """
 
         event = self.get_argument("event", None)
         if event is not None and event not in models.CHANGE_EVENTS:
@@ -1237,7 +1291,40 @@ class ChangesHandler(ApiHandler):
 
 class UsersHandler(ApiHandler):
     def get(self):
-        """ Return Users."""
+        """ **Get all Users**
+
+        **Example Request**:
+
+        .. sourcecode:: http
+
+            GET /api/users HTTP/1.1
+            Host: localhost
+            X-NSoT-Email: user@localhost
+
+        **Example response**:
+
+        .. sourcecode:: http
+
+            HTTP/1.1 200 OK
+            Content-Type: application/json
+
+            {
+                "status": "ok",
+                "data": {
+                    "users": [
+                        {
+                            "id": 1
+                            "email": "user@localhost"
+                        }
+                    ]
+                }
+            }
+
+        :reqheader X-NSoT-Email: required for all api requests.
+
+        :statuscode 200: The request was successful.
+        :statuscode 401: The request was made without being logged in.
+        """
 
         users = self.session.query(models.User)
 
@@ -1247,7 +1334,42 @@ class UsersHandler(ApiHandler):
 
 class UserHandler(ApiHandler):
     def get(self, user_id):
-        """ Return a User."""
+        """ **Get a specific User**
+
+        **Example Request**:
+
+        .. sourcecode:: http
+
+            GET /api/users/1 HTTP/1.1
+            Host: localhost
+            X-NSoT-Email: user@localhost
+
+        **Example response**:
+
+        .. sourcecode:: http
+
+            HTTP/1.1 200 OK
+            Content-Type: application/json
+
+            {
+                "status": "ok",
+                "data": {
+                    "user": {
+                        "id": 1
+                        "email": "user@localhost"
+                    }
+                }
+            }
+
+        :param user_id: ID of the User to retrieve.
+        :type user_id: int
+
+        :reqheader X-NSoT-Email: required for all api requests.
+
+        :statuscode 200: The request was successful.
+        :statuscode 401: The request was made without being logged in.
+        :statuscode 404: The Site at site_id was not found.
+        """
 
         user = self.session.query(models.User).filter_by(
             id=user_id,

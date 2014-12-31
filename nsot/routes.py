@@ -21,7 +21,6 @@ HANDLERS = [
     ),
 
     # Change Log
-    (r"/api/changes", api.ChangesHandler),
     (r"/api/sites/(?P<site_id>\d+)/changes", api.ChangesHandler),
 
     # Users

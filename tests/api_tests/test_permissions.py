@@ -20,19 +20,19 @@ def test_permissions(tornado_server):
 
     assert_success(
         user_client.get("/users/1/permissions"),
-        {"permissions": [{'permissions': 1, 'site_id': 1, 'user_id': 1}]}
+        {"permissions": [{"permissions": ["admin"], "site_id": 1, "user_id": 1}]}
     )
 
     assert_success(
         admin_client.get("/users/1/permissions/1"),
-        {"permission": {'permissions': 1, 'site_id': 1, 'user_id': 1}}
+        {"permission": {"permissions": ["admin"], "site_id": 1, "user_id": 1}}
     )
 
     # Explicitly Set permissions for user_client to have none.
     assert_success(admin_client.update(
         "/users/2/permissions/1", permissions=0
     ),
-        {"permission": {'permissions': 0, 'site_id': 1, 'user_id': 2}}
+        {"permission": {"permissions": [], "site_id": 1, "user_id": 2}}
     )
 
     # User shouldn't be able to update site or create/update other resources
