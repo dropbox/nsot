@@ -1,5 +1,7 @@
+import logging
 import pytest
 import socket
+import threading
 import tornado
 import tornado.httpserver
 import tornado.ioloop
@@ -10,8 +12,11 @@ from nsot.routes import HANDLERS
 from nsot.settings import settings
 from nsot.util import Application
 
-import threading
 
+sa_log = logging.getLogger("sqlalchemy.engine.base.Engine")
+
+# Uncomment to have all queries printed out
+# sa_log.setLevel(logging.INFO)
 
 class Server(object):
     """ Wrapper around Tornado server with test helpers. """

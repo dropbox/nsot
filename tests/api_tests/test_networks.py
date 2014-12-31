@@ -4,7 +4,7 @@ import requests
 
 from .fixtures import tornado_server, tornado_app
 from .util import (
-    assert_error, assert_success, assert_created, Client
+    assert_error, assert_success, assert_created, assert_deleted, Client
 )
 
 
@@ -112,3 +112,19 @@ def test_update(tornado_server):
         user_client.update("/sites/1/networks/1"),
         403
     )
+
+def test_deletion(tornado_server):
+    client = Client(tornado_server)
+
+    client.create("/sites", name="Test Site")
+
+    client.create("/sites/1/networks", cidr="10.0.0.0/24")  # 1
+    client.create("/sites/1/networks", cidr="10.0.0.1/32")  # 2
+
+    # Don't allow delete when there's an attached subnet/ip
+    assert_error(client.delete("/sites/1/networks/1"), 409)
+
+    client.delete("/sites/1/networks/2")
+
+    assert_deleted(client.delete("/sites/1/networks/1"))
+

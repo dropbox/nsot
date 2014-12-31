@@ -4,7 +4,7 @@ import requests
 
 from .fixtures import tornado_server, tornado_app
 from .util import (
-    assert_error, assert_success, assert_created, Client
+    assert_error, assert_success, assert_created, assert_deleted, Client
 )
 
 
@@ -48,3 +48,25 @@ def test_update(tornado_server):
 
     assert_error(client.update("/sites/1", description="Only description."), 400)
     assert_error(client.update("/sites/1"), 400)
+
+
+def test_deletion(tornado_server):
+    client = Client(tornado_server)
+
+    client.create("/sites", name="Test Site")
+    client.create("/sites/1/network_attributes", name="attr1")
+    client.create("/sites/1/networks",
+        cidr="10.0.0.0/24", attributes={"attr1": "foo"}
+    )
+
+    # Don't allow delete when there's an attached network/attribute
+    assert_error(client.delete("/sites/1"), 409)
+
+    client.delete("/sites/1/networks/1")
+
+    # Stile Don't allow delete when there's an attached attribute
+    assert_error(client.delete("/sites/1"), 409)
+
+    client.delete("/sites/1/network_attributes/1")
+
+    assert_deleted(client.delete("/sites/1"))

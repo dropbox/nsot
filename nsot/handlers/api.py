@@ -19,7 +19,7 @@ class SitesHandler(ApiHandler):
         except KeyError as err:
             return self.badrequest("Missing Required Argument: {}".format(err.message))
         except ValueError as err:
-            return self.badrequest("GARY" + err.message)
+            return self.badrequest(err.message)
 
         try:
             site = models.Site.create(
@@ -553,6 +553,7 @@ class UserPermissionHandler(ApiHandler):
             if not permission:
                 permission = models.Permission.create(
                     self.session, self.current_user.id,
+                    user_id=user.id, site_id=site_id,
                     permissions=permissions
                 )
             else:

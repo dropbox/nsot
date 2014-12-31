@@ -225,7 +225,7 @@ class Permission(Model):
     )
 
     id = Column(Integer, primary_key=True)
-    site_id = Column(Integer, ForeignKey("sites.id"), nullable=False)
+    site_id = Column(Integer, ForeignKey("sites.id", ondelete="CASCADE"), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
 
     permissions = Column(Integer, default=0, nullable=False)
@@ -251,6 +251,7 @@ class Site(Model):
 
     # All generic resources are expected to have a site_id attribute.
     site_id = synonym("id")
+
 
     def after_create(self, user_id):
         flag = PermissionsFlag()
@@ -645,7 +646,7 @@ class Change(Model):
     __tablename__ = "changes"
 
     id = Column(Integer, primary_key=True)
-    site_id = Column(Integer, ForeignKey("sites.id"), nullable=False, index=True)
+    site_id = Column(Integer, ForeignKey("sites.id", ondelete="CASCADE"), nullable=False, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     change_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 

@@ -11,6 +11,7 @@ def assert_error(response, code):
 
 def assert_success(response, data):
     output = response.json()
+    assert response.status_code == 200
     assert output["status"] == "ok"
     assert output["data"] == data
 
@@ -18,6 +19,12 @@ def assert_success(response, data):
 def assert_created(response, location):
     assert response.status_code == 201
     assert response.headers["Location"] == location
+
+
+def assert_deleted(response):
+    output = response.json()
+    assert response.status_code == 200
+    assert output["status"] == "ok"
 
 
 class Client(object):
