@@ -100,7 +100,6 @@ class SitesHandler(ApiHandler):
             }
 
         :reqheader X-NSoT-Email: required for all api requests.
-        :resheader Content-Type: Specifies that response is json
 
         :statuscode 200: The request was successful.
         :statuscode 401: The request was made without being logged in.
@@ -131,18 +130,20 @@ class SiteHandler(ApiHandler):
             Content-Type: application/json
 
             {
-                "sites: {
-                    "id": 1
-                    "name": "Site 1",
-                    "description": ""
+                "status": "ok",
+                "data": {
+                    "site": {
+                        "id": 1
+                        "name": "Site 1",
+                        "description": ""
+                    }
                 }
             }
 
-        :param site_id: ID of the Site where this should be created.
+        :param site_id: ID of the Site to retrieve
         :type site_id: int
 
         :reqheader X-NSoT-Email: required for all api requests.
-        :resheader Content-Type: Specifies that response is json
 
         :statuscode 200: The request was successful.
         :statuscode 401: The request was made without being logged in.
@@ -157,6 +158,52 @@ class SiteHandler(ApiHandler):
 
     @any_perm("admin")
     def put(self, site_id):
+        """ **Update a Site**
+
+        **Example Request**:
+
+        .. sourcecode:: http
+
+            PUT /api/sites/1 HTTP/1.1
+            Host: localhost
+            Content-Type: application/json
+            X-NSoT-Email: user@localhost
+
+            {
+                "name": "Old Site",
+                "description": "A better description."
+            }
+
+        **Example response**:
+
+        .. sourcecode:: http
+
+            HTTP/1.1 200 OK
+            Content-Type: application/json
+
+            {
+                "status": "ok",
+                "data": {
+                    "site": {
+                        "id": 1
+                        "name": "Old Site",
+                        "description": "A better description."
+                    }
+                }
+            }
+
+
+        :param site_id: ID of the Site that should be updated.
+        :type site_id: int
+
+        :reqheader X-NSoT-Email: required for all api requests.
+
+        :statuscode 200: The request was successful.
+        :statuscode 401: The request was made without being logged in.
+        :statuscode 403: The request was made with insufficient permissions.
+        :statuscode 404: The Site at site_id was not found.
+        :statuscode 409: There was a conflict with another resource.
+        """
         site = self.session.query(models.Site).filter_by(id=site_id).scalar()
         if not site:
             return self.notfound("No such Site found at id {}".format(site_id))
@@ -181,6 +228,42 @@ class SiteHandler(ApiHandler):
 
     @any_perm("admin")
     def delete(self, site_id):
+        """ **Update a Site**
+
+        **Example Request**:
+
+        .. sourcecode:: http
+
+            DELETE /api/sites/1 HTTP/1.1
+            Host: localhost
+            X-NSoT-Email: user@localhost
+
+        **Example response**:
+
+        .. sourcecode:: http
+
+            HTTP/1.1 200 OK
+            Content-Type: application/json
+
+            {
+                "status": "ok",
+                "data": {
+                    "message": Site 1 deleted."
+                }
+            }
+
+
+        :param site_id: ID of the Site that should be updated.
+        :type site_id: int
+
+        :reqheader X-NSoT-Email: required for all api requests.
+
+        :statuscode 200: The request was successful.
+        :statuscode 401: The request was made without being logged in.
+        :statuscode 403: The request was made with insufficient permissions.
+        :statuscode 404: The Site at site_id was not found.
+        :statuscode 409: There was a conflict with another resource.
+        """
         site = self.session.query(models.Site).filter_by(id=site_id).scalar()
         if not site:
             return self.notfound("No such Site found at id {}".format(site_id))

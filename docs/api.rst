@@ -13,6 +13,8 @@ Error Handling
 --------------
 .. TODO(gary): Mention error handling vs success
 
+.. TODO(gary): Mention PUTs being idempotent
+
 Endpoints
 ---------
 .. autotornado:: nsot.app:Application()
