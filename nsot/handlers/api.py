@@ -11,7 +11,41 @@ from ..util import qp_to_bool as qpbool
 class SitesHandler(ApiHandler):
 
     def post(self):
-        """ Create a new Site."""
+        """ **Create a Site**
+
+        **Example Request**:
+
+        .. sourcecode:: http
+
+           POST /api/sites HTTP/1.1
+           Host: localhost
+           Content-Type: application/json
+           X-NSoT-Email: user@localhost
+
+           {
+             "name": "New Site",
+             "description": "This is our new Site."
+           }
+
+        **Example response**:
+
+        .. sourcecode:: http
+
+           HTTP/1.1 201 OK
+           Location: /api/sites/1
+
+        :reqjson string name: The name of the Site
+        :reqjson string description: (*optional*) A helpful description for the Site
+
+        :reqheader Content-Type: The server expects a json body specified with
+                                 this header.
+        :reqheader X-NSoT-Email: required for all api requests.
+
+        :statuscode 201: The site was successfully created.
+        :statuscode 400: The request was malformed.
+        :statuscode 401: The request was made without being logged in.
+        :statuscode 409: There was a conflict with another resource.
+        """
 
         try:
             name = self.jbody["name"]

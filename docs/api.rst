@@ -1,12 +1,5 @@
 API Documentation
 *****************
 
-Introduction
-============
-
-
-Endpoints
-=========
-
-
-
+.. autotornado:: nsot.app:Application()
+    :endpoints:

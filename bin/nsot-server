@@ -11,10 +11,10 @@ import tornado.httpserver
 import tornado.web
 
 import nsot
-from nsot.routes import HANDLERS
+from nsot.app import Application
 from nsot.settings import settings
 from nsot.models import get_db_engine, Session
-from nsot.util import get_loglevel, Application
+from nsot.util import get_loglevel
 
 
 from sqlalchemy.exc import OperationalError
@@ -57,7 +57,7 @@ def main(argv):
         "db_session": Session,
     }
 
-    application = Application(HANDLERS, my_settings=my_settings, **tornado_settings)
+    application = Application(my_settings=my_settings, **tornado_settings)
 
     port = args.port or settings.port
 

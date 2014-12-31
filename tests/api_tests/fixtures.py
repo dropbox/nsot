@@ -8,9 +8,8 @@ import tornado.ioloop
 from tornado import netutil
 
 from nsot import models
-from nsot.routes import HANDLERS
 from nsot.settings import settings
-from nsot.util import Application
+from nsot.app import Application
 
 
 sa_log = logging.getLogger("sqlalchemy.engine.base.Engine")
@@ -57,7 +56,7 @@ def tornado_app(request, tmpdir):
         "debug": False,
     }
 
-    return Application(HANDLERS, my_settings=my_settings, **tornado_settings)
+    return Application(my_settings=my_settings, **tornado_settings)
 
 
 @pytest.fixture()
