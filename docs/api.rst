@@ -9,8 +9,14 @@ Authentication
 
 .. TODO(gary): Describe Authentication
 
+Requests
+--------
+
+Responses
+---------
+
 Error Handling
---------------
+==============
 .. TODO(gary): Mention error handling vs success
 
 .. TODO(gary): Mention PUTs being idempotent
