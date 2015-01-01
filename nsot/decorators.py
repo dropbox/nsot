@@ -4,7 +4,11 @@ from .permissions import PermissionsFlag
 
 
 def _has_any_perm(user, site_id, perms):
-    permissions = user.get_permissions(site_id)
+    permissions = set(
+        user.get_permissions(site_id)
+            .get(site_id, {})
+            .get("permissions", [])
+    )
     for perm in perms:
         if perm in permissions:
             return True

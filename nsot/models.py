@@ -197,25 +197,32 @@ class User(Model):
             raise exc.ValidationError("Must contain a valid e-mail address")
         return value
 
-    def to_dict(self):
-        return {
+    def to_dict(self, with_permissions=False):
+        out = {
             "id": self.id,
             "email": self.email,
         }
+        if with_permissions:
+            out["permissions"] = self.get_permissions()
 
-    def get_permissions(self, site_id):
-        perm = self.session.query(Permission).filter_by(
-            site_id=site_id,
+        return out
+
+    def get_permissions(self, site_id=None):
+        query = self.session.query(Permission).filter_by(
             user_id=self.id
-        ).scalar()
+        )
 
-        if perm is not None:
-            return set(perm.permissions)
+        if site_id is not None:
+            query = query.filter_by(site_id=site_id)
 
-        return set()
+        permissions = query.all()
 
-    def is_admin(self, site_id):
-        return get_permissions(site_id).has("admin")
+        return {
+            # JSON keys can't be ints so be consistent in
+            # python
+            str(permission.site_id): permission.to_dict()
+            for permission in permissions
+        }
 
 
 class Permission(Model):

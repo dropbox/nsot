@@ -1357,11 +1357,18 @@ class UserHandler(ApiHandler):
                     "user": {
                         "id": 1
                         "email": "user@localhost"
+                        "permissions": {
+                            1: {
+                                "user_id": 1,
+                                "site_id": 1,
+                                "permissions": ["admin"]
+                            }
+                        }
                     }
                 }
             }
 
-        :param user_id: ID of the User to retrieve.
+        :param user_id: ID of the User to retrieve or 0 for self.
         :type user_id: int
 
         :reqheader X-NSoT-Email: required for all api requests.
@@ -1371,9 +1378,12 @@ class UserHandler(ApiHandler):
         :statuscode 404: The Site at site_id was not found.
         """
 
-        user = self.session.query(models.User).filter_by(
-            id=user_id,
-        ).scalar()
+        if user_id == "0":
+            user = self.current_user
+        else:
+            user = self.session.query(models.User).filter_by(
+                id=user_id,
+            ).scalar()
 
         if not user:
             return self.notfound(
@@ -1381,7 +1391,7 @@ class UserHandler(ApiHandler):
             )
 
         self.success({
-            "user": user.to_dict(),
+            "user": user.to_dict(with_permissions=True),
         })
 
 class UserPermissionsHandler(ApiHandler):
@@ -1406,17 +1416,17 @@ class UserPermissionsHandler(ApiHandler):
             {
                 "status": "ok",
                 "data": {
-                    "permissions": [
-                        {
+                    "permissions": {
+                        1: {
                             "user_id": 1,
                             "site_id": 1,
                             "permissions": ["admin"]
                         }
-                    ]
+                    }
                 }
             }
 
-        :param user_id: ID of the User to retrieve.
+        :param user_id: ID of the User to retrieve or 0 for self.
         :type user_id: int
 
         :reqheader X-NSoT-Email: required for all api requests.
@@ -1426,9 +1436,12 @@ class UserPermissionsHandler(ApiHandler):
         :statuscode 404: The User was not found.
         """
 
-        user = self.session.query(models.User).filter_by(
-            id=user_id,
-        ).scalar()
+        if user_id == "0":
+            user = self.current_user
+        else:
+            user = self.session.query(models.User).filter_by(
+                id=user_id,
+            ).scalar()
 
         if not user:
             return self.notfound(
@@ -1436,11 +1449,11 @@ class UserPermissionsHandler(ApiHandler):
             )
 
         permissions = self.session.query(models.Permission).filter_by(
-            user_id=user_id
+            user_id=user.id
         )
 
         self.success({
-            "permissions": [permission.to_dict() for permission in permissions],
+            "permissions": user.get_permissions(),
         })
 
 class UserPermissionHandler(ApiHandler):
@@ -1473,7 +1486,7 @@ class UserPermissionHandler(ApiHandler):
                 }
             }
 
-        :param user_id: ID of the User
+        :param user_id: ID of the User or 0 for self.
         :type user_id: int
 
         :param site_id: ID of the Site
@@ -1486,7 +1499,12 @@ class UserPermissionHandler(ApiHandler):
         :statuscode 404: The User or Site was not found.
         """
 
-        user = self.session.query(models.User).filter_by(id=user_id).scalar()
+        if user_id == "0":
+            user = self.current_user
+        else:
+            user = self.session.query(models.User).filter_by(
+                id=user_id,
+            ).scalar()
         if not user:
             return self.notfound("No such User found at (id) = ({})".format(user_id))
 
@@ -1495,13 +1513,13 @@ class UserPermissionHandler(ApiHandler):
             return self.notfound("No such Site found at id {}".format(site_id))
 
         permission = self.session.query(models.Permission).filter_by(
-            user_id=user_id, site_id=site_id
+            user_id=user.id, site_id=site_id
         ).scalar()
 
         if not permission:
             return self.notfound(
                 "No such Permission found at (user_id, site_id) = ({})".format(
-                    user_id, site_id
+                    user.id, site_id
                 )
             )
 

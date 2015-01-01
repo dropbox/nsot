@@ -20,7 +20,7 @@ def test_permissions(tornado_server):
 
     assert_success(
         user_client.get("/users/1/permissions"),
-        {"permissions": [{"permissions": ["admin"], "site_id": 1, "user_id": 1}]}
+        {"permissions": {"1": {"permissions": ["admin"], "site_id": 1, "user_id": 1}}}
     )
 
     assert_success(
