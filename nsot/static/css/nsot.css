@@ -1,5 +1,30 @@
+body {
+    /* Background image comes from http://subtlepatterns.com/
+    * and is CC BY-SA 3.0 - Subtle Patterns © Atle Mo.
+    *
+    * http://subtlepatterns.com/halftone/
+    */
+    background-image:url('/static/images/halftone/halftone.png');
+    /* Force scrollbar so collapsed divs don't jerk
+        * the page around when they grow larger than
+        * the page.
+    */
+    overflow-y: scroll;
+    margin-bottom: 20px;
+
+
+}
+
+.error-box {
+    margin-top: 100px;
+    box-shadow: 3px 3px 6px 0px rgba(155, 155, 155, 1);
+}
+
 .container-fluid {
     margin-bottom: 20px;
+}
+
+.error-box {
 }
 
 .navbar-default {

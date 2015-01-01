@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 {% autoescape true %}
-<html ng-app="nsot">
+<html lang="en" ng-app="nsot">
     <head>
         <title>NSoT</title>
 
@@ -23,17 +23,17 @@
             </div>
 
             <div class="row content">
-                <div class="col-md-12 text-center">
-                    {% block content %}
-                    {% endblock %}
-                </div>
+                <ng-view></ng-view>
             </div>
         </div>
 
+        <script src="{{cdnjs_prefix}}/ajax/libs/angular.js/1.3.8/angular.min.js"></script>
+        <script src="{{cdnjs_prefix}}/ajax/libs/angular.js/1.3.8/angular-route.min.js"></script>
         <script src="{{cdnjs_prefix}}/ajax/libs/lodash.js/2.4.1/lodash.min.js"></script>
         <script src="{{cdnjs_prefix}}/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
         <script src="{{cdnjs_prefix}}/ajax/libs/twitter-bootstrap/3.3.1/js/bootstrap.min.js"></script>
         <script src="{{cdnjs_prefix}}/ajax/libs/moment.js/2.8.4/moment.min.js"></script>
+        <script src="/static/js/app.js"></script>
     </body>
 </html>
 {% endautoescape %}
