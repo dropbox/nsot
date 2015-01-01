@@ -73,3 +73,20 @@ nsot-ctl -vv -c config/dev.yaml user_proxy $USER@localhost
 nsot-server --config=config/dev.yaml -vv
 
 ```
+
+#### Working with docs
+
+Documentation is done with Sphinx. If you just want to build and view the docs you
+cd into the `docs` directory and run `make html`. Then point your browser to
+`docs/\_build/html/index.html` on your local filesystem.
+
+If you're actively modifying the docs it's useful to run the autobuild server like
+so:
+
+```bash
+sphinx-autobuild docs docs/_build/html/
+```
+
+This will start a server listening on a port that you can browse to and will
+be automatically reloaded when you change any rst files. One downside of this
+approach is that is doesn't refresh when docstrings are modified.
