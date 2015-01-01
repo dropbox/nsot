@@ -6,4 +6,4 @@
 * API Tokens for role accounts
 * Setup support for migrations before first preview release
 * Pagination
-* Restrict requests to specific IPs/Networks
+* Allow config to specify ip to bind to

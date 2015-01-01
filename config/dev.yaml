@@ -32,3 +32,9 @@ user_auth_header: "X-NSoT-Email"
 # and internal mirror for production deployments.
 # Type: str
 cdnjs_prefix: "//cdnjs.cloudflare.com"
+
+# Allows you to restrict requests to certain IP addresses and/or IP networks
+# specified in CIDR notation.
+#
+# Type: str or list
+restrict_networks: "127.0.0.1"

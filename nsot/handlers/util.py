@@ -1,3 +1,4 @@
+from ipaddress import ip_address
 import json
 from tornado.web import RequestHandler, urlparse
 from tornado.escape import utf8
@@ -26,7 +27,27 @@ class BaseHandler(RequestHandler):
 
         return user
 
+    def get_client_ip(self):
+        address, port = self.request.connection.context.address
+        if not isinstance(address, unicode):
+            address = unicode(address)
+        return ip_address(address)
+
+    def _is_permitted_network(self):
+        if not settings.restrict_networks:
+            return True
+
+        ip = self.get_client_ip()
+        for network in settings.restrict_networks:
+            if ip in network:
+                return True
+
+        return False
+
     def prepare(self):
+        if not self._is_permitted_network():
+            return self.forbidden("Connected from forbidden network.")
+
         try:
             if not self.current_user:
                 return self.unauthorized("Not logged in.")
@@ -54,16 +75,14 @@ class FeHandler(BaseHandler):
         context.update(kwargs)
         self.write(self.render_template(template_name, **context))
 
-    def badrequest(self, message):
-        self.set_status(400)
-        self.render("error.html", code=400, message=message)
+    def error_page(self, code, message):
+        self.set_status(code)
+        self.render("error.html", code=code, message=message)
         self.finish()
 
-    def unauthorized(self, message):
-        self.set_status(401)
-        self.render("error.html", code=401, message=message)
-        self.finish()
-
+    def badrequest(self, message): self.error_page(400, message)
+    def unauthorized(self, message): self.error_page(401, message)
+    def forbidden(self, message): self.error_page(403, message)
 
 
 class ApiHandler(BaseHandler):
@@ -119,20 +138,11 @@ class ApiHandler(BaseHandler):
         self.error(status, message)
         self.finish()
 
-    def badrequest(self, message):
-        self.error_status(400, message)
-
-    def unauthorized(self, message):
-        self.error_status(401, message)
-
-    def forbidden(self, message):
-        self.error_status(403, message)
-
-    def notfound(self, message):
-        self.error_status(404, message)
-
-    def conflict(self, message):
-        self.error_status(409, message)
+    def badrequest(self, message): self.error_status(400, message)
+    def unauthorized(self, message): self.error_status(401, message)
+    def forbidden(self, message): self.error_status(403, message)
+    def notfound(self, message): self.error_status(404, message)
+    def conflict(self, message): self.error_status(409, message)
 
     def created(self, location):
         self.set_status(201)

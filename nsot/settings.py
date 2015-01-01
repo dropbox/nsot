@@ -1,5 +1,7 @@
 import yaml
 
+from ipaddress import ip_network
+
 
 class Settings(object):
     def __init__(self, initial_settings):
@@ -41,6 +43,20 @@ class Settings(object):
         except KeyError as err:
             raise AttributeError(err)
 
+    # Overrides
+
+    def override_restrict_networks(self, values):
+        if not isinstance(values, (list, set)):
+            values = [values]
+
+        new_values = []
+        for value in values:
+            if not isinstance(value, unicode):
+                value = unicode(value)
+            new_values.append(ip_network(value))
+
+        return new_values
+
 
 settings = Settings({
     "log_format": "%(asctime)-15s\t%(levelname)s\t%(message)s",
@@ -50,4 +66,5 @@ settings = Settings({
     "port": 8990,
     "user_auth_header": "X-NSoT-Email",
     "cdnjs_prefix": "//cdnjs.cloudflare.com",
+    "restrict_networks": [],
 })
