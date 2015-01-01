@@ -27,3 +27,8 @@ database: "sqlite:///nsot.sqlite"
 # Header to check for Authenticated Email
 # Type: str
 user_auth_header: "X-NSoT-Email"
+
+# This is the prefix url in template to cdnjs. This allows you to point at
+# and internal mirror for production deployments.
+# Type: str
+cdnjs_prefix: "//cdnjs.cloudflare.com"

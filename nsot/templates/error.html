@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+{% autoescape true %}
+<html>
+    <head>
+        <title>NSoT Error</title>
+
+        <link href="{{cdnjs_prefix}}/ajax/libs/twitter-bootstrap/3.3.1/css/bootstrap.min.css"
+              rel="stylesheet"
+              media="screen">
+    </head>
+    <body>
+        <div class="container-fluid">
+            <div class="row content">
+                <div class="col-md-12 text-center">
+                    <div class="alert alert-danger">
+                        {{code}} - {{message}}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>
+{% endautoescape %}

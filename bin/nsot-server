@@ -14,7 +14,7 @@ import nsot
 from nsot.app import Application
 from nsot.settings import settings
 from nsot.models import get_db_engine, Session
-from nsot.util import get_loglevel
+from nsot.util import get_loglevel, get_template_env
 
 
 from sqlalchemy.exc import OperationalError
@@ -46,7 +46,9 @@ def main(argv):
         sa_log.setLevel(logging.INFO)
 
     tornado_settings = {
+        "static_path": os.path.join(os.path.dirname(nsot.__file__), "static"),
         "debug": settings.debug,
+        "xsrf_cookies": True,
     }
 
     db_engine = get_db_engine(settings.database)
@@ -55,6 +57,7 @@ def main(argv):
     my_settings = {
         "db_engine": db_engine,
         "db_session": Session,
+        "template_env": get_template_env()
     }
 
     application = Application(my_settings=my_settings, **tornado_settings)

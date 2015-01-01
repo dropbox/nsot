@@ -40,11 +40,12 @@ def user_proxy_command(args):
     if username is None:
         username = getpass.getuser()
         logging.debug("No username provided, using (%s)", username)
+    username += "@localhost"
 
     server = BaseHTTPServer.HTTPServer(
         ('localhost', args.listen_port), UserProxyHandler
     )
-    server.args = ServerArgs(args.backend_port, args.username)
+    server.args = ServerArgs(args.backend_port, username)
     try:
         logging.info(
             "Starting user_proxy on port (%s) with user (%s)",

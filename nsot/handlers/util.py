@@ -7,10 +7,9 @@ from .. import models
 from ..settings import settings
 
 
-class ApiHandler(RequestHandler):
+class BaseHandler(RequestHandler):
     def initialize(self):
         self.session = self.application.my_settings.get("db_session")()
-        self._jbody = None
 
     def on_finish(self):
         self.session.close()
@@ -27,6 +26,51 @@ class ApiHandler(RequestHandler):
 
         return user
 
+    def prepare(self):
+        try:
+            if not self.current_user:
+                return self.unauthorized("Not logged in.")
+        except exc.ValidationError as err:
+            return self.badrequest(err.message)
+
+    def badrequest(self, message):
+        pass
+
+    def unauthorized(self, message):
+        pass
+
+
+class FeHandler(BaseHandler):
+    def render_template(self, template_name, **kwargs):
+        template = self.application.my_settings["template_env"].get_template(
+            template_name
+        )
+        content = template.render(kwargs)
+        return content
+
+    def render(self, template_name, **kwargs):
+        context = {}
+        context.update(self.get_template_namespace())
+        context.update(kwargs)
+        self.write(self.render_template(template_name, **context))
+
+    def badrequest(self, message):
+        self.set_status(400)
+        self.render("error.html", code=400, message=message)
+        self.finish()
+
+    def unauthorized(self, message):
+        self.set_status(401)
+        self.render("error.html", code=401, message=message)
+        self.finish()
+
+
+
+class ApiHandler(BaseHandler):
+    def initialize(self):
+        BaseHandler.initialize(self)
+        self._jbody = None
+
     @property
     def jbody(self):
         if self._jbody is None:
@@ -37,11 +81,9 @@ class ApiHandler(RequestHandler):
         return self._jbody
 
     def prepare(self):
-        try:
-            if not self.current_user:
-                return self.unauthorized("Not logged in.")
-        except exc.ValidationError as err:
-            return self.badrequest(err.message)
+        rv = BaseHandler.prepare(self)
+        if rv is not None:
+            return rv
 
         if self.request.method.lower() in ("put", "post"):
             if self.request.headers.get("Content-Type").lower() != "application/json":

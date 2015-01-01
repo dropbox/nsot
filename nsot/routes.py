@@ -1,4 +1,4 @@
-from .handlers import api
+from .handlers import api, fe
 
 HANDLERS = [
 
@@ -32,6 +32,9 @@ HANDLERS = [
         api.UserPermissionHandler
     ),
 
-    (r"/.*", api.NotFoundHandler),
+    (r"/api/.*", api.NotFoundHandler),
 
+
+    # Frontend Handlers
+    (r".*", fe.AppHandler),
 ]
