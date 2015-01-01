@@ -67,4 +67,5 @@ settings = Settings({
     "user_auth_header": "X-NSoT-Email",
     "cdnjs_prefix": "//cdnjs.cloudflare.com",
     "restrict_networks": [],
+    "bind_address": None,
 })

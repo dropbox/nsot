@@ -12,6 +12,10 @@ num_processes: 1
 # Type: int
 port: 8990
 
+# The address to bind to. By default it listens on all interfaces.
+# Type: string
+bind_address: "127.0.0.1"
+
 # Passing debug option down tornado. Useful for development to
 # automatically reload code.
 # Type: bool
@@ -35,6 +39,5 @@ cdnjs_prefix: "//cdnjs.cloudflare.com"
 
 # Allows you to restrict requests to certain IP addresses and/or IP networks
 # specified in CIDR notation.
-#
 # Type: str or list
 restrict_networks: "127.0.0.1"

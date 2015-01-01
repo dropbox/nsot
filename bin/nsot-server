@@ -70,7 +70,7 @@ def main(argv):
     )
 
     server = tornado.httpserver.HTTPServer(application)
-    server.bind(port)
+    server.bind(port, address=settings.bind_address)
     server.start()
     try:
         tornado.ioloop.IOLoop.instance().start()
