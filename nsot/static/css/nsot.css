@@ -17,12 +17,12 @@ body {
     margin-top: 100px;
 }
 
-.panel-nsot {
+.panel-default {
     box-shadow: 3px 3px 6px 0px rgba(155, 155, 155, 1);
     border: 0px;
 }
 
-.panel-default>.panel-heading {
+.panel-default .panel-heading {
     color: #ecf0f1;
     background-color: #333;
     border-color: #a3114f;

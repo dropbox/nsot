@@ -2,6 +2,7 @@ from ipaddress import ip_address
 import json
 from tornado.web import RequestHandler, urlparse
 from tornado.escape import utf8
+from werkzeug.http import parse_options_header
 
 from .. import exc
 from .. import models
@@ -105,7 +106,10 @@ class ApiHandler(BaseHandler):
             return rv
 
         if self.request.method.lower() in ("put", "post"):
-            if self.request.headers.get("Content-Type").lower() != "application/json":
+            content_type = parse_options_header(
+                self.request.headers.get("Content-Type")
+            )[0]
+            if content_type.lower() != "application/json":
                 return self.badrequest("Invalid Content-Type for POST/PUT request.")
 
     def head(self, *args, **kwargs):

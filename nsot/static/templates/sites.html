@@ -1,0 +1,44 @@
+<loading-panel ng-if="loading"></loading-panel>
+<div ng-if="!loading">
+    <div ng-if="!sites.length" class="col-sm-6 col-sm-offset-3">
+        <panel class="notification-box">
+            <panel-heading>Welcome</panel-heading>
+            <panel-body>
+                Welcome to the Network Source of Truth. It looks like you're new
+                here. Lets start by creating a <em>site</em> which will be a namespace
+                for all of your data.
+                <hr>
+                <form novalidate class="nsot-form">
+                    <div class="form-group">
+                        <input type="text"
+                               class="form-control"i
+                               placeholder="Name"
+                               ng-model="site.name"
+                               required
+                        >
+                    </div>
+                    <div class="form-group">
+                        <textarea style="resize: vertical;"
+                                  class="form-control"
+                                  rows="5"
+                                  placeholder="Description"
+                                  ng-model="site.description"
+                        >
+                        </textarea>
+                    </div>
+                </form>
+            </panel-body>
+            <panel-footer class="text-right">
+                <button type="submit"
+                        ng-click="createSite(site)"
+                        class="btn btn-primary"
+                >Create</button>
+            </panel-footer>
+        </panel>
+    </div>
+    <div ng-if="sites.length"
+         ng-repeat="site in sites"
+         class="col-sm-6 col-sm-offset-3">
+         <a ng-href="/sites/[[site.id]]">[[site.name]]</a>
+    </div>
+</div>
