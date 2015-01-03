@@ -132,6 +132,7 @@ class ApiHandler(BaseHandler):
             "status": "ok",
             "data": data,
         })
+        self.finish()
 
     def error_status(self, status, message):
         self.set_status(status)
@@ -144,10 +145,14 @@ class ApiHandler(BaseHandler):
     def notfound(self, message): self.error_status(404, message)
     def conflict(self, message): self.error_status(409, message)
 
-    def created(self, location):
+    def created(self, location, data):
         self.set_status(201)
         self.set_header(
             "Location",
             urlparse.urljoin(utf8(self.request.uri), utf8(location))
         )
+        self.write({
+            "status": "ok",
+            "data": data,
+        })
         self.finish()

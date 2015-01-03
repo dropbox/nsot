@@ -21,9 +21,8 @@ will be sent as json rather than form data and should include the header ``Conte
 
 Responses
 ---------
-With the exception of creating a new resource via ``POST``, all responses will
-be in ``JSON`` format along with the header ``Content-Type: application/json``
-set.
+All responses will be in ``JSON`` format along with the header
+``Content-Type: application/json`` set.
 
 The ``JSON`` payload will be in one of two potential structures and will always contain a ``status`` field to distinguish between them. If the ``status`` field
 has a value of ``"ok"``, then the request was successful and the response will

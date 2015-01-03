@@ -34,6 +34,17 @@ class SitesHandler(ApiHandler):
             HTTP/1.1 201 OK
             Location: /api/sites/1
 
+            {
+                "status": "ok",
+                "data": {
+                    "site": {
+                        "id": 1,
+                        "name": "New Site",
+                        "description": "This is our new Site."
+                    }
+                }
+            }
+
         :reqjson string name: The name of the Site
         :reqjson string description: (*optional*) A helpful description for the Site
 
@@ -66,7 +77,9 @@ class SitesHandler(ApiHandler):
         except exc.ValidationError as err:
             return self.badrequest(err.message)
 
-        self.created("/api/sites/{}".format(site.id))
+        self.created("/api/sites/{}".format(site.id), {
+            "site": site.to_dict(),
+        })
 
     def get(self):
         """ **Get all Sites**
@@ -301,7 +314,7 @@ class NetworkAttributesHandler(ApiHandler):
 
             {
                 "name": "owner",
-                "description": "This is our new Site.",
+                "description": "Owner Attribute.",
                 "required": false
             }
 
@@ -311,6 +324,18 @@ class NetworkAttributesHandler(ApiHandler):
 
             HTTP/1.1 201 OK
             Location: /api/sites/1/network_attributes/1
+
+            {
+                "status": "ok",
+                "data": {
+                    "network_attribute": {
+                        "id": 1,
+                        "name": "owner",
+                        "description": "Owner Attribute.",
+                        "required": false
+                    }
+                }
+            }
 
         :permissions: * **admin**, **network_attrs**
 
@@ -359,7 +384,9 @@ class NetworkAttributesHandler(ApiHandler):
 
         self.created("/api/sites/{}/network_attributes/{}".format(
             site_id, attribute.id
-        ))
+        ), {
+            "network_attribute": attribute.to_dict(),
+        })
 
     def get(self, site_id):
         """ **Get all Network Attributes**
@@ -688,6 +715,22 @@ class NetworksHandler(ApiHandler):
             HTTP/1.1 201 OK
             Location: /api/sites/1/networks/1
 
+            {
+                "status": "ok",
+                "data": {
+                    "network": {
+                        "id": 1,
+                        "parent_id": null,
+                        "site_id": 1,
+                        "is_ip": false,
+                        "ip_version": "4",
+                        "network_address": "10.0.0.0",
+                        "prefix_length": "8",
+                        "attributes": {"vlan": "23"}
+                    }
+                }
+            }
+
         :permissions: * **admin**, **networks**
 
         :param site_id: ID of the Site where this should be created.
@@ -730,7 +773,9 @@ class NetworksHandler(ApiHandler):
         except (ValueError, exc.ValidationError) as err:
             return self.badrequest(err.message)
 
-        self.created("/api/sites/{}/networks/{}".format(site_id, network.id))
+        self.created("/api/sites/{}/networks/{}".format(site_id, network.id), {
+            "network": network.to_dict(),
+        })
 
     def get(self, site_id):
         """ **Get all Networks**

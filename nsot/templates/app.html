@@ -17,13 +17,29 @@
             <div class="row">
                 <nav class="navbar navbar-static-top navbar-default" role="navigation">
                     <div class="col-sm-10 col-sm-offset-1">
-                        <a class="navbar-brand" href="/">NSoT.</a>
+                        <a class="navbar-brand" href="/">Network Source of Truth</a>
                     </div>
+                    <ul class="nav navbar-nav navbar-right">
+                        <li class="active"><a
+                            title="Documentation"
+                            href="http://nsot.readthedocs.org/en/latest/">
+                                <i class="fa fa-question-circle fa-lg"></i>
+                        </a></li>
+                        <li class="active"><a
+                            title="Source (GitHub)"
+                            href="https://github.com/dropbox/nsot">
+                                <i class="fa fa-github fa-lg"></i>
+                        </a></li>
+                    </ul>
                 </nav>
             </div>
 
-            <div class="row content">
-                <ng-view></ng-view>
+            <div class="row">
+                <div class="col-sm-10 col-sm-offset-1">
+                    <div id="content">
+                        <ng-view></ng-view>
+                    </div>
+                </div>
             </div>
         </div>
 

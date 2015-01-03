@@ -11,20 +11,42 @@ body {
     */
     overflow-y: scroll;
     margin-bottom: 20px;
-
-
 }
 
-.error-box {
+.notification-box {
     margin-top: 100px;
+}
+
+.panel-nsot {
     box-shadow: 3px 3px 6px 0px rgba(155, 155, 155, 1);
+    border: 0px;
 }
 
-.container-fluid {
-    margin-bottom: 20px;
+.panel-default>.panel-heading {
+    color: #ecf0f1;
+    background-color: #333;
+    border-color: #a3114f;
 }
 
-.error-box {
+#footer {
+    position: fixed;
+    left: 0px;
+    bottom: 0px;
+    height: 20px;
+    width: 100%;
+    background: #333;
+    vertical-align: middle;
+    color: #ecf0f1;
+    font-size: small;
+}
+
+.nav>li>a {
+    padding-left: 10px;
+    padding-right: 10px;
+}
+
+.navbar-right {
+    margin-right: 0px;
 }
 
 .navbar-default {

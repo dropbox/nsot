@@ -15,6 +15,18 @@
             requireBase: false
         });
     })
+    .config(function($httpProvider) {
+        _.assign($httpProvider.defaults, {
+            "xsrfCookieName": "_xsrf",
+            "xsrfHeaderName": "X-XSRFToken",
+            "headers": {
+                "post": { "Content-Type": "application/json"},
+                "put": { "Content-Type": "application/json"},
+                "delete": { "Content-Type": "application/json"}
+            }
+        })
+
+    })
     .config(function($routeProvider) {
         $routeProvider
         .when("/", {
@@ -25,11 +37,29 @@
     });
 
     app.controller("IndexController", [
-            "$scope", "$http", "$location",
-            function($scope, $http, $location) {
-        console.log("hello");
-        $scope.hello = "Welcome to the Index page."
+            "$scope", "$http", "$q", "$location",
+            function($scope, $http, $q, $location) {
 
+        $scope.loading = true;
+        $scope.user = {};
+        $scope.sites = [];
+
+        $q.all([
+            $http.get("/api/users/0"),
+            $http.get("/api/sites")
+        ]).then(function(results){
+            $scope.user = results[0].data.data.user;
+            $scope.sites = results[1].data.data.sites;
+            $scope.loading = false;
+        });
+
+        $scope.createSite = function(site){
+            $http.post("/api/sites").success(function(r){
+                console.log(r);
+            }).error(function(r){
+                console.log(r);
+            });
+        };
     }]);
 
 })();
