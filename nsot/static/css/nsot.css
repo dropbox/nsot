@@ -13,6 +13,13 @@ body {
     margin-bottom: 20px;
 }
 
+.navbar .divider-vertical {
+    height: 30px;
+    margin: 10px 9px;
+    border-right: 2px solid #A3114F;
+    border-left: 1px solid #5C052A;
+}
+
 .modal-open {
     overflow-y: scroll;
 }
@@ -218,5 +225,8 @@ body {
     .navbar-default .navbar-nav .open .dropdown-menu > .active > a, .navbar-default .navbar-nav .open .dropdown-menu > .active > a:hover, .navbar-default .navbar-nav .open .dropdown-menu > .active > a:focus {
         color: #ecdbff;
         background-color: #a3114f;
+    }
+    .navbar-collapse .nav > .divider-vertical {
+        display: none;
     }
 }

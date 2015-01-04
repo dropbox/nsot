@@ -35,7 +35,32 @@
                                 <a title="Sites" href="/sites">Sites</a>
                             </li>
                         </ul>
+                        <ul ng-if="siteId" class="nav navbar-nav">
+                            <li class="divider-vertical"></li>
+                            <li ng-class="{
+                                active: isActive('/sites/[[siteId]]/networks')
+                            }">
+                                <a title="Sites" ng-href="/sites/[[siteId]]/networks">
+                                    Networks
+                                </a>
+                            </li>
+                            <li ng-class="{
+                                active: isActive('/sites/[[siteId]]/network_attributes')
+                            }">
+                                <a title="Sites" ng-href="/sites/[[siteId]]/network_attributes">
+                                    Network Attributes
+                                </a>
+                            </li>
+                            <li ng-class="{
+                                active: isActive('/sites/[[siteId]]/changes')
+                            }">
+                                <a title="Sites" ng-href="/sites/1/changes">
+                                    Changes
+                                </a>
+                            </li>
+                        </ul>
                         <ul class="nav navbar-nav navbar-right">
+                            <li><a title="Users" href="/users">Users</a></li>
                             <li class="active"><a
                                 title="Documentation"
                                 href="http://nsot.readthedocs.org/en/latest/">

@@ -28,6 +28,14 @@
             templateUrl: "/static/templates/index.html",
             controller: "IndexController"
         })
+        .when("/users", {
+            templateUrl: "/static/templates/users.html",
+            controller: "UsersController"
+        })
+        .when("/users/:userId", {
+            templateUrl: "/static/templates/user.html",
+            controller: "UserController"
+        })
         .when("/sites", {
             templateUrl: "/static/templates/sites.html",
             controller: "SitesController"
@@ -36,6 +44,30 @@
             templateUrl: "/static/templates/site.html",
             controller: "SiteController"
         })
+        .when("/sites/:siteId/networks", {
+            templateUrl: "/static/templates/networks.html",
+            controller: "NetworksController"
+        })
+        .when("/sites/:siteId/networks/:networkId", {
+            templateUrl: "/static/templates/network.html",
+            controller: "NetworkController"
+        })
+        .when("/sites/:siteId/network_attributes", {
+            templateUrl: "/static/templates/network-attributes.html",
+            controller: "NetworkAttributesController"
+        })
+        .when("/sites/:siteId/network_attributes/:networkAttributeId", {
+            templateUrl: "/static/templates/network-attribute.html",
+            controller: "NetworkAttributeController"
+        })
+        .when("/sites/:siteId/changes", {
+            templateUrl: "/static/templates/changes.html",
+            controller: "ChangesController"
+        })
+        .when("/sites/:siteId/changes/:changeId", {
+            templateUrl: "/static/templates/change.html",
+            controller: "ChangeController"
+        })
         .otherwise({redirectTo: "/"});
     });
 
@@ -43,12 +75,14 @@
             "$scope", "$location",
             function($scope, $location) {
 
+        $scope.siteId = null;
+        $scope.$on('$routeChangeStart', function(next, current) {
+            $scope.siteId = current.params.siteId;
+        });
+
         $scope.isActive = function(str){
             var path = $location.path();
-            if (path.indexOf(str) === 0){
-                return true;
-            }
-            return false;
+            return path === str
         };
 
     }]);
@@ -116,6 +150,11 @@
             $scope.user = results[0].data.data.user;
             $scope.site = results[1].data.data.site;
             $scope.loading = false;
+        }, function(data){
+            if (data.status === 404) {
+                $location.path("/");
+                $location.replace();
+            }
         });
 
         $scope.updateSite = function(site){
@@ -134,6 +173,74 @@
                 $scope.error = data.error;
             });
         };
+
+    }]);
+
+    app.controller("UsersController", [
+            "$scope", "$http", "$route", "$location", "$q", "$routeParams",
+            function($scope, $http, $route, $location, $q, $routeParams) {
+
+        $scope.loading = true;
+
+    }
+    ]);
+
+    app.controller("UserController", [
+            "$scope", "$http", "$route", "$location", "$q", "$routeParams",
+            function($scope, $http, $route, $location, $q, $routeParams) {
+
+        $scope.loading = true;
+
+    }]);
+
+    app.controller("NetworksController", [
+            "$scope", "$http", "$route", "$location", "$q", "$routeParams",
+            function($scope, $http, $route, $location, $q, $routeParams) {
+
+        $scope.loading = true;
+
+    }
+    ]);
+
+    app.controller("NetworkController", [
+            "$scope", "$http", "$route", "$location", "$q", "$routeParams",
+            function($scope, $http, $route, $location, $q, $routeParams) {
+
+        $scope.loading = true;
+
+    }]);
+
+    app.controller("NetworkAttributesController", [
+            "$scope", "$http", "$route", "$location", "$q", "$routeParams",
+            function($scope, $http, $route, $location, $q, $routeParams) {
+
+        $scope.loading = true;
+
+    }
+    ]);
+
+    app.controller("NetworkAttributeController", [
+            "$scope", "$http", "$route", "$location", "$q", "$routeParams",
+            function($scope, $http, $route, $location, $q, $routeParams) {
+
+        $scope.loading = true;
+
+    }]);
+
+    app.controller("ChangesController", [
+            "$scope", "$http", "$route", "$location", "$q", "$routeParams",
+            function($scope, $http, $route, $location, $q, $routeParams) {
+
+        $scope.loading = true;
+
+    }
+    ]);
+
+    app.controller("ChangeController", [
+            "$scope", "$http", "$route", "$location", "$q", "$routeParams",
+            function($scope, $http, $route, $location, $q, $routeParams) {
+
+        $scope.loading = true;
 
     }]);
 
