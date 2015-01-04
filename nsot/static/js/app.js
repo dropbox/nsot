@@ -1,4 +1,5 @@
 (function() {
+    "use strict";
 
     var app = angular.module("nsotApp", ["ngRoute"]);
 
@@ -98,12 +99,15 @@
     }]);
 
     app.controller("SiteController", [
-            "$scope", "$http", "$q", "$routeParams",
-            function($scope, $http, $q, $routeParams) {
+            "$scope", "$http", "$route", "$location", "$q", "$routeParams",
+            function($scope, $http, $route, $location, $q, $routeParams) {
 
         $scope.loading = true;
         $scope.user = {};
         $scope.site = {};
+        $scope.updateError = null;
+        $scope.deleteError = null;
+
 
         $q.all([
             $http.get("/api/users/0"),
@@ -113,6 +117,23 @@
             $scope.site = results[1].data.data.site;
             $scope.loading = false;
         });
+
+        $scope.updateSite = function(site){
+            $http.put("/api/sites/" + $routeParams.siteId, site).success(function(data){
+                $route.reload();
+            }).error(function(data){
+                console.log(data);
+                $scope.error = data.error;
+            });
+        };
+
+        $scope.deleteSite = function(site){
+            $http.delete("/api/sites/" +  $routeParams.siteId, site).success(function(data){
+                $location.path("/sites");
+            }).error(function(data){
+                $scope.error = data.error;
+            });
+        };
 
     }]);
 

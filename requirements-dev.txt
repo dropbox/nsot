@@ -1,5 +1,5 @@
 -r requirements.txt
-mrproxy==0.3.2
+mrproxy==0.3.3
 py==1.4.26
 pytest==2.6.4
 Pygments==2.0.1
