@@ -1,4 +1,7 @@
 <loading-panel ng-if="loading"></loading-panel>
 <div ng-if="!loading">
-    [[site.id]] - [[site.name]] - [[site.description]]
+    <heading-bar heading="Sites" subheading="[[site.name]]">
+        <button class="btn btn-info">Update Site</button>
+        <button class="btn btn-danger">Delete Site</button>
+    </heading-bar>
 </div>

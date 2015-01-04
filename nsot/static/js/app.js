@@ -76,6 +76,7 @@
         $scope.user = {};
         $scope.sites = [];
         $scope.site = {};
+        $scope.error = null;
 
         $q.all([
             $http.get("/api/users/0"),
@@ -90,6 +91,8 @@
             $http.post("/api/sites", site).success(function(data){
                 var site = data.data.site;
                 $location.path("/sites/" + site.id);
+            }).error(function(data){
+                $scope.error = data.error;
             });
         };
     }]);

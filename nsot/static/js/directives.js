@@ -6,9 +6,8 @@
         return {
             restrict: "E",
             transclude: true,
-            replace: true,
             template: "<div class='panel panel-default'>" +
-                      "<ng-transclude></ng-transclude>" +
+                      "  <ng-transclude></ng-transclude>" +
                       "</div>"
         };
     });
@@ -17,9 +16,8 @@
         return {
             restrict: "E",
             transclude: true,
-            replace: true,
             template: "<div class='panel-heading'><strong>" +
-                      "<ng-transclude></ng-transclude>" +
+                      "  <ng-transclude></ng-transclude>" +
                       "</strong></div>"
         };
     });
@@ -28,9 +26,8 @@
         return {
             restrict: "E",
             transclude: true,
-            replace: true,
             template: "<div class='panel-body'>" +
-                      "<ng-transclude></ng-transclude>" +
+                      "  <ng-transclude></ng-transclude>" +
                       "</div>"
         };
     });
@@ -39,18 +36,36 @@
         return {
             restrict: "E",
             transclude: true,
-            replace: true,
             template: "<div class='panel-footer'>" +
-                      "<ng-transclude></ng-transclude>" +
+                      "  <ng-transclude></ng-transclude>" +
                       "</div>"
         };
     });
-
 
     app.directive("loadingPanel", function(){
         return {
             restrict: "E",
             templateUrl: "/static/templates/directives/loading-panel.html"
+        };
+    });
+
+    app.directive("headingBar", function(){
+        return {
+            restrict: "E",
+            scope: {
+                "heading": "@",
+                "subheading": "@"
+            },
+            transclude: true,
+            template: "<div class='row'><div class='col-md-12'>" +
+                      "  <div class='header'>" +
+                      "    <h2>[[heading]]</h2>" +
+                      "    <h3 ng-if='subheading'>[[subheading]]</h3>" +
+                      "    <div class='buttons'>" +
+                      "      <ng-transclude></ng-transclude>" +
+                      "    </div>" +
+                      "  </div>" +
+                      "</div></div>"
         };
     });
 
