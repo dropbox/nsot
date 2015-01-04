@@ -13,12 +13,17 @@
             <div ng-if="error" class="alert alert-danger">
                 [[error.code]] - [[error.message]]
             </div>
-            <form novalidate class="nsot-form">
-                <div class="form-group">
+            <form novalidate name="siteForm" class="nsot-form">
+                <div class="form-group" ng-class="{
+                    'has-error' : siteForm.name.$invalid,
+                    'has-success' : siteForm.name.$valid,
+                }">
                     <input type="text"
-                           class="form-control"i
-                           placeholder="Name"
+                           class="form-control"
+                           name="name"
+                           placeholder="Name (required)"
                            ng-model="site.name"
+                           ng-minlength="1"
                            required
                     >
                 </div>
@@ -26,6 +31,7 @@
                     <textarea style="resize: vertical;"
                               class="form-control"
                               rows="5"
+                              name="description"
                               placeholder="Description"
                               ng-model="site.description"
                     >
@@ -37,11 +43,13 @@
             <button type="button" class="btn btn-default" data-dismiss="modal">
                 Close
             </button>
-            <button type="submit" ng-click="createSite(site)" class="btn btn-primary">
+            <button type="submit" ng-click="createSite(site)"
+                    class="btn btn-primary" ng-disabled="siteForm.$invalid"
+            >
                 Create
             </button>
         </div>
-    </div>
+    </nsot-modal>
 
     <div ng-if="!sites.length" class="row"><div class="col-sm-6 col-sm-offset-3">
         <panel>
