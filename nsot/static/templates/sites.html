@@ -8,51 +8,38 @@
         >Create Site</button>
     </heading-bar>
 
-    <div class="modal fade" id="createSiteModal" tabindex="-1" role="dialog">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <button type="button" class="close close-light" data-dismiss="modal">
-                        <span class="fa fa-close"</span>
-                    </button>
-                    <h4 class="modal-title">Create Site</h4>
-                </div>
-                <div class="modal-body">
-                    <div ng-if="error" class="alert alert-danger">
-                        [[error.code]] - [[error.message]]
-                    </div>
-                    <form novalidate class="nsot-form">
-                        <div class="form-group">
-                            <input type="text"
-                                   class="form-control"i
-                                   placeholder="Name"
-                                   ng-model="site.name"
-                                   required
-                            >
-                        </div>
-                        <div class="form-group">
-                            <textarea style="resize: vertical;"
-                                      class="form-control"
-                                      rows="5"
-                                      placeholder="Description"
-                                      ng-model="site.description"
-                            >
-                            </textarea>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button
-                        type="button"
-                        class="btn btn-default"
-                        data-dismiss="modal"
-                    >Close</button>
-                    <button type="submit"
-                            ng-click="createSite(site)"
-                            class="btn btn-primary"
-                    >Create</button>
-                </div>
+    <nsot-modal title="Create Site" modal-id="createSiteModal">
+        <div class="modal-body">
+            <div ng-if="error" class="alert alert-danger">
+                [[error.code]] - [[error.message]]
             </div>
+            <form novalidate class="nsot-form">
+                <div class="form-group">
+                    <input type="text"
+                           class="form-control"i
+                           placeholder="Name"
+                           ng-model="site.name"
+                           required
+                    >
+                </div>
+                <div class="form-group">
+                    <textarea style="resize: vertical;"
+                              class="form-control"
+                              rows="5"
+                              placeholder="Description"
+                              ng-model="site.description"
+                    >
+                    </textarea>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">
+                Close
+            </button>
+            <button type="submit" ng-click="createSite(site)" class="btn btn-primary">
+                Create
+            </button>
         </div>
     </div>
 

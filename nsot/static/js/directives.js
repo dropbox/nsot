@@ -70,4 +70,16 @@
         };
     });
 
+    app.directive("nsotModal", function(){
+        return {
+            restrict: "E",
+            scope: {
+                "title": "@",
+                "modalId": "@"
+            },
+            transclude: true,
+            templateUrl: "/static/templates/directives/nsot-modal.html"
+        };
+    });
+
 })();
