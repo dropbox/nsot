@@ -1,3 +1,4 @@
+from sqlalchemy import desc
 from sqlalchemy.exc import IntegrityError
 
 
@@ -1328,6 +1329,7 @@ class ChangesHandler(ApiHandler):
         if resource_id is not None:
             changes = changes.filter_by(resource_id=resource_id)
 
+        changes = changes.order_by(desc("change_at"))
 
         self.success({
             "changes": [change.to_dict() for change in changes],

@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+from calendar import timegm
 from datetime import datetime
 from email.utils import parseaddr
 from operator import attrgetter
@@ -716,7 +717,7 @@ class Change(Model):
             "id": self.id,
             "site_id": self.site_id,
             "user_id": self.user_id,
-            "change_at": time.mktime(self.change_at.timetuple()),
+            "change_at": timegm(self.change_at.timetuple()),
             "event": self.event,
             "resource_type": RESOURCE_BY_IDX[self.resource_type],
             "resource_id": self.resource_id,

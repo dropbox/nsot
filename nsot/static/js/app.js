@@ -71,6 +71,18 @@
         .otherwise({redirectTo: "/"});
     });
 
+    app.filter("from_now", function(){
+        return function(input){
+            return moment.unix(input).fromNow();
+        };
+    });
+
+    app.filter("ts_fmt", function(){
+        return function(input){
+            return moment.unix(input).format("YYYY/MM/DD hh:mm:ss a");
+        };
+    });
+
     app.controller("navigationController", [
             "$scope", "$location",
             function($scope, $location) {
@@ -82,7 +94,7 @@
 
         $scope.isActive = function(str){
             var path = $location.path();
-            return path === str
+            return path === str;
         };
 
     }]);
@@ -232,6 +244,24 @@
             function($scope, $http, $route, $location, $q, $routeParams) {
 
         $scope.loading = true;
+        $scope.changes = [];
+        $scope.siteId = $routeParams.siteId;
+
+        $q.all([
+            $http.get(
+                "/api/sites/" + $scope.siteId +
+                "/changes"
+            )
+        ]).then(function(results){
+            $scope.changes = results[0].data.data.changes;
+            $scope.loading = false;
+        }, function(data){
+            console.log(data);
+            if (data.status === 404) {
+                $location.path("/");
+                $location.replace();
+            }
+        });
 
     }
     ]);
@@ -241,6 +271,24 @@
             function($scope, $http, $route, $location, $q, $routeParams) {
 
         $scope.loading = true;
+        $scope.change = {};
+        $scope.siteId = $routeParams.siteId;
+
+        $q.all([
+            $http.get(
+                "/api/sites/" + $scope.siteId +
+                "/changes/" + $routeParams.changeId
+            )
+        ]).then(function(results){
+            $scope.change = results[0].data.data.change;
+            $scope.loading = false;
+        }, function(data){
+            console.log(data);
+            if (data.status === 404) {
+                $location.path("/");
+                $location.replace();
+            }
+        });
 
     }]);
 
