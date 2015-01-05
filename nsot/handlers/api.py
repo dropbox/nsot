@@ -1334,6 +1334,69 @@ class ChangesHandler(ApiHandler):
         })
 
 
+class ChangeHandler(ApiHandler):
+    def get(self, site_id, change_id):
+        """ **Get a specific Change**
+
+        **Example Request**:
+
+        .. sourcecode:: http
+
+            GET /api/sites/1/changes/1 HTTP/1.1
+            Host: localhost
+            X-NSoT-Email: user@localhost
+
+        **Example response**:
+
+        .. sourcecode:: http
+
+            HTTP/1.1 200 OK
+            Content-Type: application/json
+
+            {
+                "status": "ok",
+                "data": {
+                    "change": {
+                        "id": 1,
+                        "site_id": 1,
+                        "user_id": 1,
+                        "change_at": 1420062748,
+                        "event": "Create",
+                        "resource_type": "Site",
+                        "resource_id": 1,
+                        "resource": {
+                            "name": "New Site",
+                            "description": ""
+                        },
+                    }
+                }
+            }
+
+        :param site_id: ID of the Site to retrieve Changes from.
+        :type site_id: int
+        :param change_id: ID of the Change.
+        :type change_id: int
+
+        :reqheader X-NSoT-Email: required for all api requests.
+
+        :statuscode 200: The request was successful.
+        :statuscode 401: The request was made without being logged in.
+        :statuscode 404: The Site/Change was not found.
+        """
+
+        change = self.session.query(models.Change).filter_by(
+            id=change_id, site_id=site_id
+        ).scalar()
+
+        if not change:
+            return self.notfound(
+                "No such Change ({}) at Site ({})".format(change_id, site_id)
+            )
+
+        self.success({
+            "change": change.to_dict(),
+        })
+
 class UsersHandler(ApiHandler):
     def get(self):
         """ **Get all Users**
