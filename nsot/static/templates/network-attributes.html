@@ -22,7 +22,7 @@
                            class="form-control"
                            name="name"
                            placeholder="Name (required)"
-                           ng-model="attr.name"
+                           ng-model="attribute.name"
                            ng-minlength="1"
                            required
                     >
@@ -33,14 +33,14 @@
                               rows="5"
                               name="description"
                               placeholder="Description"
-                              ng-model="attr.description"
+                              ng-model="attribute.description"
                     >
                     </textarea>
                 </div>
                 <div class="checkbox">
                     <label>
                         <input type="checkbox" name="required"
-                                ng-model="attr.required"> Required
+                                ng-model="attribute.required"> Required
                     </label>
                  </div>
             </form>
@@ -49,7 +49,7 @@
             <button type="button" class="btn btn-default" data-dismiss="modal">
                 Close
             </button>
-            <button type="submit" ng-click="createAttribute(attr)"
+            <button type="submit" ng-click="createAttribute(attribute)"
                     class="btn btn-primary" ng-disabled="attrForm.$invalid"
             >
                 Create
