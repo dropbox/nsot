@@ -1,3 +1,38 @@
 <loading-panel ng-if="loading"></loading-panel>
 <div ng-if="!loading">
+
+    <heading-bar
+        heading="Changes"
+        subheading="[[change.resource_type]] [[change.resource_id]]">
+    </heading-bar>
+    <div class="row"><div class="col-sm-8 col-sm-offset-2">
+        <panel>
+            <panel-heading>
+                Change
+            </panel-heading>
+            <panel-body>
+                <dl class="dl-horizontal">
+                    <dt>Event</dt>
+                    <dd>[[change.event]]</dd>
+
+                    <dt>Resource Type</dt>
+                    <dd>[[change.resource_type]]</dd>
+
+                    <dt>Resource ID</dt>
+                    <dd>[[change.resource_id]]</dd>
+
+                    <dt>User</dt>
+                    <dd>[[change.user.email]]</dd>
+
+                    <dt>Change At</dt>
+                    <dd>[[change.change_at|from_now]]</dd>
+
+                    <dt>Resource</dt>
+                    <dd><pre class="resource-block">[[change.resource|json:4]]</pre></dd>
+                </dl>
+
+            </panel-body>
+       </panel>
+    </div></div>
+
 </div>

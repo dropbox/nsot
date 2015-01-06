@@ -20,6 +20,10 @@ body {
     border-left: 1px solid #5C052A;
 }
 
+.resource-block {
+    margin: 5px 80px 10px 0px;
+}
+
 .modal-open {
     overflow-y: scroll;
 }

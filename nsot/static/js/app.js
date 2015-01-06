@@ -151,6 +151,7 @@
         $scope.loading = true;
         $scope.user = {};
         $scope.site = {};
+        $scope.admin = false;
         $scope.updateError = null;
         $scope.deleteError = null;
 
@@ -161,6 +162,12 @@
         ]).then(function(results){
             $scope.user = results[0].data.data.user;
             $scope.site = results[1].data.data.site;
+            var permissions = $scope.user.permissions[$routeParams.siteId] || {};
+            var permissions = permissions.permissions || [];
+            $scope.admin = _.any(permissions, function(value){
+                return _.contains(["admin", "networks"], value);
+            });
+
             $scope.loading = false;
         }, function(data){
             if (data.status === 404) {
@@ -173,8 +180,7 @@
             $http.put("/api/sites/" + $routeParams.siteId, site).success(function(data){
                 $route.reload();
             }).error(function(data){
-                console.log(data);
-                $scope.error = data.error;
+                $scope.updateError = data.error;
             });
         };
 
@@ -182,7 +188,7 @@
             $http.delete("/api/sites/" +  $routeParams.siteId, site).success(function(data){
                 $location.path("/sites");
             }).error(function(data){
-                $scope.error = data.error;
+                $scope.deleteError = data.error;
             });
         };
 

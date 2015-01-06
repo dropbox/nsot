@@ -1267,8 +1267,15 @@ class ChangesHandler(ApiHandler):
                     "changes": [
                         {
                             "id": 1,
-                            "site_id": 1,
-                            "user_id": 1,
+                            "site": {
+                                "id": 1,
+                                "name": "Site 1",
+                                "description": ""
+                            },
+                            "user": {
+                                "id": 1,
+                                "email": "user@localhost"
+                            },
                             "change_at": 1420062748,
                             "event": "Create",
                             "resource_type": "Site",
@@ -1360,8 +1367,15 @@ class ChangeHandler(ApiHandler):
                 "data": {
                     "change": {
                         "id": 1,
-                        "site_id": 1,
-                        "user_id": 1,
+                        "site": {
+                            "id": 1,
+                            "name": "Site 1",
+                            "description": ""
+                        },
+                        "user": {
+                            "id": 1,
+                            "email": "user@localhost"
+                        },
                         "change_at": 1420062748,
                         "event": "Create",
                         "resource_type": "Site",

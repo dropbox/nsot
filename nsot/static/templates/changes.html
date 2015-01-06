@@ -10,24 +10,26 @@
                 <table class="table table-hover">
                     <thead>
                         <tr>
-                            <th>ID</th>
-                            <th>Event</th>
-                            <th>Resource Type</th>
-                            <th>Resource ID</th>
-                            <th>Change At</th>
+                            <th class="col-sm-1">ID</th>
+                            <th class="col-sm-2">User</th>
+                            <th class="col-sm-1">Event</th>
+                            <th class="col-sm-1">Resource Type</th>
+                            <th class="col-sm-1">Resource ID</th>
+                            <th class="col-sm-2">Change At</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr ng-repeat="change in changes">
-                            <td class="col-sm-1">
+                            <td>
                                 <a ng-href="/sites/[[siteId]]/changes/[[change.id]]">
                                     [[change.id]]
                                 </a>
                             </td>
-                            <td class="col-sm-3">[[change.event]]</td>
-                            <td class="col-sm-3">[[change.resource_type]]</td>
-                            <td class="col-sm-2">[[change.resource_id]]</td>
-                            <td class="col-sm-3">[[change.change_at|from_now]]</td>
+                            <td>[[change.user.email]]</td>
+                            <td>[[change.event]]</td>
+                            <td>[[change.resource_type]]</td>
+                            <td>[[change.resource_id]]</td>
+                            <td>[[change.change_at|from_now]]</td>
                         </tr>
                     </tbody>
                 </table>

@@ -16,7 +16,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship, object_session, aliased, validates
-from sqlalchemy.orm import synonym, sessionmaker, Session as _Session
+from sqlalchemy.orm import synonym, sessionmaker, Session as _Session, backref
 from sqlalchemy.schema import Column, ForeignKey, Index
 from sqlalchemy.sql import func, label, literal
 from sqlalchemy.types import Integer, String, Text, Boolean, SmallInteger
@@ -672,8 +672,13 @@ class Change(Model):
     __tablename__ = "changes"
 
     id = Column(Integer, primary_key=True)
+
     site_id = Column(Integer, ForeignKey("sites.id", ondelete="CASCADE"), nullable=False, index=True)
+    site = relationship(Site, lazy="joined", backref=backref("changes", cascade="all,delete-orphan"))
+
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    user = relationship(User, lazy="joined", backref="changes")
+
     change_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     event = Column(Enum(*CHANGE_EVENTS), nullable=False)
@@ -715,8 +720,8 @@ class Change(Model):
 
         return {
             "id": self.id,
-            "site_id": self.site_id,
-            "user_id": self.user_id,
+            "site": self.site.to_dict(),
+            "user": self.user.to_dict(),
             "change_at": timegm(self.change_at.timetuple()),
             "event": self.event,
             "resource_type": RESOURCE_BY_IDX[self.resource_type],
