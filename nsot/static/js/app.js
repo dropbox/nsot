@@ -233,6 +233,35 @@
             function($scope, $http, $route, $location, $q, $routeParams) {
 
         $scope.loading = true;
+        $scope.user = {};
+        $scope.attributes = [];
+        $scope.attribute = {};
+        $scope.error = null;
+        $scope.admin = false;
+        var siteId = $scope.siteId = $routeParams.siteId;
+
+        $q.all([
+            $http.get("/api/users/0"),
+            $http.get("/api/sites/" + siteId + "/network_attributes")
+        ]).then(function(results){
+            $scope.user = results[0].data.data.user;
+            $scope.attributes = results[1].data.data.network_attributes;
+            console.log($scope.attribute);
+            $scope.loading = false;
+        }, function(data){
+            console.log(data);
+        });
+
+        $scope.createAttribute = function(attr){
+            console.log(attr);
+            $http.post("/api/sites/" + siteId +
+                       "/network_attributes", attr).success(function(data){
+                var attr = data.data.network_attribute;
+                $location.path("/sites/" + siteId + "/network_attributes/" + attr.id);
+            }).error(function(data){
+                $scope.error = data.error;
+            });
+        };
 
     }
     ]);
@@ -262,7 +291,6 @@
             $scope.changes = results[0].data.data.changes;
             $scope.loading = false;
         }, function(data){
-            console.log(data);
             if (data.status === 404) {
                 $location.path("/");
                 $location.replace();

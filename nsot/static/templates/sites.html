@@ -68,14 +68,12 @@
                 <table class="table table-hover">
                     <thead>
                         <tr>
-                            <th>ID</th>
                             <th>Name</th>
                             <th>Description</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <tr ng-repeat="site in sites" ng-href="/sites/[[site.id]]">
-                            <td class="col-sm-1">[[site.id]]</td>
+                        <tr ng-repeat="site in sites">
                             <td class="col-sm-3">
                                 <a ng-href="/sites/[[site.id]]">[[site.name]]</a>
                             </td>

@@ -1,3 +1,94 @@
 <loading-panel ng-if="loading"></loading-panel>
 <div ng-if="!loading">
+    <heading-bar heading="Network Attributes">
+        <button
+            class="btn btn-success"
+            data-toggle="modal"
+            data-target="#createAttributeModal"
+        >Create Attribute</button>
+    </heading-bar>
+
+    <nsot-modal title="Create Network Attribute" modal-id="createAttributeModal">
+        <div class="modal-body">
+            <div ng-if="error" class="alert alert-danger">
+                [[error.code]] - [[error.message]]
+            </div>
+            <form novalidate name="attrForm" class="nsot-form">
+                <div class="form-group" ng-class="{
+                    'has-error' : attrForm.name.$invalid,
+                    'has-success' : attrForm.name.$valid,
+                }">
+                    <input type="text"
+                           class="form-control"
+                           name="name"
+                           placeholder="Name (required)"
+                           ng-model="attr.name"
+                           ng-minlength="1"
+                           required
+                    >
+                </div>
+                <div class="form-group">
+                    <textarea style="resize: vertical;"
+                              class="form-control"
+                              rows="5"
+                              name="description"
+                              placeholder="Description"
+                              ng-model="attr.description"
+                    >
+                    </textarea>
+                </div>
+                <div class="checkbox">
+                    <label>
+                        <input type="checkbox" name="required"
+                                ng-model="attr.required"> Required
+                    </label>
+                 </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">
+                Close
+            </button>
+            <button type="submit" ng-click="createAttribute(attr)"
+                    class="btn btn-primary" ng-disabled="attrForm.$invalid"
+            >
+                Create
+            </button>
+        </div>
+    </nsot-modal>
+
+    <div class="row" ng-if="attributes.length" class="row"><div class="col-sm-10 col-sm-offset-1">
+        <panel>
+            <panel-heading>Sites</panel-heading>
+            <panel-body ng-if="!attributes.length">
+                No Network Attributes
+            </panel-body>
+            <panel-body ng-if="attributes.length">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th class="col-sm-2">Name</th>
+                            <th class="col-sm-3">Description</th>
+                            <th class="col-sm-1">Required</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr ng-repeat="attr in attributes">
+                            <td>
+                                <a href="/sites/[[siteId]]/network_attributes/[[attr.id]]"
+                                >[[attr.name]]</a>
+                            </td>
+                            <td>[[attr.description]]</td>
+                            <td>
+                                <i ng-if="attr.required" class="fa fa-check"></i>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </panel-body>
+        </panel>
+
+    </div></div>
+
+
 </div>
