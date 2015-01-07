@@ -1,6 +1,6 @@
 from ipaddress import ip_address
 import json
-from tornado.web import RequestHandler, urlparse
+from tornado.web import RequestHandler, urlparse, HTTPError
 from tornado.escape import utf8
 from werkzeug.http import parse_options_header
 
@@ -47,19 +47,13 @@ class BaseHandler(RequestHandler):
 
     def prepare(self):
         if not self._is_permitted_network():
-            return self.forbidden("Connected from forbidden network.")
+            raise exc.Forbidden("Connected from forbidden network.")
 
         try:
             if not self.current_user:
-                return self.unauthorized("Not logged in.")
+                raise exc.Unauthorized("Not logged in.")
         except exc.ValidationError as err:
-            return self.badrequest(err.message)
-
-    def badrequest(self, message):
-        pass
-
-    def unauthorized(self, message):
-        pass
+            raise exc.BadRequest(err.message)
 
 
 class FeHandler(BaseHandler):
@@ -76,14 +70,17 @@ class FeHandler(BaseHandler):
         context.update(kwargs)
         self.write(self.render_template(template_name, **context))
 
-    def error_page(self, code, message):
-        self.set_status(code)
-        self.render("error.html", code=code, message=message)
-        self.finish()
+    def write_error(self, status_code, **kwargs):
+        message = "An unknown problem has occured :("
+        if "exc_info" in kwargs:
+            inst = kwargs["exc_info"][1]
+            if isinstance(inst, HTTPError):
+                message = inst.log_message
+            else:
+                message = str(inst)
 
-    def badrequest(self, message): self.error_page(400, message)
-    def unauthorized(self, message): self.error_page(401, message)
-    def forbidden(self, message): self.error_page(403, message)
+        self.render("error.html", code=status_code, message=message)
+
 
 
 class ApiHandler(BaseHandler):
@@ -122,32 +119,29 @@ class ApiHandler(BaseHandler):
         return query, total
 
     def prepare(self):
-        rv = BaseHandler.prepare(self)
-        if rv is not None:
-            return rv
+        BaseHandler.prepare(self)
 
         if self.request.method.lower() in ("put", "post"):
             content_type = parse_options_header(
                 self.request.headers.get("Content-Type")
             )[0]
             if content_type.lower() != "application/json":
-                return self.badrequest("Invalid Content-Type for POST/PUT request.")
+                raise exc.BadRequest("Invalid Content-Type for POST/PUT request.")
 
-    def head(self, *args, **kwargs):
-        self.error_status(405, "Method not supported.")
+    def write_error(self, status_code, **kwargs):
 
-    get     = head
-    post    = head
-    delete  = head
-    patch   = head
-    put     = head
-    options = head
+        message = "An unknown problem has occured :("
+        if "exc_info" in kwargs:
+            inst = kwargs["exc_info"][1]
+            if isinstance(inst, HTTPError):
+                message = inst.log_message
+            else:
+                message = str(inst)
 
-    def error(self, code, message):
         self.write({
             "status": "error",
             "error": {
-                "code": code,
+                "code": status_code,
                 "message": message,
             },
         })
@@ -158,17 +152,6 @@ class ApiHandler(BaseHandler):
             "data": data,
         })
         self.finish()
-
-    def error_status(self, status, message):
-        self.set_status(status)
-        self.error(status, message)
-        self.finish()
-
-    def badrequest(self, message): self.error_status(400, message)
-    def unauthorized(self, message): self.error_status(401, message)
-    def forbidden(self, message): self.error_status(403, message)
-    def notfound(self, message): self.error_status(404, message)
-    def conflict(self, message): self.error_status(409, message)
 
     def created(self, location, data):
         self.set_status(201)

@@ -65,18 +65,18 @@ class SitesHandler(ApiHandler):
             name = self.jbody["name"]
             description = self.jbody.get("description", "")
         except KeyError as err:
-            return self.badrequest("Missing Required Argument: {}".format(err.message))
+            raise exc.BadRequest("Missing Required Argument: {}".format(err.message))
         except ValueError as err:
-            return self.badrequest(err.message)
+            raise exc.BadRequest(err.message)
 
         try:
             site = models.Site.create(
                 self.session, self.current_user.id, name=name, description=description
             )
         except IntegrityError as err:
-            return self.conflict(err.orig.message)
+            raise exc.Conflict(err.orig.message)
         except exc.ValidationError as err:
-            return self.badrequest(err.message)
+            raise exc.BadRequest(err.message)
 
         self.created("/api/sites/{}".format(site.id), {
             "site": site.to_dict(),
@@ -177,7 +177,7 @@ class SiteHandler(ApiHandler):
         """
         site = self.session.query(models.Site).filter_by(id=site_id).scalar()
         if not site:
-            return self.notfound("No such Site found at id {}".format(site_id))
+            raise exc.NotFound("No such Site found at id {}".format(site_id))
         self.success({
             "site": site.to_dict(),
         })
@@ -237,13 +237,13 @@ class SiteHandler(ApiHandler):
         """
         site = self.session.query(models.Site).filter_by(id=site_id).scalar()
         if not site:
-            return self.notfound("No such Site found at id {}".format(site_id))
+            raise exc.NotFound("No such Site found at id {}".format(site_id))
 
         try:
             name = self.jbody["name"]
             description = self.jbody.get("description", "")
         except KeyError as err:
-            return self.badrequest("Missing Required Argument: {}".format(err.message))
+            raise exc.BadRequest("Missing Required Argument: {}".format(err.message))
 
         try:
             site.update(
@@ -251,7 +251,7 @@ class SiteHandler(ApiHandler):
                 name=name, description=description
             )
         except IntegrityError as err:
-            return self.conflict(str(err.orig))
+            raise exc.Conflict(str(err.orig))
 
         self.success({
             "site": site.to_dict(),
@@ -298,12 +298,12 @@ class SiteHandler(ApiHandler):
         """
         site = self.session.query(models.Site).filter_by(id=site_id).scalar()
         if not site:
-            return self.notfound("No such Site found at id {}".format(site_id))
+            raise exc.NotFound("No such Site found at id {}".format(site_id))
 
         try:
             site.delete(self.current_user.id)
         except IntegrityError as err:
-            return self.conflict(err.orig.message)
+            raise exc.Conflict(err.orig.message)
 
         self.success({
             "message": "Site {} deleted.".format(site_id),
@@ -375,14 +375,14 @@ class NetworkAttributesHandler(ApiHandler):
         """
         site = self.session.query(models.Site).filter_by(id=site_id).scalar()
         if not site:
-            return self.notfound("No such Site found at id {}".format(site_id))
+            raise exc.NotFound("No such Site found at id {}".format(site_id))
 
         try:
             name = self.jbody["name"]
             description = self.jbody.get("description")
             required = qpbool(self.jbody.get("required"))
         except KeyError as err:
-            return self.badrequest("Missing Required Argument: {}".format(err.message))
+            raise exc.BadRequest("Missing Required Argument: {}".format(err.message))
 
         try:
             attribute = models.NetworkAttribute.create(
@@ -391,9 +391,9 @@ class NetworkAttributesHandler(ApiHandler):
                 required=required
             )
         except IntegrityError as err:
-            return self.conflict(str(err.orig))
+            raise exc.Conflict(str(err.orig))
         except exc.ValidationError as err:
-            return self.badrequest(err.message)
+            raise exc.BadRequest(err.message)
 
         self.created("/api/sites/{}/network_attributes/{}".format(
             site_id, attribute.id
@@ -453,7 +453,7 @@ class NetworkAttributesHandler(ApiHandler):
         """
         site = self.session.query(models.Site).filter_by(id=site_id).scalar()
         if not site:
-            return self.notfound("No such Site found at id {}".format(site_id))
+            raise exc.NotFound("No such Site found at id {}".format(site_id))
 
         name = self.get_argument("name", None)
         required = qpbool(self.get_argument("required", None))
@@ -525,7 +525,7 @@ class NetworkAttributeHandler(ApiHandler):
         """
         site = self.session.query(models.Site).filter_by(id=site_id).scalar()
         if not site:
-            return self.notfound("No such Site found at id {}".format(site_id))
+            raise exc.NotFound("No such Site found at id {}".format(site_id))
 
         attribute = self.session.query(models.NetworkAttribute).filter_by(
             id=attribute_id,
@@ -533,7 +533,7 @@ class NetworkAttributeHandler(ApiHandler):
         ).scalar()
 
         if not attribute:
-            return self.notfound(
+            raise exc.NotFound(
                 "No such NetworkAttribute found at (site_id, id) = ({}, {})".format(
                     site_id, attribute_id
                 )
@@ -605,7 +605,7 @@ class NetworkAttributeHandler(ApiHandler):
         """
         site = self.session.query(models.Site).filter_by(id=site_id).scalar()
         if not site:
-            return self.notfound("No such Site found at id {}".format(site_id))
+            raise exc.NotFound("No such Site found at id {}".format(site_id))
 
         attribute = self.session.query(models.NetworkAttribute).filter_by(
             id=attribute_id,
@@ -613,7 +613,7 @@ class NetworkAttributeHandler(ApiHandler):
         ).scalar()
 
         if not attribute:
-            return self.notfound(
+            raise exc.NotFound(
                 "No such NetworkAttribute found at (site_id, id) = ({}, {})".format(
                     site_id, attribute_id
                 )
@@ -623,7 +623,7 @@ class NetworkAttributeHandler(ApiHandler):
             description = self.jbody.get("description", "")
             required = qpbool(self.jbody.get("required"))
         except KeyError as err:
-            return self.badrequest("Missing Required Argument: {}".format(err.message))
+            raise exc.BadRequest("Missing Required Argument: {}".format(err.message))
 
         try:
             attribute.update(
@@ -631,9 +631,9 @@ class NetworkAttributeHandler(ApiHandler):
                 description=description, required=required,
             )
         except IntegrityError as err:
-            return self.conflict(str(err.orig))
+            raise exc.Conflict(str(err.orig))
         except exc.ValidationError as err:
-            return self.badrequest(err.message)
+            raise exc.BadRequest(err.message)
 
         self.success({
             "network_attribute": attribute.to_dict(),
@@ -684,7 +684,7 @@ class NetworkAttributeHandler(ApiHandler):
         """
         site = self.session.query(models.Site).filter_by(id=site_id).scalar()
         if not site:
-            return self.notfound("No such Site found at id {}".format(site_id))
+            raise exc.NotFound("No such Site found at id {}".format(site_id))
 
         attribute = self.session.query(models.NetworkAttribute).filter_by(
             id=attribute_id,
@@ -692,7 +692,7 @@ class NetworkAttributeHandler(ApiHandler):
         ).scalar()
 
         if not attribute:
-            return self.notfound(
+            raise exc.NotFound(
                 "No such NetworkAttribute found at (site_id, id) = ({}, {})".format(
                     site_id, attribute_id
                 )
@@ -701,7 +701,7 @@ class NetworkAttributeHandler(ApiHandler):
         try:
             attribute.delete(self.current_user.id)
         except IntegrityError as err:
-            return self.conflict(err.orig.message)
+            raise exc.Conflict(err.orig.message)
 
         self.success({
             "message": "NetworkAttribute {} deleted from Site {}.".format(
@@ -779,13 +779,13 @@ class NetworksHandler(ApiHandler):
         """
         site = self.session.query(models.Site).filter_by(id=site_id).scalar()
         if not site:
-            return self.notfound("No such Site found at id {}".format(site_id))
+            raise exc.NotFound("No such Site found at id {}".format(site_id))
 
         try:
             cidr = self.jbody["cidr"]
             attributes = self.jbody.get("attributes", {})
         except KeyError as err:
-            return self.badrequest("Missing Required Argument: {}".format(err.message))
+            raise exc.BadRequest("Missing Required Argument: {}".format(err.message))
 
         try:
             network = models.Network.create(
@@ -793,9 +793,9 @@ class NetworksHandler(ApiHandler):
                 cidr=cidr, attributes=attributes,
             )
         except IntegrityError as err:
-            return self.conflict(err.orig.message)
+            raise exc.Conflict(err.orig.message)
         except (ValueError, exc.ValidationError) as err:
-            return self.badrequest(err.message)
+            raise exc.BadRequest(err.message)
 
         self.created("/api/sites/{}/networks/{}".format(site_id, network.id), {
             "network": network.to_dict(),
@@ -860,7 +860,7 @@ class NetworksHandler(ApiHandler):
         """
         site = self.session.query(models.Site).filter_by(id=site_id).scalar()
         if not site:
-            return self.notfound("No such Site found at id {}".format(site_id))
+            raise exc.NotFound("No such Site found at id {}".format(site_id))
 
         root_only = qpbool(self.get_argument("root_only", False))
         include_networks = qpbool(self.get_argument("include_networks", True))
@@ -931,7 +931,7 @@ class NetworkHandler(ApiHandler):
         """
         site = self.session.query(models.Site).filter_by(id=site_id).scalar()
         if not site:
-            return self.notfound("No such Site found at id {}".format(site_id))
+            raise exc.NotFound("No such Site found at id {}".format(site_id))
 
         network = self.session.query(models.Network).filter_by(
             id=network_id,
@@ -939,7 +939,7 @@ class NetworkHandler(ApiHandler):
         ).scalar()
 
         if not network:
-            return self.notfound(
+            raise exc.NotFound(
                 "No such Network found at (site_id, id) = ({}, {})".format(
                     site_id, network_id
                 )
@@ -1013,7 +1013,7 @@ class NetworkHandler(ApiHandler):
         """
         site = self.session.query(models.Site).filter_by(id=site_id).scalar()
         if not site:
-            return self.notfound("No such Site found at id {}".format(site_id))
+            raise exc.NotFound("No such Site found at id {}".format(site_id))
 
         network = self.session.query(models.Network).filter_by(
             id=network_id,
@@ -1021,7 +1021,7 @@ class NetworkHandler(ApiHandler):
         ).scalar()
 
         if not network:
-            return self.notfound(
+            raise exc.NotFound(
                 "No such Network found at (site_id, id) = ({}, {})".format(
                     site_id, network_id
                 )
@@ -1030,14 +1030,14 @@ class NetworkHandler(ApiHandler):
         try:
             attributes = self.jbody.get("attributes", {})
         except KeyError as err:
-            return self.badrequest("Missing Required Argument: {}".format(err.message))
+            raise exc.BadRequest("Missing Required Argument: {}".format(err.message))
 
         try:
             network.update(self.current_user.id, attributes=attributes)
         except IntegrityError as err:
-            return self.conflict(err.orig.message)
+            raise exc.Conflict(err.orig.message)
         except exc.ValidationError as err:
-            return self.badrequest(err.message)
+            raise exc.BadRequest(err.message)
 
         self.success({
             "network": network.to_dict(),
@@ -1088,7 +1088,7 @@ class NetworkHandler(ApiHandler):
         """
         site = self.session.query(models.Site).filter_by(id=site_id).scalar()
         if not site:
-            return self.notfound("No such Site found at id {}".format(site_id))
+            raise exc.NotFound("No such Site found at id {}".format(site_id))
 
         network = self.session.query(models.Network).filter_by(
             id=network_id,
@@ -1096,7 +1096,7 @@ class NetworkHandler(ApiHandler):
         ).scalar()
 
         if not network:
-            return self.notfound(
+            raise exc.NotFound(
                 "No such Network found at (site_id, id) = ({}, {})".format(
                     site_id, network_id
                 )
@@ -1105,7 +1105,7 @@ class NetworkHandler(ApiHandler):
         try:
             network.delete(self.current_user.id)
         except IntegrityError as err:
-            return self.conflict(err.orig.message)
+            raise exc.Conflict(err.orig.message)
 
         self.success({
             "message": "Network {} deleted from Site {}.".format(
@@ -1176,7 +1176,7 @@ class NetworkSubnetsHandler(ApiHandler):
         """
         site = self.session.query(models.Site).filter_by(id=site_id).scalar()
         if not site:
-            return self.notfound("No such Site found at id {}".format(site_id))
+            raise exc.NotFound("No such Site found at id {}".format(site_id))
 
         network = self.session.query(models.Network).filter_by(
             id=network_id,
@@ -1184,7 +1184,7 @@ class NetworkSubnetsHandler(ApiHandler):
         ).scalar()
 
         if not network:
-            return self.notfound(
+            raise exc.NotFound(
                 "No such Network found at (site_id, id) = ({}, {})".format(
                     site_id, network_id
                 )
@@ -1269,7 +1269,7 @@ class NetworkSupernetsHandler(ApiHandler):
         """
         site = self.session.query(models.Site).filter_by(id=site_id).scalar()
         if not site:
-            return self.notfound("No such Site found at id {}".format(site_id))
+            raise exc.NotFound("No such Site found at id {}".format(site_id))
 
         network = self.session.query(models.Network).filter_by(
             id=network_id,
@@ -1277,7 +1277,7 @@ class NetworkSupernetsHandler(ApiHandler):
         ).scalar()
 
         if not network:
-            return self.notfound(
+            raise exc.NotFound(
                 "No such Network found at (site_id, id) = ({}, {})".format(
                     site_id, network_id
                 )
@@ -1370,22 +1370,22 @@ class ChangesHandler(ApiHandler):
 
         event = self.get_argument("event", None)
         if event is not None and event not in models.CHANGE_EVENTS:
-            return self.badrequest("Invalid event.")
+            raise exc.BadRequest("Invalid event.")
 
         resource_type = self.get_argument("resource_type", None)
         if resource_type is not None and resource_type not in models.RESOURCE_BY_NAME:
-            return self.badrequest("Invalid resource type.")
+            raise exc.BadRequest("Invalid resource type.")
 
         resource_id = self.get_argument("resource_id", None)
         if resource_id is not None and resource_type is None:
-            return self.badrequest("resource_id requires resource_type to be set.")
+            raise exc.BadRequest("resource_id requires resource_type to be set.")
 
         changes = self.session.query(models.Change)
 
         if site_id is not None:
             site = self.session.query(models.Site).filter_by(id=site_id).scalar()
             if not site:
-                return self.notfound("No such Site found at id {}".format(site_id))
+                raise exc.NotFound("No such Site found at id {}".format(site_id))
             changes = changes.filter_by(site_id=site_id)
 
         if event is not None:
@@ -1472,7 +1472,7 @@ class ChangeHandler(ApiHandler):
         ).scalar()
 
         if not change:
-            return self.notfound(
+            raise exc.NotFound(
                 "No such Change ({}) at Site ({})".format(change_id, site_id)
             )
 
@@ -1590,7 +1590,7 @@ class UserHandler(ApiHandler):
             ).scalar()
 
         if not user:
-            return self.notfound(
+            raise exc.NotFound(
                 "No such User found at (id) = ({})".format(user_id)
             )
 
@@ -1648,7 +1648,7 @@ class UserPermissionsHandler(ApiHandler):
             ).scalar()
 
         if not user:
-            return self.notfound(
+            raise exc.NotFound(
                 "No such User found at (id) = ({})".format(user_id)
             )
 
@@ -1710,18 +1710,18 @@ class UserPermissionHandler(ApiHandler):
                 id=user_id,
             ).scalar()
         if not user:
-            return self.notfound("No such User found at (id) = ({})".format(user_id))
+            raise exc.NotFound("No such User found at (id) = ({})".format(user_id))
 
         site = self.session.query(models.Site).filter_by(id=site_id).scalar()
         if not site:
-            return self.notfound("No such Site found at id {}".format(site_id))
+            raise exc.NotFound("No such Site found at id {}".format(site_id))
 
         permission = self.session.query(models.Permission).filter_by(
             user_id=user.id, site_id=site_id
         ).scalar()
 
         if not permission:
-            return self.notfound(
+            raise exc.NotFound(
                 "No such Permission found at (user_id, site_id) = ({})".format(
                     user.id, site_id
                 )
@@ -1795,16 +1795,16 @@ class UserPermissionHandler(ApiHandler):
         if not permission:
             user = self.session.query(models.User).filter_by(id=user_id).scalar()
             if not user:
-                return self.notfound("No such User found at (id) = ({})".format(user_id))
+                raise exc.NotFound("No such User found at (id) = ({})".format(user_id))
 
             site = self.session.query(models.Site).filter_by(id=site_id).scalar()
             if not site:
-                return self.notfound("No such Site found at id {}".format(site_id))
+                raise exc.NotFound("No such Site found at id {}".format(site_id))
 
         try:
             permissions = self.jbody["permissions"]
         except KeyError as err:
-            return self.badrequest("Missing Required Argument: {}".format(err.message))
+            raise exc.BadRequest("Missing Required Argument: {}".format(err.message))
 
         try:
             if not permission:
@@ -1819,7 +1819,7 @@ class UserPermissionHandler(ApiHandler):
                     permissions=permissions
                 )
         except IntegrityError as err:
-            return self.conflict(str(err.orig))
+            raise exc.Conflict(str(err.orig))
 
         self.success({
             "permission": permission.to_dict(),
@@ -1828,4 +1828,4 @@ class UserPermissionHandler(ApiHandler):
 
 class NotFoundHandler(ApiHandler):
     def get(self):
-        return self.notfound("Endpoint not found")
+        raise exc.NotFound("Endpoint not found")
