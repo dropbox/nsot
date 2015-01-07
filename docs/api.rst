@@ -50,3 +50,32 @@ will contain an error ``code`` and ``message``.
             "message": "Resource not found."
         }
     }
+
+Pagination
+----------
+
+Most, if not all, responses that return a list of resources will support pagination. If the
+``data`` object on the response has a ``total`` attribute then the endpoint supports pagination.
+When making a request against this endpoint ``limit`` and ``offset`` query parameters are
+supported.
+
+An example response for querying the ``sites`` endpoint might look like:
+
+.. sourcecode:: javascript
+
+    {
+        "status": "ok",
+        "data": {
+            "sites": [
+                {
+                    "id": 1
+                    "name": "Site 1",
+                    "description": ""
+                }
+            ],
+            "limit": null,
+            "offset": 0,
+            "total": 1
+        }
+    }
+

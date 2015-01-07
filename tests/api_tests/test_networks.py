@@ -42,16 +42,21 @@ def test_creation(tornado_server):
     # Verify Successful get of all Networks
     assert_success(
         admin_client.get("/sites/1/networks"),
-        {"networks": [{
-            "attributes": {"attr1": "foo"},
-            "id": 1,
-            "parent_id": None,
-            "ip_version": "4",
-            "is_ip": False,
-            "network_address": "10.0.0.0",
-            "prefix_length": 24,
-            "site_id": 1
-        }]}
+        {
+            "networks": [{
+                "attributes": {"attr1": "foo"},
+                "id": 1,
+                "parent_id": None,
+                "ip_version": "4",
+                "is_ip": False,
+                "network_address": "10.0.0.0",
+                "prefix_length": 24,
+                "site_id": 1,
+            }],
+            "limit": None,
+            "offset": 0,
+            "total": 1,
+        }
 
     )
 

@@ -100,6 +100,27 @@ class ApiHandler(BaseHandler):
                 self._jbody = {}
         return self._jbody
 
+    def get_pagination_values(self, max_limit=None):
+        offset = int(self.get_argument("offset", 0))
+        limit = self.get_argument("limit", None)
+        if limit is None:
+            return offset, limit
+
+        limit = int(limit)
+        if max_limit is not None and limit > max_limit:
+            limit = max_limit
+
+        return offset, limit
+
+    def paginate_query(self, query, offset, limit):
+        total = query.count()
+
+        query = query.offset(offset)
+        if limit is not None:
+            query = query.limit(limit)
+
+        return query, total
+
     def prepare(self):
         rv = BaseHandler.prepare(self)
         if rv is not None:

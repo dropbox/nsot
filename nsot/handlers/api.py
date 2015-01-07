@@ -109,18 +109,30 @@ class SitesHandler(ApiHandler):
                             "name": "Site 1",
                             "description": ""
                         }
-                    ]
+                    ],
+                    "limit": null,
+                    "offset": 0,
+                    "total": 1,
                 }
             }
 
         :reqheader X-NSoT-Email: required for all api requests.
 
+        :query int limit: (*optional*) Limit result to N resources.
+        :query int offset: (*optional*) Skip the first N resources.
+
         :statuscode 200: The request was successful.
         :statuscode 401: The request was made without being logged in.
         """
-        sites = self.session.query(models.Site).all()
+        sites = self.session.query(models.Site)
+        offset, limit = self.get_pagination_values()
+        sites, total = self.paginate_query(sites, offset, limit)
+
         self.success({
-            "sites": [site.to_dict() for site in sites],
+            "sites": [site.to_dict() for site in sites.all()],
+            "limit": limit,
+            "offset": offset,
+            "total": total,
         })
 
 
@@ -418,13 +430,18 @@ class NetworkAttributesHandler(ApiHandler):
                             "description": "",
                             "required": false
                         }
-                    ]
+                    ],
+                    "limit": null,
+                    "offset": 0,
+                    "total": 1,
                 }
             }
 
         :param site_id: ID of the Site to retrieve Network Attributes from.
         :type site_id: int
 
+        :query int limit: (*optional*) Limit result to N resources.
+        :query int offset: (*optional*) Skip the first N resources.
         :query string name: (*optional*) Filter to attribute with name
         :query bool required: (*optional*) Filter to attributes that are required
 
@@ -451,8 +468,14 @@ class NetworkAttributesHandler(ApiHandler):
         if required:
             attributes = attributes.filter_by(required=True)
 
+        offset, limit = self.get_pagination_values()
+        attributes, total = self.paginate_query(attributes, offset, limit)
+
         self.success({
             "network_attributes": [attribute.to_dict() for attribute in attributes],
+            "limit": limit,
+            "offset": offset,
+            "total": total,
         })
 
 
@@ -810,13 +833,18 @@ class NetworksHandler(ApiHandler):
                             "prefix_length": "8",
                             "attributes": {}
                         }
-                    ]
+                    ],
+                    "limit": null,
+                    "offset": 0,
+                    "total": 1,
                 }
             }
 
         :param site_id: ID of the Site to retrieve Networks from.
         :type site_id: int
 
+        :query int limit: (*optional*) Limit result to N resources.
+        :query int offset: (*optional*) Skip the first N resources.
         :query bool root_only: (*optional*) Filter to root networks.
                                Default: false
         :query bool include_networks: (*optional*) Include non-IP networks.
@@ -843,8 +871,14 @@ class NetworksHandler(ApiHandler):
             include_networks=include_networks
         )
 
+        offset, limit = self.get_pagination_values()
+        networks, total = self.paginate_query(networks, offset, limit)
+
         self.success({
             "networks": [network.to_dict() for network in networks],
+            "limit": limit,
+            "offset": offset,
+            "total": total,
         })
 
 
@@ -1112,7 +1146,10 @@ class NetworkSubnetsHandler(ApiHandler):
                             "prefix_length": "24",
                             "attributes": {}
                         }
-                    ]
+                    ],
+                    "limit": null,
+                    "offset": 0,
+                    "total": 1,
                 }
             }
 
@@ -1122,6 +1159,8 @@ class NetworkSubnetsHandler(ApiHandler):
         :param network_id: ID of the Network we're requesting subnets from.
         :type network_id: int
 
+        :query int limit: (*optional*) Limit result to N resources.
+        :query int offset: (*optional*) Skip the first N resources.
         :query bool direct: (*optional*) Return only direct subnets.
                             Default: false
         :query bool include_networks: (*optional*) Include non-IP networks.
@@ -1160,8 +1199,14 @@ class NetworkSubnetsHandler(ApiHandler):
             include_ips=include_ips, include_networks=include_networks
         )
 
+        offset, limit = self.get_pagination_values()
+        networks, total = self.paginate_query(networks, offset, limit)
+
         self.success({
             "networks": [network.to_dict() for network in networks],
+            "limit": limit,
+            "offset": offset,
+            "total": total,
         })
 
 
@@ -1198,7 +1243,10 @@ class NetworkSupernetsHandler(ApiHandler):
                             "prefix_length": "8",
                             "attributes": {}
                         }
-                    ]
+                    ],
+                    "limit": null,
+                    "offset": 0,
+                    "total": 1,
                 }
             }
 
@@ -1208,6 +1256,8 @@ class NetworkSupernetsHandler(ApiHandler):
         :param network_id: ID of the Network we're requesting supernets from.
         :type network_id: int
 
+        :query int limit: (*optional*) Limit result to N resources.
+        :query int offset: (*optional*) Skip the first N resources.
         :query bool direct: (*optional*) Return only direct supernets.
                             Default: false
 
@@ -1237,8 +1287,14 @@ class NetworkSupernetsHandler(ApiHandler):
 
         networks = network.supernets(self.session, direct=direct)
 
+        offset, limit = self.get_pagination_values()
+        networks, total = self.paginate_query(networks, offset, limit)
+
         self.success({
             "networks": [network.to_dict() for network in networks],
+            "limit": limit,
+            "offset": offset,
+            "total": total,
         })
 
 
@@ -1285,13 +1341,18 @@ class ChangesHandler(ApiHandler):
                                 "description": ""
                             },
                         }
-                    ]
+                    ],
+                    "limit": null,
+                    "offset": 0,
+                    "total": 1,
                 }
             }
 
         :param site_id: ID of the Site to retrieve Changes from.
         :type site_id: int
 
+        :query int limit: (*optional*) Limit result to N resources.
+        :query int offset: (*optional*) Skip the first N resources.
         :query string event: (*optional*) Filter result to specific event.
                              Default: false
         :query string resource_type: (*optional*) Filter result to specific
@@ -1338,8 +1399,14 @@ class ChangesHandler(ApiHandler):
 
         changes = changes.order_by(desc("change_at"))
 
+        offset, limit = self.get_pagination_values()
+        changes, total = self.paginate_query(changes, offset, limit)
+
         self.success({
             "changes": [change.to_dict() for change in changes],
+            "limit": limit,
+            "offset": offset,
+            "total": total,
         })
 
 
@@ -1440,11 +1507,17 @@ class UsersHandler(ApiHandler):
                             "id": 1
                             "email": "user@localhost"
                         }
-                    ]
+                    ],
+                    "limit": null,
+                    "offset": 0,
+                    "total": 1,
                 }
             }
 
         :reqheader X-NSoT-Email: required for all api requests.
+
+        :query int limit: (*optional*) Limit result to N resources.
+        :query int offset: (*optional*) Skip the first N resources.
 
         :statuscode 200: The request was successful.
         :statuscode 401: The request was made without being logged in.
@@ -1452,9 +1525,16 @@ class UsersHandler(ApiHandler):
 
         users = self.session.query(models.User)
 
+        offset, limit = self.get_pagination_values()
+        users, total = self.paginate_query(users, offset, limit)
+
         self.success({
             "users": [user.to_dict() for user in users],
+            "limit": limit,
+            "offset": offset,
+            "total": total,
         })
+
 
 class UserHandler(ApiHandler):
     def get(self, user_id):

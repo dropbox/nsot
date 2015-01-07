@@ -323,8 +323,7 @@ class Site(Model):
         if root:
             query = query.filter(Network.parent_id == None)
 
-        networks = query.all()
-        return networks
+        return query
 
 
     @validates("name")

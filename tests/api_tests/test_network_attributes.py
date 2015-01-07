@@ -28,12 +28,17 @@ def test_creation(tornado_server):
     # Successfully get all Network Attributes
     assert_success(
         client.get("/sites/1/network_attributes"),
-        {"network_attributes": [
-            {
-                "id": 1, "name": "attr1", "description": "",
-                "required": False, "site_id": 1
-            },
-        ]}
+        {
+            "network_attributes": [
+                {
+                    "id": 1, "name": "attr1", "description": "",
+                    "required": False, "site_id": 1
+                },
+            ],
+            "limit": None,
+            "offset": 0,
+            "total": 1,
+        }
 
     )
 

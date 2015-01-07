@@ -15,14 +15,24 @@ def test_malformed(tornado_server):
 
 def test_creation(tornado_server):
     client = Client(tornado_server)
-    assert_success(client.get("/sites"), {"sites": []})
+    assert_success(client.get("/sites"), {
+        "sites": [],
+        "limit": None,
+        "offset": 0,
+        "total": 0,
+    })
 
     assert_created(client.create("/sites", name="Test Site"), "/api/sites/1")
     assert_error(client.create("/sites", name="Test Site"), 409)
 
     assert_success(
         client.get("/sites"),
-        {"sites": [{"description": "", "id": 1, "name": "Test Site"}]}
+        {
+            "sites": [{"description": "", "id": 1, "name": "Test Site"}],
+            "limit": None,
+            "offset": 0,
+            "total": 1,
+        }
     )
 
     assert_success(

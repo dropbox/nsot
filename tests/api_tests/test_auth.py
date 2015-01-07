@@ -17,7 +17,7 @@ def test_valid_user(tornado_server):
     assert_success(requests.get(
         "http://localhost:{}/api/sites".format(tornado_server.port),
         headers={"X-NSoT-Email": "gary@localhost"}
-    ), {"sites": []})
+    ), {"sites": [], "limit": None, "offset": 0, "total": 0})
 
 
 def test_invalid_user(tornado_server):
