@@ -57,6 +57,11 @@ class BaseHandler(RequestHandler):
 
 
 class FeHandler(BaseHandler):
+    def prepare(self):
+        BaseHandler.prepare(self)
+        # Need to access token to set Cookie.
+        self.xsrf_token
+
     def render_template(self, template_name, **kwargs):
         template = self.application.my_settings["template_env"].get_template(
             template_name
@@ -87,8 +92,6 @@ class ApiHandler(BaseHandler):
     def initialize(self):
         BaseHandler.initialize(self)
         self._jbody = None
-        # Need to access token to set Cookie.
-        self.xsrf_token
 
     @property
     def jbody(self):
