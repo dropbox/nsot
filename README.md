@@ -67,7 +67,7 @@ on development instances.
 nsot-ctl -vvv -c config/dev.yaml sync_db
 
 # Run the development reverse proxy
-nsot-ctl -vv -c config/dev.yaml user_proxy $USER@localhost
+nsot-ctl -vv -c config/dev.yaml user_proxy
 
 # Run the frontend server
 nsot-server --config=config/dev.yaml -vv
