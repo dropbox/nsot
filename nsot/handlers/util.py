@@ -87,6 +87,8 @@ class ApiHandler(BaseHandler):
     def initialize(self):
         BaseHandler.initialize(self)
         self._jbody = None
+        # Need to access token to set Cookie.
+        self.xsrf_token
 
     @property
     def jbody(self):
