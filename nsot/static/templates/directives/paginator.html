@@ -1,0 +1,21 @@
+<div ng-if="pager.limit" class="btn-group" style="padding-right: 10px;">
+
+
+    <a ng-disabled="!pager.hasFirst()" class="btn btn-default" ng-href="[[pager.firstPageUrl()]]">
+        <i class="fa fa-angle-double-left"></i>
+    </a>
+
+    <a ng-disabled="!pager.hasPrevious()" class="btn btn-default" ng-href="[[pager.previousPageUrl()]]">
+        <i class="fa fa-angle-left"></i>
+    </a>
+
+    <a class="btn btn-default disabled">Page [[pager.page]] of [[pager.numPages]]</a>
+
+    <a ng-disabled="!pager.hasNext()" class="btn btn-default" ng-href="[[pager.nextPageUrl()]]">
+        <i class="fa fa-angle-right"></i>
+    </a>
+
+    <a ng-disabled="!pager.hasLast()" class="btn btn-default" ng-href="[[pager.lastPageUrl()]]">
+        <i class="fa fa-angle-double-right"></i>
+    </a>
+</div>

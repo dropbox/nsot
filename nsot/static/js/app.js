@@ -333,14 +333,27 @@
         $scope.loading = true;
         $scope.changes = [];
         $scope.siteId = $routeParams.siteId;
+        $scope.pager = null;
+        $scope.limier = null;
+
+        var params = {limit: 10};
+        var search = $location.search();
+        if (search.offset) params.offset = search.offset;
+        if (search.limit) params.limit = search.limit;
 
         $q.all([
             $http.get(
                 "/api/sites/" + $scope.siteId +
-                "/changes"
+                "/changes",
+                {params: params}
             )
         ]).then(function(results){
-            $scope.changes = results[0].data.data.changes;
+            var data = results[0].data.data;
+            $scope.changes = data.changes;
+            $scope.pager = new nsot.Pager(
+                data.offset, data.limit, data.total, $location
+            );
+            $scope.limiter = new nsot.Limiter(data.limit, $location);
             $scope.loading = false;
         }, function(data){
             if (data.status === 404) {
@@ -349,8 +362,7 @@
             }
         });
 
-    }
-    ]);
+    }]);
 
     app.controller("ChangeController", [
             "$scope", "$http", "$route", "$location", "$q", "$routeParams",

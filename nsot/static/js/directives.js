@@ -82,4 +82,24 @@
         };
     });
 
+    app.directive("paginator", function(){
+        return {
+            restrict: "E",
+            scope: {
+                "pager": "=",
+            },
+            templateUrl: "/static/templates/directives/paginator.html"
+        };
+    });
+
+    app.directive("dropdown", function(){
+        return {
+            restrict: "E",
+            scope: {
+                "ctxtObj": "=",
+            },
+            templateUrl: "/static/templates/directives/dropdown.html"
+        };
+    });
+
 })();
