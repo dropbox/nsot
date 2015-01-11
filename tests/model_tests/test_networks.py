@@ -103,6 +103,21 @@ def test_retrieve_networks(session, admin, site):
         include_networks=False, include_ips=True
     )) == sorted([ip])
 
+    assert sorted(site.networks(
+        subnets_of="10.0.0.0/10"
+    )) == sorted([net_24])
+
+    assert sorted(site.networks(
+        subnets_of="10.0.0.0/10", include_ips=True
+    )) == sorted([net_24, ip])
+
+    assert sorted(site.networks(
+        supernets_of="10.0.0.0/10"
+    )) == sorted([net_8])
+
+    with pytest.raises(ValueError):
+        site.networks(subnets_of="10.0.0.0/10", supernets_of="10.0.0.0/10")
+
     with pytest.raises(ValueError):
         assert site.networks(attribute_value="foo")
 

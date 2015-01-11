@@ -284,6 +284,7 @@ class Site(Model):
         )
 
     def networks(self, include_networks=True, include_ips=False, root=False,
+                 subnets_of=None, supernets_of=None,
                  attribute_name=None, attribute_value=None):
         """ Helper method for grabbing Networks.
 
@@ -292,6 +293,8 @@ class Site(Model):
                                   address networks
                 include_ips: Whether the response should include ip addresses
                 root: Only return networks at the root.
+                subnets_of: Only return subnets of the given CIDR
+                supernets_of: Only return supernets of the given CIDR
                 attribute_name: Filter to networks that contain this attribute name
                 attribute_value: Filter to networks that contain this attribute value
         """
@@ -302,8 +305,10 @@ class Site(Model):
         if attribute_value is not None and attribute_name is None:
             raise ValueError("attribute_value requires attribute_name to be set.")
 
-        query = self.session.query(Network)
+        if all([subnets_of, supernets_of]):
+            raise ValueError("subnets_of and supernets_of are mutually exclusive.")
 
+        query = self.session.query(Network)
 
         if attribute_name is not None:
             query = query.outerjoin(Network.attr_idx).filter(
@@ -322,6 +327,24 @@ class Site(Model):
 
         if root:
             query = query.filter(Network.parent_id == None)
+
+        if subnets_of is not None:
+            subnets_of = ipaddress.ip_network(unicode(subnets_of))
+            query = query.filter(
+                Network.ip_version == subnets_of.version,
+                Network.prefix_length > subnets_of.prefixlen,
+                Network.network_address >= subnets_of.network_address.packed,
+                Network.broadcast_address <= subnets_of.broadcast_address.packed
+            )
+
+        if supernets_of is not None:
+            supernets_of = ipaddress.ip_network(unicode(supernets_of))
+            query = query.filter(
+                Network.ip_version == supernets_of.version,
+                Network.prefix_length < supernets_of.prefixlen,
+                Network.network_address <= supernets_of.network_address.packed,
+                Network.broadcast_address >= supernets_of.broadcast_address.packed
+            )
 
         return query
 
