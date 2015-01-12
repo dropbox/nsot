@@ -331,7 +331,7 @@ class Site(Model):
         if subnets_of is not None:
             subnets_of = ipaddress.ip_network(unicode(subnets_of))
             query = query.filter(
-                Network.ip_version == subnets_of.version,
+                Network.ip_version == str(subnets_of.version),
                 Network.prefix_length > subnets_of.prefixlen,
                 Network.network_address >= subnets_of.network_address.packed,
                 Network.broadcast_address <= subnets_of.broadcast_address.packed
@@ -340,7 +340,7 @@ class Site(Model):
         if supernets_of is not None:
             supernets_of = ipaddress.ip_network(unicode(supernets_of))
             query = query.filter(
-                Network.ip_version == supernets_of.version,
+                Network.ip_version == str(supernets_of.version),
                 Network.prefix_length < supernets_of.prefixlen,
                 Network.network_address <= supernets_of.network_address.packed,
                 Network.broadcast_address >= supernets_of.broadcast_address.packed
@@ -535,6 +535,7 @@ class Network(Model):
             return query.filter(Network.parent_id == self.id).all()
 
         return query.filter(
+            Network.site_id == self.site_id,
             Network.ip_version == self.ip_version,
             Network.prefix_length > self.prefix_length,
             Network.network_address >= self.network_address,
