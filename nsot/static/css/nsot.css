@@ -13,6 +13,52 @@ body {
     margin-bottom: 20px;
 }
 
+.form-subheading {
+    position:relative;
+    overflow:hidden;
+}
+
+.form-subheading:after {
+    content: "";
+    top: 40%;
+    width: 100%;
+    margin-left: 5px;
+    height: 2px;
+    position: absolute;
+    background: rgba(81, 8, 39, 0.7);
+}
+
+.attr-buttons {
+    margin-left: -20px;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+}
+
+.rm-attr-btn {
+    padding-top: 11px;
+    padding-left: 5px;
+    color: #d9534f;
+}
+
+.rm-attr-btn:hover {
+    color: #c9302c;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.add-attr-btn {
+    padding-top: 11px;
+    padding-left: 5px;
+    color: #5cb85c;
+}
+
+.add-attr-btn:hover {
+    color: #398439;
+    cursor: pointer;
+    text-decoration: none;
+}
+
 .navbar .divider-vertical {
     height: 30px;
     margin: 10px 9px;
