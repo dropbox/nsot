@@ -1,0 +1,73 @@
+<form novalidate name="networkForm" class="nsot-form">
+    <div class="form-group" ng-class="{
+        'has-error' : networkForm.name.$invalid,
+        'has-success' : networkForm.name.$valid,
+    }">
+        <input type="text"
+               class="form-control"
+               name="cidr"
+               placeholder="Network (required)"
+               ng-model="network.cidr"
+               ng-minlength="1"
+               required
+        >
+    </div>
+    <h4 class="form-subheading">Attributes</h4>
+    <div class="form-group" ng-repeat="(idx, attr) in attributes
+                                       |filter:{required:true}">
+        <div class="row">
+            <div class="col-sm-5 text-right">
+                <h4>[[attr.name]]</h4>
+            </div>
+            <div class="col-sm-6" style="padding-left: 0px;">
+                <input type="text"
+                       class="form-control"
+                       name="value"
+                       placeholder="Value (required)"
+                       ng-model="network.attributes[attr.name]"
+                       required
+                >
+            </div>
+        </div>
+    </div>
+    <div class="form-group" ng-repeat="form_attr in form_attrs">
+        <div class="row">
+            <div class="col-sm-5">
+                <select
+                    name="attribute"
+                    class="form-control"
+                    ng-model="form_attr.name">
+                    <option value="" disabled selected></option>
+                    <option value="[[attr.name]]"
+                            ng-repeat="(idx, attr) in attributes
+                                       |filter:{required:false}">
+                        [[attr.name]]
+                    </option>
+                </select>
+            </div>
+            <div class="col-sm-6" style="padding-left: 0px;">
+                <input type="text"
+                       class="form-control"
+                       name="value"
+                       placeholder="Value"
+                       ng-model="form_attr.value"
+                >
+            </div>
+            <div class="col-sm-1">
+                <span class="attr-buttons">
+                    <span class="fa fa-lg fa-minus-circle rm-attr-btn"
+                          ng-click="removeAttr($index);"
+                    ></span>
+                </span>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-sm-12 text-right">
+            <a ng-click="addAttr($index)" class="add-attr-btn">
+                Add an attribute
+                <i class="fa fa-lg fa-plus-circle add-attr-btn"></i>
+            </a>
+        </div>
+    </div>
+</form>

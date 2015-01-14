@@ -145,6 +145,7 @@
         var siteId = $scope.siteId = $routeParams.siteId;
         $scope.pager = null;
         $scope.limier = null;
+        $scope.form_url = "/static/templates/includes/networks-form.html";
 
         $scope.form_attrs = [];
 
