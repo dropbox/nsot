@@ -36,58 +36,60 @@
     }]);
 
     app.controller("SitesController", [
-            "$scope", "$http", "$q", "$location",
-            function($scope, $http, $q, $location) {
+            "$scope", "$q", "$location", "Site", "User",
+            function($scope, $q, $location, Site, User) {
 
         $scope.loading = true;
-        $scope.user = {};
         $scope.sites = [];
-        $scope.site = {};
+        $scope.user = new User();
+        $scope.site = new Site();
         $scope.error = null;
 
         $q.all([
-            $http.get("/api/users/0"),
-            $http.get("/api/sites")
+            User.get({id: 0}).$promise,
+            Site.query().$promise
         ]).then(function(results){
-            $scope.user = results[0].data.data.user;
-            $scope.sites = results[1].data.data.sites;
+            $scope.user = results[0];
+            $scope.sites = results[1];
+
             $scope.loading = false;
         });
 
         $scope.createSite = function(site){
-            $http.post("/api/sites", site).success(function(data){
+            $scope.site.$save(function(data){
                 var site = data.data.site;
                 $location.path("/sites/" + site.id);
-            }).error(function(data){
-                $scope.error = data.error;
+            }, function(data){
+                $scope.error = data.data.error;
             });
         };
     }]);
 
     app.controller("SiteController", [
-            "$scope", "$http", "$route", "$location", "$q", "$routeParams",
-            function($scope, $http, $route, $location, $q, $routeParams) {
+            "$scope", "$route", "$location", "$q", "$routeParams", "Site", "User",
+            function($scope, $route, $location, $q, $routeParams, Site, User) {
 
         $scope.loading = true;
-        $scope.user = {};
-        $scope.site = {};
+        $scope.user = new User();
+        $scope.site = new Site();
         $scope.admin = false;
         $scope.updateError = null;
         $scope.deleteError = null;
 
+        var siteId = $routeParams.siteId;
 
         $q.all([
-            $http.get("/api/users/0"),
-            $http.get("/api/sites/" + $routeParams.siteId)
+            User.get({id: 0}).$promise,
+            Site.get({id: siteId}).$promise,
         ]).then(function(results){
-            $scope.user = results[0].data.data.user;
-            $scope.site = results[1].data.data.site;
-            var permissions = $scope.user.permissions[$routeParams.siteId] || {};
+            $scope.user = results[0];
+            $scope.site = results[1];
+
+            var permissions = $scope.user.permissions[siteId] || {};
             permissions = permissions.permissions || [];
             $scope.admin = _.any(permissions, function(value){
                 return _.contains(["admin"], value);
             });
-
             $scope.loading = false;
         }, function(data){
             if (data.status === 404) {
@@ -97,18 +99,18 @@
         });
 
         $scope.updateSite = function(site){
-            $http.put("/api/sites/" + $routeParams.siteId, site).success(function(data){
+            $scope.site.$update(function(data){
                 $route.reload();
-            }).error(function(data){
-                $scope.updateError = data.error;
+            }, function(data){
+                $scope.updateError = data.data.error;
             });
         };
 
         $scope.deleteSite = function(site){
-            $http.delete("/api/sites/" +  $routeParams.siteId, site).success(function(data){
+            $scope.site.$delete(function(data){
                 $location.path("/sites");
-            }).error(function(data){
-                $scope.deleteError = data.error;
+            }, function(data){
+                $scope.deleteError = data.data.error;
             });
         };
 
