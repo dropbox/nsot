@@ -17,13 +17,15 @@
             <div ng-if="error" class="alert alert-danger">
                 [[error.code]] - [[error.message]]
             </div>
-            <div ng-include="form_url"></div>
+            <form novalidate name="networkForm" class="nsot-form">
+                <div ng-include="form_url"></div>
+            </form>
         </div>
         <div class="modal-footer">
             <button type="button" class="btn btn-default" data-dismiss="modal">
                 Close
             </button>
-            <button type="submit" ng-click="createNetwork(network)"
+            <button type="submit" ng-click="createNetwork()"
                     class="btn btn-primary" ng-disabled="networkForm.$invalid"
             >
                 Create
@@ -38,7 +40,7 @@
                 No Networks
             </panel-body>
             <panel-body ng-if="networks.length">
-                <table class="table table-hover">
+                <table class="table table-condensed table-hover">
                     <thead>
                         <tr>
                             <th class="col-sm-3">Network Address</th>

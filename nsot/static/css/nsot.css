@@ -13,6 +13,10 @@ body {
     margin-bottom: 20px;
 }
 
+.form-group {
+    margin-bottom: 10px;
+}
+
 .form-subheading {
     position:relative;
     overflow:hidden;

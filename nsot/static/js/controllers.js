@@ -143,10 +143,11 @@
         $scope.error = null;
         $scope.admin = false;
         var siteId = $scope.siteId = $routeParams.siteId;
+
         $scope.pager = null;
         $scope.limier = null;
-        $scope.form_url = "/static/templates/includes/networks-form.html";
 
+        $scope.form_url = "/static/templates/includes/networks-form.html";
         $scope.form_attrs = [];
 
         var params = {limit: 10, include_ips: true};
@@ -156,14 +157,12 @@
 
         $q.all([
             $http.get("/api/users/0"),
-            $http.get("/api/sites/" + siteId + "/network_attributes"),
             $http.get("/api/sites/" + siteId + "/networks", {
                 params: params
             })
         ]).then(function(results){
             $scope.user = results[0].data.data.user;
-            $scope.attributes = results[1].data.data.network_attributes;
-            var data = results[2].data.data;
+            var data = results[1].data.data;
             $scope.networks = data.networks;
 
             var permissions = $scope.user.permissions[siteId] || {};
@@ -185,8 +184,22 @@
             }
         });
 
-        $scope.addAttr = function(idx) {
-            $scope.form_attrs.splice(idx + 1, 0, {});
+        $("body").on("show.bs.modal", "#createNetworkModal", function(e){
+            $http.get("/api/sites/" + siteId + "/network_attributes")
+                .success(function(data){
+
+                $scope.attributes = data.data.network_attributes;
+
+            });
+        });
+
+        $scope.$on('$destroy', function() {
+            $("body").off("show.bs.modal", "#createNetworkModal");
+        });
+
+
+        $scope.addAttr = function() {
+            $scope.form_attrs.push({});
         }
 
         $scope.removeAttr = function(idx) {
@@ -219,6 +232,74 @@
             function($scope, $http, $route, $location, $q, $routeParams) {
 
         $scope.loading = true;
+        $scope.user = {};
+        $scope.network = {};
+        $scope.attributes = {};
+        $scope.admin = false;
+        $scope.updateError = null;
+        $scope.deleteError = null;
+        var siteId = $scope.siteId = $routeParams.siteId;
+        var networkId = $scope.networkId = $routeParams.networkId;
+        $scope.form_url = "/static/templates/includes/networks-form.html";
+        $scope.form_attrs = [];
+
+
+        $q.all([
+            $http.get("/api/users/0"),
+            $http.get("/api/sites/" + siteId + "/networks/" + networkId)
+        ]).then(function(results){
+            $scope.user = results[0].data.data.user;
+            $scope.network = results[1].data.data.network;
+            var permissions = $scope.user.permissions[$routeParams.siteId] || {};
+            permissions = permissions.permissions || [];
+            $scope.admin = _.any(permissions, function(value){
+                return _.contains(["admin", "networks"], value);
+            });
+
+            $scope.loading = false;
+        }, function(data){
+            if (data.status === 404) {
+                $location.path("/");
+                $location.replace();
+            }
+        });
+
+        $("body").on("show.bs.modal", "#updateNetworkModal", function(e){
+            $http.get("/api/sites/" + siteId + "/network_attributes")
+                .success(function(data){
+
+                $scope.attributes = data.data.network_attributes;
+
+            });
+        });
+
+        $scope.$on('$destroy', function() {
+            $("body").off("show.bs.modal", "#updateNetworkModal");
+        });
+
+        $scope.updateNetwork = function(){
+            var network = $scope.network;
+            var optional_attrs = _.reduce($scope.form_attrs, function(acc, value, key){
+                acc[value.name] = value.value;
+                return acc;
+            }, {});
+            $http.put("/api/sites/" + siteId +
+                      "/networks/" + networkId, network).success(function(data){
+                $route.reload();
+            }).error(function(data){
+                $scope.updateError = data.error;
+            });
+        };
+
+        $scope.deleteNetwork = function(){
+            $http.delete("/api/sites/" + siteId +
+                      "/networks/" + networkId).success(function(data){
+                $location.path("/sites/" + siteId + "/networks");
+            }).error(function(data){
+                $scope.deleteError = data.error;
+            });
+        };
+
 
     }]);
 
