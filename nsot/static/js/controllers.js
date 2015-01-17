@@ -20,10 +20,10 @@
     }]);
 
     app.controller("IndexController", [
-            "$http", "$location",
-            function($http, $location) {
+            "$location", "Site",
+            function($location, Site) {
 
-        $http.get("/api/sites").success(function(data){
+        Site.query(function(data){
             var sites = data.data.sites;
             if (!sites.length || sites.length > 1) {
                 $location.path("/sites");
@@ -49,8 +49,8 @@
             User.get({id: 0}).$promise,
             Site.query().$promise
         ]).then(function(results){
-            $scope.user = results[0];
-            $scope.sites = results[1];
+            $scope.user = results[0].data.user;
+            $scope.sites = results[1].data.sites;
 
             $scope.loading = false;
         });
@@ -82,8 +82,8 @@
             User.get({id: 0}).$promise,
             Site.get({id: siteId}).$promise,
         ]).then(function(results){
-            $scope.user = results[0];
-            $scope.site = results[1];
+            $scope.user = results[0].data.user;
+            $scope.site = results[1].data.site;
 
             var permissions = $scope.user.permissions[siteId] || {};
             permissions = permissions.permissions || [];
@@ -117,8 +117,8 @@
     }]);
 
     app.controller("UsersController", [
-            "$scope", "$http", "$route", "$location", "$q", "$routeParams",
-            function($scope, $http, $route, $location, $q, $routeParams) {
+            "$scope", "$route", "$location", "$q", "$routeParams",
+            function($scope, $route, $location, $q, $routeParams) {
 
         $scope.loading = true;
 
@@ -126,45 +126,43 @@
     ]);
 
     app.controller("UserController", [
-            "$scope", "$http", "$route", "$location", "$q", "$routeParams",
-            function($scope, $http, $route, $location, $q, $routeParams) {
+            "$scope", "$route", "$location", "$q", "$routeParams",
+            function($scope, $route, $location, $q, $routeParams) {
 
         $scope.loading = true;
 
     }]);
 
     app.controller("NetworksController", [
-            "$scope", "$http", "$route", "$location", "$q", "$routeParams",
-            function($scope, $http, $route, $location, $q, $routeParams) {
+            "$scope", "$route", "$location", "$q", "$routeParams",
+            "User", "Network", "NetworkAttribute", "pagerParams", "Paginator",
+            function($scope, $route, $location, $q, $routeParams,
+                     User, Network, NetworkAttribute, pagerParams, Paginator) {
 
         $scope.loading = true;
-        $scope.user = {};
+        $scope.user = null;
         $scope.networks = [];
-        $scope.network = {};
+        $scope.network = new Network();
         $scope.attributes = {};
+        $scope.paginator = null;
         $scope.error = null;
         $scope.admin = false;
         var siteId = $scope.siteId = $routeParams.siteId;
 
-        $scope.pager = null;
-        $scope.limier = null;
-
         $scope.form_url = "/static/templates/includes/networks-form.html";
         $scope.form_attrs = [];
 
-        var params = {limit: 10, include_ips: true};
-        var search = $location.search();
-        if (search.offset) params.offset = search.offset;
-        if (search.limit) params.limit = search.limit;
+        var params = _.extend(pagerParams(), {
+            siteId: siteId,
+            include_ips: true
+        });
 
         $q.all([
-            $http.get("/api/users/0"),
-            $http.get("/api/sites/" + siteId + "/networks", {
-                params: params
-            })
+            User.get({id: 0}).$promise,
+            Network.query(params).$promise
         ]).then(function(results){
-            $scope.user = results[0].data.data.user;
-            var data = results[1].data.data;
+            $scope.user = results[0].data.user;
+            var data = results[1].data;
             $scope.networks = data.networks;
 
             var permissions = $scope.user.permissions[siteId] || {};
@@ -173,11 +171,7 @@
                 return _.contains(["admin", "networks"], value);
             });
 
-            $scope.pager = new nsot.Pager(
-                data.offset, data.limit, data.total, $location
-            );
-            $scope.limiter = new nsot.Limiter(data.limit, $location);
-
+            $scope.paginator = new Paginator(data);
             $scope.loading = false;
         }, function(data){
             if (data.status === 404) {
@@ -187,11 +181,8 @@
         });
 
         $("body").on("show.bs.modal", "#createNetworkModal", function(e){
-            $http.get("/api/sites/" + siteId + "/network_attributes")
-                .success(function(data){
-
+            NetworkAttribute.query({siteId: siteId}, function(data){
                 $scope.attributes = data.data.network_attributes;
-
             });
         });
 
@@ -202,11 +193,11 @@
 
         $scope.addAttr = function() {
             $scope.form_attrs.push({});
-        }
+        };
 
         $scope.removeAttr = function(idx) {
             $scope.form_attrs.splice(idx, 1);
-        }
+        };
 
         $scope.createNetwork = function() {
             var network = $scope.network;
@@ -217,12 +208,13 @@
 
             _.defaults(network.attributes, optional_attrs);
 
-            $http.post("/api/sites/" + siteId +
-                       "/networks", network).success(function(data){
-                network = data.data.network;
+            console.log(network);
+
+            network.$save({siteId: siteId}, function(data){
+                var network = data.data.network;
                 $location.path("/sites/" + siteId + "/networks/" + network.id);
-            }).error(function(data){
-                $scope.error = data.error;
+            }, function(data){
+                $scope.error = data.data.error;
             });
         };
 
@@ -404,33 +396,24 @@
     }]);
 
     app.controller("ChangesController", [
-            "$scope", "$http", "$route", "$location", "$q", "$routeParams",
-            function($scope, $http, $route, $location, $q, $routeParams) {
+            "$scope", "$location", "$q", "$routeParams", "Change",
+            "pagerParams", "Paginator",
+            function($scope, $location, $q, $routeParams, Change,
+                     pagerParams, Paginator) {
 
         $scope.loading = true;
         $scope.changes = [];
-        $scope.siteId = $routeParams.siteId;
-        $scope.pager = null;
-        $scope.limier = null;
+        $scope.paginator = null;
 
-        var params = {limit: 10};
-        var search = $location.search();
-        if (search.offset) params.offset = search.offset;
-        if (search.limit) params.limit = search.limit;
+        var siteId = $scope.siteId = $routeParams.siteId;
+        var params = pagerParams();
 
         $q.all([
-            $http.get(
-                "/api/sites/" + $scope.siteId +
-                "/changes",
-                {params: params}
-            )
+            Change.query(_.extend({siteId: siteId}, params)).$promise
         ]).then(function(results){
-            var data = results[0].data.data;
+            var data = results[0].data;
             $scope.changes = data.changes;
-            $scope.pager = new nsot.Pager(
-                data.offset, data.limit, data.total, $location
-            );
-            $scope.limiter = new nsot.Limiter(data.limit, $location);
+            $scope.paginator = new Paginator(data);
             $scope.loading = false;
         }, function(data){
             if (data.status === 404) {
@@ -442,20 +425,19 @@
     }]);
 
     app.controller("ChangeController", [
-            "$scope", "$http", "$route", "$location", "$q", "$routeParams",
-            function($scope, $http, $route, $location, $q, $routeParams) {
+            "$scope", "$location", "$q", "$routeParams", "Change",
+            function($scope, $location, $q, $routeParams, Change) {
 
         $scope.loading = true;
-        $scope.change = {};
-        $scope.siteId = $routeParams.siteId;
+        $scope.change = new Change();
+
+        var siteId = $scope.siteId = $routeParams.siteId;
+        var changeId = $scope.changeId = $routeParams.changeId;
 
         $q.all([
-            $http.get(
-                "/api/sites/" + $scope.siteId +
-                "/changes/" + $routeParams.changeId
-            )
+            Change.get({siteId: siteId, id: changeId}).$promise
         ]).then(function(results){
-            $scope.change = results[0].data.data.change;
+            $scope.change = results[0].data.change;
             $scope.loading = false;
         }, function(data){
             if (data.status === 404) {

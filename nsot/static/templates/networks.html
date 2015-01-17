@@ -1,8 +1,8 @@
 <loading-panel ng-if="loading"></loading-panel>
 <div ng-if="!loading">
     <heading-bar heading="Network">
-        <dropdown ctxt-obj="limiter"></dropdown>
-        <paginator pager="pager"></paginator>
+        <dropdown ctxt-obj="paginator.limiter"></dropdown>
+        <paginator pager="paginator.pager"></paginator>
 
         <button
             class="btn btn-success"
