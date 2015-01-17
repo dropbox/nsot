@@ -34,7 +34,9 @@ RESOURCE_BY_NAME = {
     obj_type: idx
     for idx, obj_type in enumerate(RESOURCE_BY_IDX)
 }
+
 CHANGE_EVENTS = ("Create", "Update", "Delete")
+IP_VERSIONS = ("4", "6")
 
 
 class Session(_Session):
@@ -379,7 +381,7 @@ class Network(Model):
     id = Column(Integer, primary_key=True)
     site_id = Column(Integer, ForeignKey("sites.id"), nullable=False, index=True)
 
-    ip_version = Column(Enum("4", "6"), nullable=False, index=True)
+    ip_version = Column(String(1), nullable=False, index=True)
 
     # Root networks will be NULL while other networks will point to
     # their supernet.
@@ -398,6 +400,12 @@ class Network(Model):
     # Attributes is a Serialized LOB field. Lookups of these attributes
     # is done against an Inverted Index table
     _attributes = Column("attributes", Text)
+
+    @validates("ip_version")
+    def validate_ip_version(self, key, value):
+        if value not in IP_VERSIONS:
+            raise exc.ValidationError("Invalid IP Version.")
+        return value
 
     def to_dict(self):
         network_address = ipaddress.ip_address(self.network_address)
@@ -671,7 +679,6 @@ class NetworkAttribute(Model):
 
         return value
 
-
     @classmethod
     def all_by_name(cls, session):
         return {
@@ -704,12 +711,18 @@ class Change(Model):
 
     change_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
-    event = Column(Enum(*CHANGE_EVENTS), nullable=False)
+    event = Column(String(10), nullable=False)
 
     resource_type = Column(Integer, nullable=False)
     resource_id = Column(Integer, nullable=False)
 
     _resource = Column("resource", Text, nullable=False)
+
+    @validates("event")
+    def validate_event(self, key, value):
+        if value not in CHANGE_EVENTS:
+            raise exc.ValidationError("Invalid Change Event.")
+        return value
 
     @property
     def resource(self):
