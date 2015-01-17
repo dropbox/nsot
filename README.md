@@ -64,13 +64,34 @@ on development instances.
 ```bash
 
 # Setup the database.
-nsot-ctl -vvv -c config/dev.yaml sync_db
+nsot-ctl -vvv -c config/dev.yaml migrations latest
 
 # Run the development reverse proxy
 nsot-ctl -vv -c config/dev.yaml user_proxy
 
 # Run the frontend server
 nsot-server --config=config/dev.yaml -vv
+
+```
+
+#### Working with migrations
+
+If you make any changes to the models you'll want to generate a new migration.
+We use alembic for migrations underneath but for general schema changes is
+should be sufficient to just run
+
+```bash
+
+nsot-ctl -vvv -c config/dev.yaml migrations revision
+
+```
+
+This will generate a new schema version. You can then sync to the latest version
+with
+
+```bash
+
+nsot-ctl -vvv -c config/dev.yaml migrations latest
 
 ```
 

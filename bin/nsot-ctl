@@ -2,6 +2,8 @@
 
 """ Command-line interface to various NSoT administrative commands."""
 
+import alembic.config
+import alembic.command
 import argparse
 import BaseHTTPServer
 import code
@@ -25,9 +27,51 @@ def make_session():
     return models.Session()
 
 
-def sync_db_command(args):
-    db_engine = models.get_db_engine(settings["database"])
-    models.Model.metadata.create_all(db_engine)
+def setup_migration_config():
+    config = alembic.config.Config()
+    config.set_main_option("script_location", "nsot:migrations")
+    config.set_main_option("sqlalchemy.url", settings["database"])
+    return config
+
+
+def migrations_latest_command(args):
+    print "Upgrading to latest revision...",
+    config = setup_migration_config()
+    try:
+        alembic.command.upgrade(config, "head")
+        print "Done"
+    except alembic.util.CommandError as err:
+        print "Failed ({})".format(err)
+
+
+def migrations_upgrade_command(args):
+    print "Upgrading to revision {}...".format(args.revision),
+    config = setup_migration_config()
+    try:
+        alembic.command.upgrade(config, args.revision)
+        print "Done"
+    except alembic.util.CommandError as err:
+        print "Failed ({})".format(err)
+
+
+def migrations_downgrade_command(args):
+    print "Downgrading to revision {}...".format(args.revision),
+    config = setup_migration_config()
+    try:
+        alembic.command.downgrade(config, args.revision)
+        print "Done"
+    except alembic.util.CommandError as err:
+        print "Failed ({})".format(err)
+
+
+def migrations_revision_command(args):
+    print "Generating New Revision...",
+    config = setup_migration_config()
+    try:
+        alembic.command.revision(config, autogenerate=True)
+        print "Done"
+    except alembic.util.CommandError as err:
+        print "Failed ({})".format(err)
 
 
 def user_proxy_command(args):
@@ -82,9 +126,28 @@ def main():
 
     subparsers = parser.add_subparsers(dest="command")
 
-    sync_db_parser = subparsers.add_parser("sync_db", help="Apply database schema to database.")
-    sync_db_parser.set_defaults(func=sync_db_command)
+    # Migration Parsers
+    migrations_parser = subparsers.add_parser(
+        "migrations", help="Create and apply database migrations.")
+    migrations_subparsers = migrations_parser.add_subparsers(
+        dest="migratrions_command"
+    )
 
+    migrations_latest_parser = migrations_subparsers.add_parser("latest")
+    migrations_latest_parser.set_defaults(func=migrations_latest_command)
+
+    migrations_upgrade_parser = migrations_subparsers.add_parser("upgrade")
+    migrations_upgrade_parser.add_argument("revision")
+    migrations_upgrade_parser.set_defaults(func=migrations_upgrade_command)
+
+    migrations_downgrade_parser = migrations_subparsers.add_parser("downgrade")
+    migrations_downgrade_parser.add_argument("revision")
+    migrations_downgrade_parser.set_defaults(func=migrations_downgrade_command)
+
+    migrations_revision_parser = migrations_subparsers.add_parser("revision")
+    migrations_revision_parser.set_defaults(func=migrations_revision_command)
+
+    # User Proxy Parsers
     user_proxy_parser = subparsers.add_parser("user_proxy", help="Start a development reverse proxy.")
     user_proxy_parser.set_defaults(func=user_proxy_command)
     user_proxy_parser.add_argument("-p", "--listen-port", default=8888, type=int,
@@ -93,6 +156,7 @@ def main():
                                    help="Port to proxy to.")
     user_proxy_parser.add_argument("username", nargs="?", default=None)
 
+    # Shell Parsers
     shell_parser = subparsers.add_parser("shell", help="Launch a shell with models imported.")
     shell_parser.set_defaults(func=shell_command)
 

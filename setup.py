@@ -21,6 +21,7 @@ def get_package_data(package, base_dir):
 
 get_package_data("nsot", "nsot/static")
 get_package_data("nsot", "nsot/templates")
+get_package_data("nsot", "nsot/migrations")
 
 kwargs = {
     "name": "nsot",
