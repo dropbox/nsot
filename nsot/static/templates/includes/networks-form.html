@@ -6,10 +6,14 @@
            class="form-control"
            name="cidr"
            placeholder="Network (required)"
+           ng-if="formMode === 'create'"
            ng-model="network.cidr"
            ng-minlength="1"
            required
     >
+    <span ng-if="formMode === 'update'">
+        <label>cidr</label> [[network.network_address]]/[[network.prefix_length]]
+    <span>
 </div>
 <h4 class="form-subheading">Attributes</h4>
 
@@ -37,13 +41,14 @@
     </div>
 </div>
 
-<div class="row" ng-repeat="form_attr in form_attrs">
+<div class="row" ng-repeat="formAttr in formAttrs">
+    [[formAttr]] [[$index]]
     <div class="col-sm-5">
         <select
             name="attribute"
             class="form-control"
             required
-            ng-model="form_attr.name">
+            ng-model="formAttrs[$index].name">
             <option value="" disabled selected></option>
             <option value="[[attr.name]]"
                     ng-repeat="(idx, attr) in attributes
@@ -59,7 +64,7 @@
                    class="form-control"
                    name="value"
                    placeholder="Value"
-                   ng-model="form_attr.value"
+                   ng-model="formAttrs[$index].value"
                    required
             >
         </div>

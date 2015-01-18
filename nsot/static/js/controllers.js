@@ -141,8 +141,9 @@
         $scope.admin = false;
         var siteId = $scope.siteId = $routeParams.siteId;
 
-        $scope.form_url = "/static/templates/includes/networks-form.html";
-        $scope.form_attrs = [];
+        $scope.formMode = "create";
+        $scope.formUrl = "/static/templates/includes/networks-form.html";
+        $scope.formAttrs = [];
 
         var params = _.extend(pagerParams(), {
             siteId: siteId,
@@ -156,6 +157,7 @@
             $scope.user = results[0];
             $scope.networks = results[1].data;
             $scope.admin = $scope.user.isAdmin(siteId, ["admin", "networks"]);
+
 
             $scope.paginator = new Paginator(results[1]);
             $scope.loading = false;
@@ -178,16 +180,16 @@
 
 
         $scope.addAttr = function() {
-            $scope.form_attrs.push({});
+            $scope.formAttrs.push({});
         };
 
         $scope.removeAttr = function(idx) {
-            $scope.form_attrs.splice(idx, 1);
+            $scope.formAttrs.splice(idx, 1);
         };
 
         $scope.createNetwork = function() {
             var network = $scope.network;
-            var optional_attrs = _.reduce($scope.form_attrs, function(acc, value, key){
+            var optional_attrs = _.reduce($scope.formAttrs, function(acc, value, key){
                 acc[value.name] = value.value;
                 return acc;
             }, {});
@@ -219,8 +221,9 @@
         $scope.deleteError = null;
         var siteId = $scope.siteId = $routeParams.siteId;
         var networkId = $scope.networkId = $routeParams.networkId;
-        $scope.form_url = "/static/templates/includes/networks-form.html";
-        $scope.form_attrs = [];
+        $scope.formMode = "update";
+        $scope.formUrl = "/static/templates/includes/networks-form.html";
+        $scope.formAttrs = [];
 
 
         $q.all([
@@ -230,6 +233,7 @@
             $scope.user = results[0];
             $scope.network = results[1];
             $scope.admin = $scope.user.isAdmin(siteId, ["admin", "networks"]);
+
             $scope.loading = false;
         }, function(data){
             if (data.status === 404) {
@@ -241,6 +245,17 @@
         $("body").on("show.bs.modal", "#updateNetworkModal", function(e){
             NetworkAttribute.query({siteId: siteId}, function(response){
                 $scope.attributes = response.data;
+                $scope.formAttrs = [];
+
+                _.forEach($scope.attributes, function(value, idx){
+                    if (!value.required && $scope.network.attributes[value.name]){
+                        $scope.formAttrs.push({
+                            name: value.name,
+                            value: $scope.network.attributes[value.name]
+                        });
+                    }
+                });
+
             });
         });
 
@@ -248,12 +263,24 @@
             $("body").off("show.bs.modal", "#updateNetworkModal");
         });
 
+        $scope.addAttr = function() {
+            $scope.formAttrs.push({});
+        };
+
+        $scope.removeAttr = function(idx) {
+            var attrName = $scope.formAttrs[idx].name;
+            delete $scope.network.attributes[attrName];
+            $scope.formAttrs.splice(idx, 1);
+        };
+
         $scope.updateNetwork = function(){
             var network = $scope.network;
-            var optional_attrs = _.reduce($scope.form_attrs, function(acc, value, key){
+            var optional_attrs = _.reduce($scope.formAttrs, function(acc, value, key){
                 acc[value.name] = value.value;
                 return acc;
             }, {});
+
+            _.extend(network.attributes, optional_attrs);
 
             $scope.network.$update({siteId: siteId}, function(data){
                 $route.reload();
