@@ -2,7 +2,6 @@
     - Bulk Insert/Update
     - Hostnames and reverse
     - API Tokens for role accounts
-    - Setup support for migrations before first preview release
     - PATCH support
     - Default Site for User
 

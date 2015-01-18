@@ -23,8 +23,8 @@
             "$location", "Site",
             function($location, Site) {
 
-        Site.query(function(data){
-            var sites = data.data.sites;
+        Site.query(function(response){
+            var sites = response.data;
             if (!sites.length || sites.length > 1) {
                 $location.path("/sites");
             } else {
@@ -41,7 +41,7 @@
 
         $scope.loading = true;
         $scope.sites = [];
-        $scope.user = new User();
+        $scope.user = null;
         $scope.site = new Site();
         $scope.error = null;
 
@@ -49,15 +49,14 @@
             User.get({id: 0}).$promise,
             Site.query().$promise
         ]).then(function(results){
-            $scope.user = results[0].data.user;
-            $scope.sites = results[1].data.sites;
+            $scope.user = results[0];
+            $scope.sites = results[1].data;
 
             $scope.loading = false;
         });
 
-        $scope.createSite = function(site){
-            $scope.site.$save(function(data){
-                var site = data.data.site;
+        $scope.createSite = function(){
+            $scope.site.$save(function(site){
                 $location.path("/sites/" + site.id);
             }, function(data){
                 $scope.error = data.data.error;
@@ -70,9 +69,11 @@
             function($scope, $route, $location, $q, $routeParams, Site, User) {
 
         $scope.loading = true;
-        $scope.user = new User();
-        $scope.site = new Site();
+
+        $scope.user = null;
+        $scope.site = null;
         $scope.admin = false;
+
         $scope.updateError = null;
         $scope.deleteError = null;
 
@@ -82,14 +83,9 @@
             User.get({id: 0}).$promise,
             Site.get({id: siteId}).$promise,
         ]).then(function(results){
-            $scope.user = results[0].data.user;
-            $scope.site = results[1].data.site;
-
-            var permissions = $scope.user.permissions[siteId] || {};
-            permissions = permissions.permissions || [];
-            $scope.admin = _.any(permissions, function(value){
-                return _.contains(["admin"], value);
-            });
+            $scope.user = results[0];
+            $scope.site = results[1];
+            $scope.admin = $scope.user.isAdmin(siteId, ["admin"]);
             $scope.loading = false;
         }, function(data){
             if (data.status === 404) {
@@ -98,16 +94,16 @@
             }
         });
 
-        $scope.updateSite = function(site){
-            $scope.site.$update(function(data){
+        $scope.updateSite = function(){
+            $scope.site.$update(function(){
                 $route.reload();
             }, function(data){
                 $scope.updateError = data.data.error;
             });
         };
 
-        $scope.deleteSite = function(site){
-            $scope.site.$delete(function(data){
+        $scope.deleteSite = function(){
+            $scope.site.$delete(function(){
                 $location.path("/sites");
             }, function(data){
                 $scope.deleteError = data.data.error;
@@ -119,31 +115,27 @@
     app.controller("UsersController", [
             "$scope", "$route", "$location", "$q", "$routeParams",
             function($scope, $route, $location, $q, $routeParams) {
-
         $scope.loading = true;
-
     }
     ]);
 
     app.controller("UserController", [
             "$scope", "$route", "$location", "$q", "$routeParams",
             function($scope, $route, $location, $q, $routeParams) {
-
         $scope.loading = true;
-
     }]);
 
     app.controller("NetworksController", [
-            "$scope", "$route", "$location", "$q", "$routeParams",
+            "$scope", "$location", "$q", "$routeParams",
             "User", "Network", "NetworkAttribute", "pagerParams", "Paginator",
-            function($scope, $route, $location, $q, $routeParams,
+            function($scope, $location, $q, $routeParams,
                      User, Network, NetworkAttribute, pagerParams, Paginator) {
 
         $scope.loading = true;
         $scope.user = null;
+        $scope.attributes = {};
         $scope.networks = [];
         $scope.network = new Network();
-        $scope.attributes = {};
         $scope.paginator = null;
         $scope.error = null;
         $scope.admin = false;
@@ -161,17 +153,11 @@
             User.get({id: 0}).$promise,
             Network.query(params).$promise
         ]).then(function(results){
-            $scope.user = results[0].data.user;
-            var data = results[1].data;
-            $scope.networks = data.networks;
+            $scope.user = results[0];
+            $scope.networks = results[1].data;
+            $scope.admin = $scope.user.isAdmin(siteId, ["admin", "networks"]);
 
-            var permissions = $scope.user.permissions[siteId] || {};
-            permissions = permissions.permissions || [];
-            $scope.admin = _.any(permissions, function(value){
-                return _.contains(["admin", "networks"], value);
-            });
-
-            $scope.paginator = new Paginator(data);
+            $scope.paginator = new Paginator(results[1]);
             $scope.loading = false;
         }, function(data){
             if (data.status === 404) {
@@ -181,8 +167,8 @@
         });
 
         $("body").on("show.bs.modal", "#createNetworkModal", function(e){
-            NetworkAttribute.query({siteId: siteId}, function(data){
-                $scope.attributes = data.data.network_attributes;
+            NetworkAttribute.query({siteId: siteId}, function(response){
+                $scope.attributes = response.data;
             });
         });
 
@@ -208,10 +194,7 @@
 
             _.defaults(network.attributes, optional_attrs);
 
-            console.log(network);
-
-            network.$save({siteId: siteId}, function(data){
-                var network = data.data.network;
+            network.$save({siteId: siteId}, function(network){
                 $location.path("/sites/" + siteId + "/networks/" + network.id);
             }, function(data){
                 $scope.error = data.data.error;
@@ -222,8 +205,10 @@
     ]);
 
     app.controller("NetworkController", [
-            "$scope", "$http", "$route", "$location", "$q", "$routeParams",
-            function($scope, $http, $route, $location, $q, $routeParams) {
+            "$scope", "$route", "$location", "$q", "$routeParams",
+            "User", "Network", "NetworkAttribute",
+            function($scope, $route, $location, $q, $routeParams,
+                     User, Network, NetworkAttribute) {
 
         $scope.loading = true;
         $scope.user = {};
@@ -239,17 +224,12 @@
 
 
         $q.all([
-            $http.get("/api/users/0"),
-            $http.get("/api/sites/" + siteId + "/networks/" + networkId)
+            User.get({id: 0}).$promise,
+            Network.get({siteId: siteId, id: networkId}).$promise
         ]).then(function(results){
-            $scope.user = results[0].data.data.user;
-            $scope.network = results[1].data.data.network;
-            var permissions = $scope.user.permissions[$routeParams.siteId] || {};
-            permissions = permissions.permissions || [];
-            $scope.admin = _.any(permissions, function(value){
-                return _.contains(["admin", "networks"], value);
-            });
-
+            $scope.user = results[0];
+            $scope.network = results[1];
+            $scope.admin = $scope.user.isAdmin(siteId, ["admin", "networks"]);
             $scope.loading = false;
         }, function(data){
             if (data.status === 404) {
@@ -259,11 +239,8 @@
         });
 
         $("body").on("show.bs.modal", "#updateNetworkModal", function(e){
-            $http.get("/api/sites/" + siteId + "/network_attributes")
-                .success(function(data){
-
-                $scope.attributes = data.data.network_attributes;
-
+            NetworkAttribute.query({siteId: siteId}, function(response){
+                $scope.attributes = response.data;
             });
         });
 
@@ -277,19 +254,18 @@
                 acc[value.name] = value.value;
                 return acc;
             }, {});
-            $http.put("/api/sites/" + siteId +
-                      "/networks/" + networkId, network).success(function(data){
+
+            $scope.network.$update({siteId: siteId}, function(data){
                 $route.reload();
-            }).error(function(data){
+            }, function(data){
                 $scope.updateError = data.error;
             });
         };
 
         $scope.deleteNetwork = function(){
-            $http.delete("/api/sites/" + siteId +
-                      "/networks/" + networkId).success(function(data){
+            $scope.network.$delete({siteId: siteId}, function(){
                 $location.path("/sites/" + siteId + "/networks");
-            }).error(function(data){
+            }, function(data){
                 $scope.deleteError = data.error;
             });
         };
@@ -298,28 +274,26 @@
     }]);
 
     app.controller("NetworkAttributesController", [
-            "$scope", "$http", "$route", "$location", "$q", "$routeParams",
-            function($scope, $http, $route, $location, $q, $routeParams) {
+            "$scope", "$route", "$location", "$q", "$routeParams",
+            "User", "NetworkAttribute",
+            function($scope, $route, $location, $q, $routeParams,
+                     User, NetworkAttribute) {
 
         $scope.loading = true;
-        $scope.user = {};
+        $scope.user = null;
         $scope.attributes = [];
-        $scope.attribute = {};
+        $scope.attribute = new NetworkAttribute()
         $scope.error = null;
         $scope.admin = false;
         var siteId = $scope.siteId = $routeParams.siteId;
 
         $q.all([
-            $http.get("/api/users/0"),
-            $http.get("/api/sites/" + siteId + "/network_attributes")
+            User.get({id: 0}).$promise,
+            NetworkAttribute.query({siteId: siteId}).$promise
         ]).then(function(results){
-            $scope.user = results[0].data.data.user;
-            $scope.attributes = results[1].data.data.network_attributes;
-            var permissions = $scope.user.permissions[$routeParams.siteId] || {};
-            permissions = permissions.permissions || [];
-            $scope.admin = _.any(permissions, function(value){
-                return _.contains(["admin", "network_attrs"], value);
-            });
+            $scope.user = results[0];
+            $scope.attributes = results[1].data;
+            $scope.admin = $scope.user.isAdmin(siteId, ["admin", "network_attrs"]);
             $scope.loading = false;
         }, function(data){
             if (data.status === 404) {
@@ -328,12 +302,12 @@
             }
         });
 
-        $scope.createAttribute = function(attr){
-            $http.post("/api/sites/" + siteId +
-                       "/network_attributes", attr).success(function(data){
-                var attr = data.data.network_attribute;
-                $location.path("/sites/" + siteId + "/network_attributes/" + attr.id);
-            }).error(function(data){
+        $scope.createAttribute = function(){
+            $scope.attribute.$save({siteId: siteId}, function(attr){
+                $location.path(
+                    "/sites/" + siteId + "/network_attributes/" + attr.id
+                );
+            }, function(data){
                 $scope.error = data.error;
             });
         };
@@ -342,12 +316,14 @@
     ]);
 
     app.controller("NetworkAttributeController", [
-            "$scope", "$http", "$route", "$location", "$q", "$routeParams",
-            function($scope, $http, $route, $location, $q, $routeParams) {
+            "$scope", "$route", "$location", "$q", "$routeParams",
+            "User", "NetworkAttribute",
+            function($scope, $route, $location, $q, $routeParams,
+                     User, NetworkAttribute) {
 
         $scope.loading = true;
-        $scope.user = {};
-        $scope.attribute = {};
+        $scope.user = null;
+        $scope.attribute = null;
         $scope.admin = false;
         $scope.updateError = null;
         $scope.deleteError = null;
@@ -356,17 +332,12 @@
 
 
         $q.all([
-            $http.get("/api/users/0"),
-            $http.get("/api/sites/" + siteId + "/network_attributes/" + attributeId)
+            User.get({id: 0}).$promise,
+            NetworkAttribute.get({siteId: siteId, id: attributeId}).$promise
         ]).then(function(results){
-            $scope.user = results[0].data.data.user;
-            $scope.attribute = results[1].data.data.network_attribute;
-            var permissions = $scope.user.permissions[$routeParams.siteId] || {};
-            permissions = permissions.permissions || [];
-            $scope.admin = _.any(permissions, function(value){
-                return _.contains(["admin", "network_attrs"], value);
-            });
-
+            $scope.user = results[0];
+            $scope.attribute = results[1];
+            $scope.admin = $scope.user.isAdmin(siteId, ["admin", "network_attrs"]);
             $scope.loading = false;
         }, function(data){
             if (data.status === 404) {
@@ -375,21 +346,19 @@
             }
         });
 
-        $scope.updateAttribute = function(attr){
-            $http.put("/api/sites/" + siteId +
-                      "/network_attributes/" + attributeId, attr).success(function(data){
+        $scope.updateAttribute = function(){
+            $scope.attribute.$update({siteId: siteId}, function(){
                 $route.reload();
-            }).error(function(data){
+            }, function(data){
                 $scope.updateError = data.error;
             });
         };
 
-        $scope.deleteAttribute = function(attr){
-            $http.delete("/api/sites/" + siteId +
-                      "/network_attributes/" + attributeId).success(function(data){
+        $scope.deleteAttribute = function(){
+            $scope.attribute.$delete({siteId: siteId}, function(){
                 $location.path("/sites/" + siteId + "/network_attributes");
-            }).error(function(data){
-                $scope.deleteError = data.error;
+            }, function(data){
+                $scope.deleteError = data.data.error;
             });
         };
 
@@ -411,9 +380,8 @@
         $q.all([
             Change.query(_.extend({siteId: siteId}, params)).$promise
         ]).then(function(results){
-            var data = results[0].data;
-            $scope.changes = data.changes;
-            $scope.paginator = new Paginator(data);
+            $scope.changes = results[0].data;
+            $scope.paginator = new Paginator(results[0]);
             $scope.loading = false;
         }, function(data){
             if (data.status === 404) {
@@ -429,7 +397,7 @@
             function($scope, $location, $q, $routeParams, Change) {
 
         $scope.loading = true;
-        $scope.change = new Change();
+        $scope.change = null;
 
         var siteId = $scope.siteId = $routeParams.siteId;
         var changeId = $scope.changeId = $routeParams.changeId;
@@ -437,7 +405,7 @@
         $q.all([
             Change.get({siteId: siteId, id: changeId}).$promise
         ]).then(function(results){
-            $scope.change = results[0].data.change;
+            $scope.change = results[0];
             $scope.loading = false;
         }, function(data){
             if (data.status === 404) {

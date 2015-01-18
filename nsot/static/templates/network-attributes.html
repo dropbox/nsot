@@ -2,6 +2,7 @@
 <div ng-if="!loading">
     <heading-bar heading="Network Attributes">
         <button
+            ng-if="admin"
             class="btn btn-success"
             data-toggle="modal"
             data-target="#createAttributeModal"
@@ -49,7 +50,7 @@
             <button type="button" class="btn btn-default" data-dismiss="modal">
                 Close
             </button>
-            <button type="submit" ng-click="createAttribute(attribute)"
+            <button type="submit" ng-click="createAttribute()"
                     class="btn btn-primary" ng-disabled="attrForm.$invalid"
             >
                 Create
