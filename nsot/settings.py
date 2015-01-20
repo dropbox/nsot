@@ -68,4 +68,5 @@ settings = Settings({
     "cdnjs_prefix": "//cdnjs.cloudflare.com",
     "restrict_networks": [],
     "bind_address": None,
+    "api_xsrf_enabled": True,
 })

@@ -87,7 +87,6 @@ class FeHandler(BaseHandler):
         self.render("error.html", code=status_code, message=message)
 
 
-
 class ApiHandler(BaseHandler):
     def initialize(self):
         BaseHandler.initialize(self)
@@ -101,6 +100,11 @@ class ApiHandler(BaseHandler):
             else:
                 self._jbody = {}
         return self._jbody
+
+    def check_xsrf_cookie(self):
+        """Optionally check XSRF cookies on API calls."""
+        if settings.api_xsrf_enabled:
+            super(ApiHandler, self).check_xsrf_cookie()
 
     def get_pagination_values(self, max_limit=None):
         offset = int(self.get_argument("offset", 0))

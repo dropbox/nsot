@@ -41,3 +41,7 @@ cdnjs_prefix: "//cdnjs.cloudflare.com"
 # specified in CIDR notation.
 # Type: str or list
 restrict_networks: "127.0.0.1"
+
+# Specifies whether to use XSRF headers/cookies for API calls. Default: true
+# Type: bool
+api_xsrf_enabled: false

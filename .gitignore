@@ -39,3 +39,4 @@ nosetests.xml
 .pydevproject
 
 docs/_build
+.*sw?
