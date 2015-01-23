@@ -682,7 +682,7 @@ class Attribute(Model):
     __table_args__ = (
         Index(
             "name_idx",
-            "site_id", "name",
+            "site_id", "resource_name", "name",
             unique=True
         ),
     )
