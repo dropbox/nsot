@@ -13,13 +13,13 @@ def test_create_1024(session, admin, site):
     uid = admin.id
     sid = site.id
 
-    address = u"10.0.0.0/22"
+    address = u"10.0.0.0/20"
     models.Network.create(session, uid, sid, address)
     models.Attribute.create(session, uid, resource_name="Network", site_id=sid, name="aaaa")
 
     start = time.time()
     network = ipaddress.ip_network(address)
-    for ip in network.hosts():
+    for ip in network.subnets(new_prefix=30):
         models.Network.create(session, uid, sid, ip.exploded, {
             "aaaa": "value",
         })
