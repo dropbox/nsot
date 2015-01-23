@@ -8,5 +8,5 @@
 * Web UI
     - Pages
         * Networks (Create/List/Show/Update/Delete)
-        * Network Attributes (Show)
+        * Attributes (Show)
         * Permissions (Update)

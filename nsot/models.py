@@ -28,7 +28,7 @@ from .permissions import PermissionsFlag
 
 
 RESOURCE_BY_IDX = (
-    "Site", "Network", "NetworkAttribute", "Permission",
+    "Site", "Network", "Attribute", "Permission",
 )
 RESOURCE_BY_NAME = {
     obj_type: idx
@@ -37,6 +37,12 @@ RESOURCE_BY_NAME = {
 
 CHANGE_EVENTS = ("Create", "Update", "Delete")
 IP_VERSIONS = ("4", "6")
+
+
+VALID_CHANGE_RESOURCES = set(RESOURCE_BY_IDX)
+VALID_ATTRIBUTE_RESOURCES = set([
+    "Network",
+])
 
 
 class Session(_Session):
@@ -83,12 +89,9 @@ class Model(object):
         return instance, True
 
     @property
-    def resource_type(self):
+    def model_name(self):
         obj_name = type(self).__name__
-        obj_idx = RESOURCE_BY_NAME.get(obj_name)
-        if obj_idx is None:
-            raise NotImplementedError()
-        return obj_idx
+        return obj_name
 
     @classmethod
     def before_create(cls, session, user_id):
@@ -444,7 +447,7 @@ class Network(Model):
             ))
 
         if valid_attributes is None:
-            valid_attributes = NetworkAttribute.all_by_name(self.session)
+            valid_attributes = Attribute.all_by_name(self.session, "Network")
 
         missing_attributes = {
             value["name"]
@@ -459,23 +462,46 @@ class Network(Model):
 
         inserts = []
         for name, value in attributes.iteritems():
-            if not isinstance(name, basestring):
-                raise exc.ValidationError("Attribute names must be a string type")
-            if not isinstance(value, basestring):
-                raise exc.ValidationError("Attribute values must be a string type")
             if name not in valid_attributes:
                 raise exc.ValidationError("Attribute name (%s) does not exist.".format(
                     name
                 ))
 
-            attribute_meta = valid_attributes[name]
-            inserts.append({
-                "network_id": self.id,
-                "attribute_id": attribute_meta["id"],
-                "name": name,
-                "value": value,
-            })
+            if not isinstance(name, basestring):
+                raise exc.ValidationError("Attribute names must be a string type")
 
+            is_multi = valid_attributes[name]["multi"]
+            if is_multi:
+                if not isinstance(value, list):
+                    raise exc.ValidationError("Attribute values must be a list type")
+                all_str = all([
+                    isinstance(elem, basestring) and bool(elem)
+                    for elem in value
+                ])
+                if not all_str:
+                    raise exc.ValidationError(
+                        "All attribute values in list must be a string type"
+                    )
+            else:
+                if not isinstance(value, basestring):
+                    raise exc.ValidationError("Attribute values must be a string type")
+
+            attribute_meta_id = valid_attributes[name]["id"]
+            if is_multi:
+                for elem in value:
+                    inserts.append({
+                        "network_id": self.id,
+                        "attribute_id": attribute_meta_id,
+                        "name": name,
+                        "value": elem,
+                    })
+            else:
+                inserts.append({
+                    "network_id": self.id,
+                    "attribute_id": attribute_meta_id,
+                    "name": name,
+                    "value": value,
+                })
 
         self._purge_attribute_index()
         if inserts:
@@ -650,9 +676,9 @@ class Network(Model):
             raise
 
 
-class NetworkAttribute(Model):
+class Attribute(Model):
 
-    __tablename__ = "network_attributes"
+    __tablename__ = "attributes"
     __table_args__ = (
         Index(
             "name_idx",
@@ -664,10 +690,22 @@ class NetworkAttribute(Model):
     id = Column(Integer, primary_key=True)
 
     site_id = Column(Integer, ForeignKey("sites.id"), nullable=False)
+
+    resource_name = Column(String(20), nullable=False, index=True)
+
     # This is purposely not unique as there is a compound index with site_id.
     name = Column(String(length=64), nullable=False)
     description = Column(Text, default="", nullable=False)
+
+    # The resource must contain a key and value
     required = Column(Boolean, default=False, nullable=False)
+
+    # In UIs this attribute will be displayed by default.
+    # required implies display.
+    display = Column(Boolean, default=False, nullable=False)
+
+    # Attribute values are expected as lists of strings.
+    multi = Column(Boolean, default=False, nullable=False)
 
     @validates("name")
     def validate_name(self, key, value):
@@ -677,13 +715,29 @@ class NetworkAttribute(Model):
         if not constants.ATTRIBUTE_NAME.match(value):
             raise exc.ValidationError("Invalid name.")
 
+        return value or False
+
+    @validates("display")
+    def validate_display(self, key, value):
+        if self.required:
+            return True
+        return value
+
+    @validates("resource_name")
+    def validate_resource_name(self, key, value):
+        if value not in VALID_ATTRIBUTE_RESOURCES:
+            raise exc.ValidationError("Invalid resource name.")
         return value
 
     @classmethod
-    def all_by_name(cls, session):
+    def all_by_name(cls, session, resource_name=None):
+        query = session.query(cls)
+        if resource_name is not None:
+            query = query.filter_by(resource_name=resource_name)
+
         return {
             attribute.name: attribute.to_dict()
-            for attribute in session.query(cls).all()
+            for attribute in query.all()
         }
 
     def to_dict(self):
@@ -692,7 +746,10 @@ class NetworkAttribute(Model):
             "site_id": self.site_id,
             "description": self.description,
             "name": self.name,
+            "resource_name": self.resource_name,
             "required": self.required,
+            "display": self.display,
+            "multi": self.multi,
         }
 
 
@@ -713,7 +770,7 @@ class Change(Model):
 
     event = Column(String(10), nullable=False)
 
-    resource_type = Column(Integer, nullable=False)
+    resource_name = Column(String(20), nullable=False, index=True)
     resource_id = Column(Integer, nullable=False)
 
     _resource = Column("resource", Text, nullable=False)
@@ -722,6 +779,12 @@ class Change(Model):
     def validate_event(self, key, value):
         if value not in CHANGE_EVENTS:
             raise exc.ValidationError("Invalid Change Event.")
+        return value
+
+    @validates("resource_name")
+    def validate_resource_name(self, key, value):
+        if value not in VALID_CHANGE_RESOURCES:
+            raise exc.ValidationError("Invalid resource name.")
         return value
 
     @property
@@ -739,7 +802,7 @@ class Change(Model):
             "site_id": resource.site_id,
             "user_id": user_id,
             "event": event,
-            "resource_type": resource.resource_type,
+            "resource_name": resource.model_name,
             "resource_id": resource.id,
             "resource": resource.to_dict(),
         }
@@ -760,7 +823,7 @@ class Change(Model):
             "user": self.user.to_dict(),
             "change_at": timegm(self.change_at.timetuple()),
             "event": self.event,
-            "resource_type": RESOURCE_BY_IDX[self.resource_type],
+            "resource_name": self.resource_name,
             "resource_id": self.resource_id,
             "resource": resource,
         }
@@ -770,14 +833,6 @@ class NetworkAttributeIndex(Model):
     """ An Inverted Index for looking up Networks by their attributes."""
 
     __tablename__ = "network_attribute_index"
-    __table_args__ = (
-        # Ensure that each network can only have one of each attribute
-        Index(
-            "single_attr_idx",
-            "network_id", "attribute_id",
-            unique=True
-        ),
-    )
 
     id = Column(Integer, primary_key=True)
 
@@ -787,8 +842,8 @@ class NetworkAttributeIndex(Model):
     network_id = Column(Integer, ForeignKey("networks.id"), nullable=False)
     network = relationship(Network, backref="attr_idx")
 
-    attribute_id = Column(Integer, ForeignKey("network_attributes.id"), nullable=False)
-    attribute = relationship(NetworkAttribute)
+    attribute_id = Column(Integer, ForeignKey("attributes.id"), nullable=False)
+    attribute = relationship(Attribute)
 
 
 class Counter(Model):

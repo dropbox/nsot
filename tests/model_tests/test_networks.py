@@ -36,7 +36,10 @@ def test_network_create_hostbits_set(session, admin, site):
 
 
 def test_network_attributes(session, admin, site):
-    models.NetworkAttribute.create(session, admin.id, site_id=site.id, name="vlan")
+    models.Attribute.create(
+        session, admin.id, site_id=site.id,
+        resource_name="Network", name="vlan"
+    )
 
     network = models.Network.create(session, admin.id, site.id, u"10.0.0.0/8", {
         "vlan": "34"
@@ -69,7 +72,10 @@ def test_ip_address_no_network(session, admin, site):
     models.Network.create(session, admin.id, site.id, u"10.0.0.1/32")
 
 def test_retrieve_networks(session, admin, site):
-    models.NetworkAttribute.create(session, admin.id, site_id=site.id, name="test")
+    models.Attribute.create(
+        session, admin.id, site_id=site.id,
+        resource_name="Network", name="test"
+    )
 
     net_8 = models.Network.create(
         session, admin.id, site.id, cidr=u"10.0.0.0/8",

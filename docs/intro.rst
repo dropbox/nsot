@@ -22,13 +22,13 @@ with networks is usually done with CIDR notation.
 Networks can have any number of arbitrary attributes as defined in the next
 section.
 
-Network Attributes
+Attributes
 ------------------
 
-Network Attributes are arbitrary key/value pairs that can be assigned
-to Networks. If an attribute is required then Network additions/updates
-will require that attribute be present. Existing network resources will
-not be forcefully validated until update.
+Attributes are arbitrary key/value pairs that can be assigned to
+various resources. If an attribute is required then additions/updates
+for that resource will require that attribute be present. Existing
+resources will not be forcefully validated until update.
 
 Permissions
 -----------
@@ -42,10 +42,11 @@ can have in order to make modifications:
         - Ability to Update/Delete Site
         - Ability to grant permissions within a site
         - All subsequent permissions
-    * networks - Ability to Add/Update/Delete Networks
-    * network_attrs - Ability Add/Update/Delete Network Attributes
+    * networks
+        - Ability to Add/Update/Delete Networks
+        - Ability to Add/Update/Delete Attributes for Networks.
 
-While Site creation is open to all users, upon creating a Site you become
+Site creation is open to all users. Upon creating a Site you become
 an admin of that Site with full permissions.
 
 Changes

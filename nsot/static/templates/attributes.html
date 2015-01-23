@@ -1,6 +1,6 @@
 <loading-panel ng-if="loading"></loading-panel>
 <div ng-if="!loading">
-    <heading-bar heading="Network Attributes">
+    <heading-bar heading="Attributes">
         <button
             ng-if="admin"
             class="btn btn-success"
@@ -9,41 +9,62 @@
         >Create Attribute</button>
     </heading-bar>
 
-    <nsot-modal title="Create Network Attribute" modal-id="createAttributeModal">
+    <nsot-modal title="Create Attribute" modal-id="createAttributeModal">
         <div class="modal-body">
             <div ng-if="error" class="alert alert-danger">
                 [[error.code]] - [[error.message]]
             </div>
             <form novalidate name="attrForm" class="nsot-form">
                 <div class="form-group" ng-class="{
-                    'has-error' : attrForm.name.$invalid,
-                    'has-success' : attrForm.name.$valid,
+                    'has-error' : attrForm.resourcType.$invalid,
+                    'has-success' : attrForm.resourceType.$valid
                 }">
+                    <label>Resource Type</label>
+                    <select
+                        name="resourceType"
+                        class="form-control"
+                        ng-required
+                        ng-init="attribute.resource_name = 'Network'"
+                        ng-model="attribute.resource_name">
+                        <option value="Network">Network</option>
+                    </select>
+                </div>
+
+                <div class="form-group" ng-class="{
+                    'has-error' : attrForm.name.$invalid,
+                    'has-success' : attrForm.name.$valid
+                }">
+                    <label>Name *</label>
                     <input type="text"
                            class="form-control"
                            name="name"
-                           placeholder="Name (required)"
                            ng-model="attribute.name"
                            ng-minlength="1"
                            required
                     >
                 </div>
                 <div class="form-group">
+                    <label>Description</label>
                     <textarea style="resize: vertical;"
                               class="form-control"
                               rows="5"
-                              name="description"
                               placeholder="Description"
                               ng-model="attribute.description"
                     >
                     </textarea>
                 </div>
-                <div class="checkbox">
-                    <label>
-                        <input type="checkbox" name="required"
-                                ng-model="attribute.required"> Required
-                    </label>
-                 </div>
+                <label class="checkbox-inline">
+                    <input type="checkbox" name="required"
+                            ng-model="attribute.required"> Required
+                </label>
+                <label class="checkbox-inline">
+                    <input type="checkbox" name="display"
+                            ng-model="attribute.display"> Display
+                </label>
+                <label class="checkbox-inline">
+                    <input type="checkbox" name="multi"
+                            ng-model="attribute.multi"> Multi
+                </label>
             </form>
         </div>
         <div class="modal-footer">
@@ -60,28 +81,38 @@
 
     <div class="row" ng-if="attributes.length" class="row"><div class="col-sm-10 col-sm-offset-1">
         <panel>
-            <panel-heading>Network Attributes</panel-heading>
+            <panel-heading>Attributes</panel-heading>
             <panel-body ng-if="!attributes.length">
-                No Network Attributes
+                No Attributes
             </panel-body>
             <panel-body ng-if="attributes.length">
                 <table class="table table-condensed table-hover">
                     <thead>
                         <tr>
+                            <th class="col-sm-1">Resource Type</th>
                             <th class="col-sm-2">Name</th>
                             <th class="col-sm-3">Description</th>
                             <th class="col-sm-1">Required</th>
+                            <th class="col-sm-1">Display</th>
+                            <th class="col-sm-1">Multi</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr ng-repeat="attr in attributes">
+                            <td>[[attr.resource_name]]</td>
                             <td>
-                                <a href="/sites/[[siteId]]/network_attributes/[[attr.id]]"
+                                <a href="/sites/[[siteId]]/attributes/[[attr.id]]"
                                 >[[attr.name]]</a>
                             </td>
                             <td>[[attr.description]]</td>
                             <td>
                                 <i ng-if="attr.required" class="fa fa-check"></i>
+                            </td>
+                            <td>
+                                <i ng-if="attr.display" class="fa fa-check"></i>
+                            </td>
+                            <td>
+                                <i ng-if="attr.multi" class="fa fa-check"></i>
                             </td>
                         </tr>
                     </tbody>

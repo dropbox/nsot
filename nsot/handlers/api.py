@@ -310,17 +310,17 @@ class SiteHandler(ApiHandler):
         })
 
 
-class NetworkAttributesHandler(ApiHandler):
+class AttributesHandler(ApiHandler):
 
-    @any_perm("admin", "network_attrs")
+    @any_perm("admin")
     def post(self, site_id):
-        """ **Create a Network Attribute**
+        """ **Create an Attribute**
 
         **Example Request**:
 
         .. sourcecode:: http
 
-            POST /api/sites/1/network_attributes HTTP/1.1
+            POST /api/sites/1/attributes HTTP/1.1
             Host: localhost
             Content-Type: application/json
             X-NSoT-Email: user@localhost
@@ -328,6 +328,7 @@ class NetworkAttributesHandler(ApiHandler):
             {
                 "name": "owner",
                 "description": "Owner Attribute.",
+                "resource_name": "Network",
                 "required": false
             }
 
@@ -336,29 +337,37 @@ class NetworkAttributesHandler(ApiHandler):
         .. sourcecode:: http
 
             HTTP/1.1 201 OK
-            Location: /api/sites/1/network_attributes/1
+            Location: /api/sites/1/attributes/1
 
             {
                 "status": "ok",
                 "data": {
-                    "network_attribute": {
+                    "attribute": {
                         "id": 1,
                         "name": "owner",
                         "description": "Owner Attribute.",
-                        "required": false
+                        "resource_name": "Network",
+                        "required": false,
+                        "display": false,
+                        "multi": false
                     }
                 }
             }
 
-        :permissions: * **admin**, **network_attrs**
+        :permissions: * **admin**
 
         :param site_id: ID of the Site where this should be created.
         :type site_id: int
 
         :reqjson string name: The name of the Attribute
+        :reqjson string resource_name: The type of resource this attribute is for (e.g. Network)
         :reqjson string description: (*optional*) A helpful description of
                                      the Attribute
         :reqjson bool required: (*optional*) Whether this attribute should be required.
+        :reqjson bool display: (*optional*) Whether this attribute should be be displayed
+                               by default in UIs.
+        :reqjson bool multi: (*optional*) Whether the attribute should be treated as a
+                             list type.
 
         :reqheader Content-Type: The server expects a json body specified with
                                  this header.
@@ -379,36 +388,40 @@ class NetworkAttributesHandler(ApiHandler):
 
         try:
             name = self.jbody["name"]
+            resource_name = self.jbody["resource_name"]
             description = self.jbody.get("description")
-            required = qpbool(self.jbody.get("required"))
+            required = self.jbody.get("required", False)
+            display = self.jbody.get("display", False)
+            multi = self.jbody.get("multi", False)
         except KeyError as err:
             raise exc.BadRequest("Missing Required Argument: {}".format(err.message))
 
         try:
-            attribute = models.NetworkAttribute.create(
+            attribute = models.Attribute.create(
                 self.session, self.current_user.id,
                 site_id=site_id, name=name, description=description,
-                required=required
+                resource_name=resource_name, required=required, display=display,
+                multi=multi
             )
         except IntegrityError as err:
             raise exc.Conflict(str(err.orig))
         except exc.ValidationError as err:
             raise exc.BadRequest(err.message)
 
-        self.created("/api/sites/{}/network_attributes/{}".format(
+        self.created("/api/sites/{}/attributes/{}".format(
             site_id, attribute.id
         ), {
-            "network_attribute": attribute.to_dict(),
+            "attribute": attribute.to_dict(),
         })
 
     def get(self, site_id):
-        """ **Get all Network Attributes**
+        """ **Get all Attributes**
 
         **Example Request**:
 
         .. sourcecode:: http
 
-            GET /api/sites/1/network_attributes HTTP/1.1
+            GET /api/sites/1/attributes HTTP/1.1
             Host: localhost
             X-NSoT-Email: user@localhost
 
@@ -422,13 +435,16 @@ class NetworkAttributesHandler(ApiHandler):
             {
                 "status": "ok",
                 "data": {
-                    "network_attributes": [
+                    "attributes": [
                         {
                             "id": 1,
                             "site_id": 1,
                             "name": "vlan",
                             "description": "",
-                            "required": false
+                            "resource_name": "Network",
+                            "required": false,
+                            "display": false,
+                            "multi": false
                         }
                     ],
                     "limit": null,
@@ -437,13 +453,15 @@ class NetworkAttributesHandler(ApiHandler):
                 }
             }
 
-        :param site_id: ID of the Site to retrieve Network Attributes from.
+        :param site_id: ID of the Site to retrieve Attributes from.
         :type site_id: int
 
         :query int limit: (*optional*) Limit result to N resources.
         :query int offset: (*optional*) Skip the first N resources.
         :query string name: (*optional*) Filter to attribute with name
         :query bool required: (*optional*) Filter to attributes that are required
+        :query bool display: (*optional*) Filter to attributes meant to be displayed.
+        :query bool multi: (*optional*) Filter on whether list type or not
 
         :reqheader X-NSoT-Email: required for all api requests.
 
@@ -456,38 +474,46 @@ class NetworkAttributesHandler(ApiHandler):
             raise exc.NotFound("No such Site found at id {}".format(site_id))
 
         name = self.get_argument("name", None)
-        required = qpbool(self.get_argument("required", None))
+        resource_name = self.get_argument("resource_name", None)
+        required = self.get_argument("required", None)
+        display = self.get_argument("display", None)
+        multi = self.get_argument("multi", None)
 
-        attributes = self.session.query(models.NetworkAttribute).filter_by(
+        attributes = self.session.query(models.Attribute).filter_by(
             site_id=site_id
         )
 
         if name is not None:
-            attributes = attributes.filter_by(name=name)
-
-        if required:
-            attributes = attributes.filter_by(required=True)
+            attributes = attributes.filter_by(name=qpbool(name))
+        if resource_name is not None:
+            attributes = attributes.filter_by(resource_name=qpbool(resource_name))
+        if required is not None:
+            attributes = attributes.filter_by(required=qpbool(required))
+        if display is not None:
+            attributes = attributes.filter_by(display=qpbool(display))
+        if multi is not None:
+            attributes = attributes.filter_by(multi=qpbool(multi))
 
         offset, limit = self.get_pagination_values()
         attributes, total = self.paginate_query(attributes, offset, limit)
 
         self.success({
-            "network_attributes": [attribute.to_dict() for attribute in attributes],
+            "attributes": [attribute.to_dict() for attribute in attributes],
             "limit": limit,
             "offset": offset,
             "total": total,
         })
 
 
-class NetworkAttributeHandler(ApiHandler):
+class AttributeHandler(ApiHandler):
     def get(self, site_id, attribute_id):
-        """ **Get a specific Network Attribute**
+        """ **Get a specific Attribute**
 
         **Example Request**:
 
         .. sourcecode:: http
 
-            GET /api/sites/1/network_attributes/1 HTTP/1.1
+            GET /api/sites/1/attributes/1 HTTP/1.1
             Host: localhost
             X-NSoT-Email: user@localhost
 
@@ -501,12 +527,15 @@ class NetworkAttributeHandler(ApiHandler):
             {
                 "status": "ok",
                 "data": {
-                    "network_attribute": {
+                    "attribute": {
                         "id": 1,
                         "site_id": 1,
                         "name": "vlan",
                         "description": "",
-                        "required": false
+                        "resource_name": "Network",
+                        "required": false,
+                        "display": false,
+                        "multi": false
                     }
                 }
             }
@@ -514,7 +543,7 @@ class NetworkAttributeHandler(ApiHandler):
         :param site_id: ID of the Site this Attribute is under.
         :type site_id: int
 
-        :param attribute_id: ID of the NetworkAttribute being retrieved.
+        :param attribute_id: ID of the Attribute being retrieved.
         :type attribute_id: int
 
         :reqheader X-NSoT-Email: required for all api requests.
@@ -527,31 +556,31 @@ class NetworkAttributeHandler(ApiHandler):
         if not site:
             raise exc.NotFound("No such Site found at id {}".format(site_id))
 
-        attribute = self.session.query(models.NetworkAttribute).filter_by(
+        attribute = self.session.query(models.Attribute).filter_by(
             id=attribute_id,
             site_id=site_id
         ).scalar()
 
         if not attribute:
             raise exc.NotFound(
-                "No such NetworkAttribute found at (site_id, id) = ({}, {})".format(
+                "No such Attribute found at (site_id, id) = ({}, {})".format(
                     site_id, attribute_id
                 )
             )
 
         self.success({
-            "network_attribute": attribute.to_dict(),
+            "attribute": attribute.to_dict(),
         })
 
-    @any_perm("admin", "network_attrs")
+    @any_perm("admin")
     def put(self, site_id, attribute_id):
-        """ **Update a Network Attribute**
+        """ **Update an Attribute**
 
         **Example Request**:
 
         .. sourcecode:: http
 
-            PUT /api/sites/1/network_attributes/1 HTTP/1.1
+            PUT /api/sites/1/attributes/1 HTTP/1.1
             Host: localhost
             Content-Type: application/json
             X-NSoT-Email: user@localhost
@@ -571,27 +600,34 @@ class NetworkAttributeHandler(ApiHandler):
             {
                 "status": "ok",
                 "data": {
-                    "network_attribute": {
+                    "attribute": {
                         "id": 1,
                         "name": "vlan",
                         "description": "Attribute Description",
-                        "required": true
+                        "resource_name": "Network",
+                        "required": true,
+                        "display": false,
+                        "multi": false
                     }
                 }
             }
 
 
-        :permissions: * **admin**, **network_attrs**
+        :permissions: * **admin**
 
         :param site_id: ID of the Site that should be updated.
         :type site_id: int
 
-        :param attribute_id: ID of the NetworkAttribute being updated.
+        :param attribute_id: ID of the Attribute being updated.
         :type attribute_id: int
 
         :reqjson string description: (*optional*) A helpful description of
                                      the Attribute
         :reqjson bool required: (*optional*) Whether this attribute should be required.
+        :reqjson bool display: (*optional*) Whether this attribute should be be displayed
+                               by default in UIs.
+        :reqjson bool multi: (*optional*) Whether the attribute should be treated as a
+                             list type.
 
         :reqheader Content-Type: The server expects application/json.
         :reqheader X-NSoT-Email: required for all api requests.
@@ -607,21 +643,23 @@ class NetworkAttributeHandler(ApiHandler):
         if not site:
             raise exc.NotFound("No such Site found at id {}".format(site_id))
 
-        attribute = self.session.query(models.NetworkAttribute).filter_by(
+        attribute = self.session.query(models.Attribute).filter_by(
             id=attribute_id,
             site_id=site_id
         ).scalar()
 
         if not attribute:
             raise exc.NotFound(
-                "No such NetworkAttribute found at (site_id, id) = ({}, {})".format(
+                "No such Attribute found at (site_id, id) = ({}, {})".format(
                     site_id, attribute_id
                 )
             )
 
         try:
             description = self.jbody.get("description", "")
-            required = qpbool(self.jbody.get("required"))
+            required = self.jbody.get("required", False)
+            display = self.jbody.get("display", False)
+            multi = self.jbody.get("multi", False)
         except KeyError as err:
             raise exc.BadRequest("Missing Required Argument: {}".format(err.message))
 
@@ -629,6 +667,7 @@ class NetworkAttributeHandler(ApiHandler):
             attribute.update(
                 self.current_user.id,
                 description=description, required=required,
+                display=display, multi=multi
             )
         except IntegrityError as err:
             raise exc.Conflict(str(err.orig))
@@ -636,18 +675,18 @@ class NetworkAttributeHandler(ApiHandler):
             raise exc.BadRequest(err.message)
 
         self.success({
-            "network_attribute": attribute.to_dict(),
+            "attribute": attribute.to_dict(),
         })
 
-    @any_perm("admin", "network_attrs")
+    @any_perm("admin")
     def delete(self, site_id, attribute_id):
-        """ **Delete a Network Attribute**
+        """ **Delete an Attribute**
 
         **Example Request**:
 
         .. sourcecode:: http
 
-            DELETE /api/sites/1/network_attributes/1 HTTP/1.1
+            DELETE /api/sites/1/attributes/1 HTTP/1.1
             Host: localhost
             X-NSoT-Email: user@localhost
 
@@ -661,17 +700,17 @@ class NetworkAttributeHandler(ApiHandler):
             {
                 "status": "ok",
                 "data": {
-                    "message": NetworkAttribute 1 deleted."
+                    "message": Attribute 1 deleted."
                 }
             }
 
 
-        :permissions: * **admin**, **network_attrs**
+        :permissions: * **admin**
 
         :param site_id: ID of the Site that should be updated.
         :type site_id: int
 
-        :param attribute_id: ID of the NetworkAttribute being deleted.
+        :param attribute_id: ID of the Attribute being deleted.
         :type attribute_id: int
 
         :reqheader X-NSoT-Email: required for all api requests.
@@ -686,14 +725,14 @@ class NetworkAttributeHandler(ApiHandler):
         if not site:
             raise exc.NotFound("No such Site found at id {}".format(site_id))
 
-        attribute = self.session.query(models.NetworkAttribute).filter_by(
+        attribute = self.session.query(models.Attribute).filter_by(
             id=attribute_id,
             site_id=site_id
         ).scalar()
 
         if not attribute:
             raise exc.NotFound(
-                "No such NetworkAttribute found at (site_id, id) = ({}, {})".format(
+                "No such Attribute found at (site_id, id) = ({}, {})".format(
                     site_id, attribute_id
                 )
             )
@@ -704,7 +743,7 @@ class NetworkAttributeHandler(ApiHandler):
             raise exc.Conflict(err.orig.message)
 
         self.success({
-            "message": "NetworkAttribute {} deleted from Site {}.".format(
+            "message": "Attribute {} deleted from Site {}.".format(
                 attribute_id, site_id
             ),
         })
@@ -712,7 +751,7 @@ class NetworkAttributeHandler(ApiHandler):
 
 class NetworksHandler(ApiHandler):
 
-    @any_perm("admin", "networks")
+    @any_perm("admin")
     def post(self, site_id):
         """ **Create a Network**
 
@@ -755,7 +794,7 @@ class NetworksHandler(ApiHandler):
                 }
             }
 
-        :permissions: * **admin**, **networks**
+        :permissions: * **admin**
 
         :param site_id: ID of the Site where this should be created.
         :type site_id: int
@@ -949,7 +988,7 @@ class NetworkHandler(ApiHandler):
             "network": network.to_dict(),
         })
 
-    @any_perm("admin", "networks")
+    @any_perm("admin")
     def put(self, site_id, network_id):
         """ **Update a Network**
 
@@ -990,12 +1029,12 @@ class NetworkHandler(ApiHandler):
             }
 
 
-        :permissions: * **admin**, **networks**
+        :permissions: * **admin**
 
         :param site_id: ID of the Site that should be updated.
         :type site_id: int
 
-        :param network_id: ID of the NetworkAttribute being updated.
+        :param network_id: ID of the Attribute being updated.
         :type network_id: int
 
         :reqjson object attributes: (*optional*) A key/value pair of attributes
@@ -1043,7 +1082,7 @@ class NetworkHandler(ApiHandler):
             "network": network.to_dict(),
         })
 
-    @any_perm("admin", "networks")
+    @any_perm("admin")
     def delete(self, site_id, network_id):
         """ **Delete a Network**
 
@@ -1070,7 +1109,7 @@ class NetworkHandler(ApiHandler):
             }
 
 
-        :permissions: * **admin**, **networks**
+        :permissions: * **admin**
 
         :param site_id: ID of the Site that should be updated.
         :type site_id: int
@@ -1334,7 +1373,7 @@ class ChangesHandler(ApiHandler):
                             },
                             "change_at": 1420062748,
                             "event": "Create",
-                            "resource_type": "Site",
+                            "resource_name": "Site",
                             "resource_id": 1,
                             "resource": {
                                 "name": "New Site",
@@ -1355,10 +1394,10 @@ class ChangesHandler(ApiHandler):
         :query int offset: (*optional*) Skip the first N resources.
         :query string event: (*optional*) Filter result to specific event.
                              Default: false
-        :query string resource_type: (*optional*) Filter result to specific
+        :query string resource_name: (*optional*) Filter result to specific
                                      resource type. Default: false
         :query string resource_id: (*optional*) Filter result to specific resource id.
-                                   Requires: resource_type, Default: false
+                                   Requires: resource_name, Default: false
 
         :reqheader X-NSoT-Email: required for all api requests.
 
@@ -1372,13 +1411,13 @@ class ChangesHandler(ApiHandler):
         if event is not None and event not in models.CHANGE_EVENTS:
             raise exc.BadRequest("Invalid event.")
 
-        resource_type = self.get_argument("resource_type", None)
-        if resource_type is not None and resource_type not in models.RESOURCE_BY_NAME:
+        resource_name = self.get_argument("resource_name", None)
+        if resource_name is not None and resource_name not in models.RESOURCE_BY_NAME:
             raise exc.BadRequest("Invalid resource type.")
 
         resource_id = self.get_argument("resource_id", None)
-        if resource_id is not None and resource_type is None:
-            raise exc.BadRequest("resource_id requires resource_type to be set.")
+        if resource_id is not None and resource_name is None:
+            raise exc.BadRequest("resource_id requires resource_name to be set.")
 
         changes = self.session.query(models.Change)
 
@@ -1391,8 +1430,8 @@ class ChangesHandler(ApiHandler):
         if event is not None:
             changes = changes.filter_by(event=event)
 
-        if resource_type is not None:
-            changes = changes.filter_by(resource_type=resource_type)
+        if resource_name is not None:
+            changes = changes.filter_by(resource_name=resource_name)
 
         if resource_id is not None:
             changes = changes.filter_by(resource_id=resource_id)
@@ -1445,7 +1484,7 @@ class ChangeHandler(ApiHandler):
                         },
                         "change_at": 1420062748,
                         "event": "Create",
-                        "resource_type": "Site",
+                        "resource_name": "Site",
                         "resource_id": 1,
                         "resource": {
                             "name": "New Site",
@@ -1745,7 +1784,7 @@ class UserPermissionHandler(ApiHandler):
             X-NSoT-Email: user@localhost
 
             {
-                "permissions": ["networks", "network_attrs"]
+                "permissions": ["networks"]
             }
 
         **Example response**:
@@ -1761,12 +1800,12 @@ class UserPermissionHandler(ApiHandler):
                     "permission": {
                         "user_id": 2,
                         "site_id": 1,
-                        "permissions": ["networks", "network_attrs"]
+                        "permissions": ["networks"]
                     }
                 }
             }
 
-        :permissions: * **admin**, **networks**
+        :permissions: * **admin**
 
         :param user_id: ID of the User
         :type user_id: int

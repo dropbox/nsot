@@ -64,7 +64,7 @@ def test_deletion(tornado_server):
     client = Client(tornado_server)
 
     client.create("/sites", name="Test Site")
-    client.create("/sites/1/network_attributes", name="attr1")
+    client.create("/sites/1/attributes", resource_name="Network", name="attr1")
     client.create("/sites/1/networks",
         cidr="10.0.0.0/24", attributes={"attr1": "foo"}
     )
@@ -77,6 +77,6 @@ def test_deletion(tornado_server):
     # Stile Don't allow delete when there's an attached attribute
     assert_error(client.delete("/sites/1"), 409)
 
-    client.delete("/sites/1/network_attributes/1")
+    client.delete("/sites/1/attributes/1")
 
     assert_deleted(client.delete("/sites/1"))

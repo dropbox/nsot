@@ -15,7 +15,7 @@ def test_create_1024(session, admin, site):
 
     address = u"10.0.0.0/22"
     models.Network.create(session, uid, sid, address)
-    models.NetworkAttribute.create(session, uid, site_id=sid, name="aaaa")
+    models.Attribute.create(session, uid, resource_name="Network", site_id=sid, name="aaaa")
 
     start = time.time()
     network = ipaddress.ip_network(address)

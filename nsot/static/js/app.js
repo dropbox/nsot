@@ -52,13 +52,13 @@
             templateUrl: "/static/templates/network.html",
             controller: "NetworkController"
         })
-        .when("/sites/:siteId/network_attributes", {
-            templateUrl: "/static/templates/network-attributes.html",
-            controller: "NetworkAttributesController"
+        .when("/sites/:siteId/attributes", {
+            templateUrl: "/static/templates/attributes.html",
+            controller: "AttributesController"
         })
-        .when("/sites/:siteId/network_attributes/:networkAttributeId", {
-            templateUrl: "/static/templates/network-attribute.html",
-            controller: "NetworkAttributeController"
+        .when("/sites/:siteId/attributes/:attributeId", {
+            templateUrl: "/static/templates/attribute.html",
+            controller: "AttributeController"
         })
         .when("/sites/:siteId/changes", {
             templateUrl: "/static/templates/changes.html",

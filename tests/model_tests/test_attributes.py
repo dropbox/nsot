@@ -8,13 +8,14 @@ from .fixtures import session, site, user, admin
 
 
 def test_creation(session, site, admin):
-    models.NetworkAttribute.create(
+    models.Attribute.create(
         session, admin.id,
+        resource_name="Network",
         site_id=site.id, name="test_attribute"
     )
     session.commit()
 
-    attributes = session.query(models.NetworkAttribute).all()
+    attributes = session.query(models.Attribute).all()
     assert len(attributes) == 1
     assert attributes[0].id == 1
     assert attributes[0].site_id == site.id
@@ -23,38 +24,44 @@ def test_creation(session, site, admin):
 
 
 def test_conflict(session, site, admin):
-    models.NetworkAttribute.create(
+    models.Attribute.create(
         session, admin.id,
+        resource_name="Network",
         site_id=site.id, name="test_attribute"
     )
 
     with pytest.raises(IntegrityError):
-        models.NetworkAttribute.create(
+        models.Attribute.create(
             session, admin.id,
+            resource_name="Network",
             site_id=site.id, name="test_attribute"
         )
 
-    models.NetworkAttribute.create(
+    models.Attribute.create(
         session, admin.id,
+        resource_name="Network",
         site_id=site.id, name="test_attribute_2"
     )
 
 
 def test_validation(session, site, admin):
     with pytest.raises(exc.ValidationError):
-        models.NetworkAttribute.create(
+        models.Attribute.create(
             session, admin.id,
+            resource_name="Network",
             site_id=site.id, name=None,
         )
 
     with pytest.raises(exc.ValidationError):
-        models.NetworkAttribute.create(
+        models.Attribute.create(
             session, admin.id,
+            resource_name="Network",
             site_id=site.id, name="",
         )
 
-    attribute = models.NetworkAttribute.create(
+    attribute = models.Attribute.create(
         session, admin.id,
+        resource_name="Network",
         site_id=site.id, name="test_attribute"
     )
 
@@ -69,8 +76,9 @@ def test_validation(session, site, admin):
 
 
 def test_deletion(session, site, admin):
-    attribute = models.NetworkAttribute.create(
+    attribute = models.Attribute.create(
         session, admin.id,
+        resource_name="Network",
         site_id=site.id, name="test_attribute"
     )
 
@@ -86,13 +94,15 @@ def test_deletion(session, site, admin):
     attribute.delete(admin.id)
 
 def test_required(session, site, admin):
-    attribute_1 = models.NetworkAttribute.create(
+    attribute_1 = models.Attribute.create(
         session, admin.id,
+        resource_name="Network",
         site_id=site.id, name="required_1", required=True
     )
 
-    attribute_2 = models.NetworkAttribute.create(
+    attribute_2 = models.Attribute.create(
         session, admin.id,
+        resource_name="Network",
         site_id=site.id, name="required_2", required=True
     )
 
@@ -117,3 +127,34 @@ def test_required(session, site, admin):
             "required_2": "bar",
         }
     )
+
+
+def test_multi(session, site, admin):
+    multi = models.Attribute.create(
+        session, admin.id,
+        resource_name="Network", display=True,
+        site_id=site.id, name="multi", multi=True
+    )
+
+    not_multi = models.Attribute.create(
+        session, admin.id,
+        resource_name="Network",
+        site_id=site.id, name="not_multi", multi=False
+    )
+
+    models.Network.create(session, admin.id, site.id, cidr=u"10.0.0.0/8")
+
+    models.Network.create(
+        session, admin.id, site.id, cidr=u"10.0.0.1",
+        attributes={
+            "multi": ["test", "testing", "testtttt"]
+        }
+    )
+
+    with pytest.raises(exc.ValidationError):
+        models.Network.create(
+            session, admin.id, site.id, cidr=u"10.0.0.2",
+            attributes={
+                "not_multi": ["test", "testing", "testtttt"]
+            }
+        )

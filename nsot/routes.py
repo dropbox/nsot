@@ -6,9 +6,9 @@ HANDLERS = [
     (r"/api/sites", api.SitesHandler),
     (r"/api/sites/(?P<site_id>\d+)", api.SiteHandler),
 
-    # NetworkAttributes
-    (r"/api/sites/(?P<site_id>\d+)/network_attributes", api.NetworkAttributesHandler),
-    (r"/api/sites/(?P<site_id>\d+)/network_attributes/(?P<attribute_id>\d+)", api.NetworkAttributeHandler),
+    # Attributes
+    (r"/api/sites/(?P<site_id>\d+)/attributes", api.AttributesHandler),
+    (r"/api/sites/(?P<site_id>\d+)/attributes/(?P<attribute_id>\d+)", api.AttributeHandler),
 
     # Networks
     (r"/api/sites/(?P<site_id>\d+)/networks", api.NetworksHandler),

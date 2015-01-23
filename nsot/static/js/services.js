@@ -12,7 +12,10 @@
 
         var resourceTransform = appendTransform(
             $http.defaults.transformResponse, function(response) {
-                return response.data[resourceName];
+                if (response.status == "ok") {
+                    return response.data[resourceName];
+                }
+                return response;
             }
         );
 
@@ -82,11 +85,11 @@
         );
     }]);
 
-    app.factory("NetworkAttribute", ["$resource", "$http", function($resource, $http){
+    app.factory("Attribute", ["$resource", "$http", function($resource, $http){
         return $resource(
-            "/api/sites/:siteId/network_attributes/:id",
+            "/api/sites/:siteId/attributes/:id",
             { siteId: "@siteId", id: "@id" },
-            buildActions($http, "network_attribute", "network_attributes")
+            buildActions($http, "attribute", "attributes")
         );
     }]);
 

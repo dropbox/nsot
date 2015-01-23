@@ -5,7 +5,6 @@ import bittle
 PermissionsFlag = bittle.FlagWord([
     "admin",        # Someone who is an admin has full permissions
                     # within a site. Admins are able to grant other
-                    # permissions
-    "networks",     # Allows a User to add/update/remove Networks.
-    "network_attrs" # Allows a User to add/update/remove Network Attributes.
+                    # permissions as well as Create/Update/Delete all
+                    # resources.
 ])

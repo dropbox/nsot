@@ -13,7 +13,10 @@ def test_creation(tornado_server):
     user_client = Client(tornado_server, "user")
 
     admin_client.create("/sites", name="Test Site")  # 1
-    admin_client.create("/sites/1/network_attributes", name="attr1")  # 1
+    admin_client.create(
+        "/sites/1/attributes",
+        resource_name="Network", name="attr1"
+    )  # 1
 
     # Invalid permissions
     assert_error(
@@ -81,7 +84,9 @@ def test_update(tornado_server):
     user_client = Client(tornado_server, "user")
 
     admin_client.create("/sites", name="Test Site")  # 1
-    admin_client.create("/sites/1/network_attributes", name="attr1")  # 1
+    admin_client.create(
+        "/sites/1/attributes", resource_name="Network", name="attr1"
+    )  # 1
     admin_client.create("/sites/1/networks",
         cidr="10.0.0.0/24", attributes={"attr1": "foo"}
     )
