@@ -40,6 +40,17 @@ def test_creation(tornado_server):
         {"site": {"description": "", "id": 1, "name": "Test Site"}}
     )
 
+    assert_created(client.create("/sites", name="Test Site 2"), "/api/sites/2")
+    assert_success(
+        client.get("/sites", params={"name": "Test Site"}),
+        {
+            "sites": [{"description": "", "id": 1, "name": "Test Site"}],
+            "limit": None,
+            "offset": 0,
+            "total": 1,
+        }
+    )
+
 
 def test_update(tornado_server):
     client = Client(tornado_server)

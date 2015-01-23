@@ -118,13 +118,19 @@ class SitesHandler(ApiHandler):
 
         :reqheader X-NSoT-Email: required for all api requests.
 
+        :query string name: (*optional*) Filter to site with name.
         :query int limit: (*optional*) Limit result to N resources.
         :query int offset: (*optional*) Skip the first N resources.
 
         :statuscode 200: The request was successful.
         :statuscode 401: The request was made without being logged in.
         """
+        name = self.get_argument("name", None)
+
         sites = self.session.query(models.Site)
+        if name is not None:
+            sites = sites.filter_by(name=name)
+
         offset, limit = self.get_pagination_values()
         sites, total = self.paginate_query(sites, offset, limit)
 
@@ -484,9 +490,9 @@ class AttributesHandler(ApiHandler):
         )
 
         if name is not None:
-            attributes = attributes.filter_by(name=qpbool(name))
+            attributes = attributes.filter_by(name=name)
         if resource_name is not None:
-            attributes = attributes.filter_by(resource_name=qpbool(resource_name))
+            attributes = attributes.filter_by(resource_name=resource_name)
         if required is not None:
             attributes = attributes.filter_by(required=qpbool(required))
         if display is not None:
