@@ -40,6 +40,11 @@ def test_creation(tornado_server):
                     "id": 1, "name": "attr1", "description": "",
                     "required": False, "resource_name": "Network",
                     "site_id": 1, "display": False, "multi": False,
+                    "constraints": {
+                        "allow_empty": False,
+                        "pattern": "",
+                        "valid_values": []
+                    }
                 },
             ],
             "limit": None,
@@ -55,6 +60,11 @@ def test_creation(tornado_server):
         {"attribute": {
             "id": 1, "name": "attr1", "description": "", "resource_name": "Network",
             "required": False, "site_id": 1, "display": False, "multi": False,
+            "constraints": {
+                "allow_empty": False,
+                "pattern": "",
+                "valid_values": []
+            }
         }}
 
     )
@@ -75,6 +85,11 @@ def test_update(tornado_server):
             "id": 1, "name": "attr1", "description": "Attribute 1",
             "required": False, "site_id": 1, "resource_name": "Network",
             "display": False, "multi": False,
+            "constraints": {
+                "allow_empty": False,
+                "pattern": "",
+                "valid_values": []
+            }
         }}
     )
 
@@ -84,6 +99,11 @@ def test_update(tornado_server):
             "id": 1, "name": "attr1", "description": "",
             "required": True, "site_id": 1, "resource_name": "Network",
             "display": True, "multi": False,
+            "constraints": {
+                "allow_empty": False,
+                "pattern": "",
+                "valid_values": []
+            }
         }}
     )
 
@@ -93,6 +113,11 @@ def test_update(tornado_server):
             "id": 1, "name": "attr1", "description": "",
             "required": False, "site_id": 1, "resource_name": "Network",
             "display": False, "multi": False,
+            "constraints": {
+                "allow_empty": False,
+                "pattern": "",
+                "valid_values": []
+            }
         }}
     )
 

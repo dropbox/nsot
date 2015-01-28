@@ -355,7 +355,12 @@ class AttributesHandler(ApiHandler):
                         "resource_name": "Network",
                         "required": false,
                         "display": false,
-                        "multi": false
+                        "multi": false,
+                        "constraints": {
+                            "allow_empty": false,
+                            "pattern": "",
+                            "valid_values": []
+                        }
                     }
                 }
             }
@@ -450,7 +455,12 @@ class AttributesHandler(ApiHandler):
                             "resource_name": "Network",
                             "required": false,
                             "display": false,
-                            "multi": false
+                            "multi": false,
+                            "constraints": {
+                                "allow_empty": false,
+                                "pattern": "",
+                                "valid_values": []
+                            }
                         }
                     ],
                     "limit": null,
@@ -541,7 +551,12 @@ class AttributeHandler(ApiHandler):
                         "resource_name": "Network",
                         "required": false,
                         "display": false,
-                        "multi": false
+                        "multi": false,
+                        "constraints": {
+                            "allow_empty": false,
+                            "pattern": "",
+                            "valid_values": []
+                        }
                     }
                 }
             }
@@ -613,7 +628,12 @@ class AttributeHandler(ApiHandler):
                         "resource_name": "Network",
                         "required": true,
                         "display": false,
-                        "multi": false
+                        "multi": false,
+                        "constraints": {
+                            "allow_empty": false,
+                            "pattern": "",
+                            "valid_values": []
+                        }
                     }
                 }
             }

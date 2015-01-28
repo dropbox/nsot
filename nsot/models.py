@@ -6,6 +6,7 @@ from email.utils import parseaddr
 from operator import attrgetter
 import functools
 import ipaddress
+import re
 import json
 import logging
 import time
@@ -450,9 +451,9 @@ class Network(Model):
             valid_attributes = Attribute.all_by_name(self.session, "Network")
 
         missing_attributes = {
-            value["name"]
-            for value in valid_attributes.itervalues()
-            if value["required"] and value["name"] not in attributes
+            attribute.name
+            for attribute in valid_attributes.itervalues()
+            if attribute.required and attribute.name not in attributes
         }
 
         if missing_attributes:
@@ -470,38 +471,11 @@ class Network(Model):
             if not isinstance(name, basestring):
                 raise exc.ValidationError("Attribute names must be a string type")
 
-            is_multi = valid_attributes[name]["multi"]
-            if is_multi:
-                if not isinstance(value, list):
-                    raise exc.ValidationError("Attribute values must be a list type")
-                all_str = all([
-                    isinstance(elem, basestring) and bool(elem)
-                    for elem in value
-                ])
-                if not all_str:
-                    raise exc.ValidationError(
-                        "All attribute values in list must be a string type"
-                    )
-            else:
-                if not isinstance(value, basestring):
-                    raise exc.ValidationError("Attribute values must be a string type")
+            attribute = valid_attributes[name]
+            inserts.extend(attribute.validate_value(value))
 
-            attribute_meta_id = valid_attributes[name]["id"]
-            if is_multi:
-                for elem in value:
-                    inserts.append({
-                        "network_id": self.id,
-                        "attribute_id": attribute_meta_id,
-                        "name": name,
-                        "value": elem,
-                    })
-            else:
-                inserts.append({
-                    "network_id": self.id,
-                    "attribute_id": attribute_meta_id,
-                    "name": name,
-                    "value": value,
-                })
+        for insert in inserts:
+            insert["network_id"] = self.id
 
         self._purge_attribute_index()
         if inserts:
@@ -707,6 +681,8 @@ class Attribute(Model):
     # Attribute values are expected as lists of strings.
     multi = Column(Boolean, default=False, nullable=False)
 
+    _constraints = Column("constraints", Text, nullable=True)
+
     @validates("name")
     def validate_name(self, key, value):
         if not value:
@@ -736,9 +712,93 @@ class Attribute(Model):
             query = query.filter_by(resource_name=resource_name)
 
         return {
-            attribute.name: attribute.to_dict()
+            attribute.name: attribute
             for attribute in query.all()
         }
+
+    @property
+    def constraints(self):
+        constraints = {}
+        if self._constraints is not None:
+            constraints = json.loads(self._constraints)
+
+        return {
+            "allow_empty": constraints.get("allow_empty", False),
+            "pattern": constraints.get("pattern", ""),
+            "valid_values": constraints.get("valid_values", []),
+        }
+
+    @constraints.setter
+    def constraints(self, value):
+        if not isinstance(value, dict):
+            raise exc.ValidationError("Expected dictionary but received {}".format(
+                type(attributes)
+            ))
+
+        constraints = {
+            "allow_empty": value.get("allow_empty", False),
+            "pattern": value.get("pattern", ""),
+            "valid_values": value.get("valid_values", []),
+        }
+
+        if not isinstance(constraints["allow_empty"], bool):
+            raise exc.ValidationError("allow_empty expected type bool.")
+
+        if not isinstance(constraints["pattern"], basestring):
+            raise exc.ValidationError("pattern expected type string.")
+
+        if not isinstance(constraints["valid_values"], list):
+            raise exc.ValidationError("valid_values expected type list")
+
+        self._constraints = json.dumps(constraints)
+
+    def _validate_single_value(self, value, constraints=None):
+        if not isinstance(value, basestring):
+            raise exc.ValidationError("Attribute values must be a string type")
+
+        if constraints is None:
+            constraints = self.constraints
+
+        allow_empty = constraints.get("allow_empty", False)
+        if not allow_empty and not value:
+            raise exc.ValidationError(
+                "Attribute {} doesn't allow empty values".format(self.name)
+            )
+
+        pattern = constraints.get("pattern")
+        if pattern and not re.match(pattern, value):
+            raise exc.ValidationError(
+                "Attribute value {} for {} didn't match pattern: {}"
+                .format(value, self.name, pattern)
+            )
+
+        valid_values = set(constraints.get("valid_values", []))
+        if valid_values and value not in valid_values:
+            raise exc.ValidationError(
+                "Attribute value {} for {} not a valid value: {}"
+                .format(value, self.name, ", ".join(valid_values))
+            )
+
+        return {
+            "attribute_id": self.id,
+            "name": self.name,
+            "value": value,
+        }
+
+    def validate_value(self, value):
+        if self.multi:
+            if not isinstance(value, list):
+                raise exc.ValidationError("Attribute values must be a list type")
+        else:
+            value = [value]
+
+        inserts = []
+        # This does a deserialization so save the result
+        constraints = self.constraints
+        for val in value:
+            inserts.append(self._validate_single_value(val, constraints))
+
+        return inserts
 
     def to_dict(self):
         return {
@@ -750,6 +810,7 @@ class Attribute(Model):
             "required": self.required,
             "display": self.display,
             "multi": self.multi,
+            "constraints": self.constraints,
         }
 
 

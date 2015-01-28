@@ -158,3 +158,55 @@ def test_multi(session, site, admin):
                 "not_multi": ["test", "testing", "testtttt"]
             }
         )
+
+
+def test_constraints(session, site, admin):
+    default = models.Attribute.create(
+        session, admin.id,
+        resource_name="Network", site_id=site.id, name="default"
+    )
+
+    allow_empty = models.Attribute.create(
+        session, admin.id,
+        resource_name="Network", site_id=site.id, name="allow_empty",
+        constraints={"allow_empty": True}
+    )
+
+    pattern = models.Attribute.create(
+        session, admin.id,
+        resource_name="Network", site_id=site.id, name="pattern",
+        constraints={"pattern": "\d\d\d+"}
+    )
+
+    valid = models.Attribute.create(
+        session, admin.id,
+        resource_name="Network", site_id=site.id, name="valid",
+        constraints={"valid_values": ["foo", "bar", "baz"]}
+    )
+
+    network = models.Network.create(session, admin.id, site.id, cidr=u"10.0.0.0/8")
+
+    with pytest.raises(exc.ValidationError):
+        network.update(admin.id, attributes={"default": ""})
+
+    # Test allow_empty
+    network.update(admin.id, attributes={"allow_empty": ""})
+
+    # Test pattern
+    with pytest.raises(exc.ValidationError):
+        network.update(admin.id, attributes={"pattern": ""})
+
+    with pytest.raises(exc.ValidationError):
+        network.update(admin.id, attributes={"pattern": "foo"})
+
+    with pytest.raises(exc.ValidationError):
+        network.update(admin.id, attributes={"pattern": "10"})
+
+    network.update(admin.id, attributes={"pattern": "100"})
+    network.update(admin.id, attributes={"pattern": "1000000"})
+
+    # Test valid_values
+    with pytest.raises(exc.ValidationError):
+        network.update(admin.id, attributes={"valid": "hello"})
+
+    network.update(admin.id, attributes={"valid": "foo"})
