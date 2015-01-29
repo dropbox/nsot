@@ -309,9 +309,12 @@
         $scope.loading = true;
         $scope.user = null;
         $scope.attributes = [];
-        $scope.attribute = new Attribute()
         $scope.error = null;
         $scope.admin = false;
+        $scope.formMode = "create";
+        $scope.formUrl = "/static/templates/includes/attributes-form.html";
+        $scope.formData = {};
+
         var siteId = $scope.siteId = $routeParams.siteId;
 
         $q.all([
@@ -330,7 +333,8 @@
         });
 
         $scope.createAttribute = function(){
-            $scope.attribute.$save({siteId: siteId}, function(attr){
+            var attribute = Attribute.fromForm($scope.formData);
+            attribute.$save({siteId: siteId}, function(attr){
                 $location.path(
                     "/sites/" + siteId + "/attributes/" + attr.id
                 );
@@ -354,6 +358,10 @@
         $scope.admin = false;
         $scope.updateError = null;
         $scope.deleteError = null;
+        $scope.formMode = "update";
+        $scope.formUrl = "/static/templates/includes/attributes-form.html";
+        $scope.formData = {};
+
         var siteId = $scope.siteId = $routeParams.siteId;
         var attributeId = $scope.attributeId = $routeParams.attributeId;
 
@@ -363,6 +371,7 @@
         ]).then(function(results){
             $scope.user = results[0];
             $scope.attribute = results[1];
+            $scope.formData = $scope.attribute.toForm();
             $scope.admin = $scope.user.isAdmin(siteId, ["admin"]);
             $scope.loading = false;
         }, function(data){
@@ -373,6 +382,7 @@
         });
 
         $scope.updateAttribute = function(){
+            $scope.attribute.updateFromForm($scope.formData);
             $scope.attribute.$update({siteId: siteId}, function(){
                 $route.reload();
             }, function(data){

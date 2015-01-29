@@ -1,5 +1,8 @@
 <div class="modal fade" id="[[modalId]]" tabindex="-1" role="dialog">
-    <div class="modal-dialog">
+    <div class="modal-dialog" ng-class="{
+        'modal-lg': modalSize == 'large',
+        'modal-sm': modalSize == 'small'
+    }">
         <div class="modal-content">
             <div class="modal-header">
                 <button type="button" class="close close-light" data-dismiss="modal">

@@ -26,7 +26,7 @@
                     offset: response.data.offset,
                     total: response.data.total,
                     data: response.data[collectionName]
-                }
+                };
             }
         );
 
@@ -47,7 +47,7 @@
                 method: "POST", isArray: false,
                 transformResponse: resourceTransform,
             }
-        }
+        };
     }
 
     app.factory("Site", ["$resource", "$http", function($resource, $http){
@@ -72,7 +72,7 @@
             return _.any(user_permissions, function(value){
                 return _.contains(permissions, value);
             });
-        }
+        };
 
         return User;
     }]);
@@ -86,11 +86,53 @@
     }]);
 
     app.factory("Attribute", ["$resource", "$http", function($resource, $http){
-        return $resource(
+        var Attribute = $resource(
             "/api/sites/:siteId/attributes/:id",
             { siteId: "@siteId", id: "@id" },
             buildActions($http, "attribute", "attributes")
         );
+
+        Attribute.prototype.updateFromForm = function(formData) {
+            return _.extend(this, {
+                name: formData.name,
+                resource_name: formData.resourceName,
+                description: formData.description,
+                required: formData.required,
+                display: formData.display,
+                multi: formData.multi,
+                constraints: {
+                    pattern: formData.pattern,
+                    allow_empty: formData.allowEmpty,
+                    valid_values: _.map(formData.validValues, function(value){
+                        return value.text;
+                    })
+                }
+            });
+        };
+
+        Attribute.fromForm = function(formData) {
+            var attr = new Attribute();
+            attr.updateFromForm(formData);
+            return attr;
+        };
+
+        Attribute.prototype.toForm = function() {
+            return {
+                name: this.name,
+                resourceName: this.resource_name,
+                description: this.description,
+                required: this.required,
+                display: this.display,
+                multi: this.multi,
+                pattern: this.constraints.pattern,
+                allowEmpty: this.constraints.allow_empty,
+                validValues: _.map(this.constraints.valid_values, function(value) {
+                    return { text: value };
+                })
+            };
+        };
+
+        return Attribute;
     }]);
 
     app.factory("Network", ["$resource", "$http", function($resource, $http){
@@ -106,12 +148,12 @@
         var defaults = {
             limit: 10,
             offset: 0,
-        }
+        };
 
         return function() {
             var params = _.clone(defaults);
             return _.extend(params, $location.search());
-        }
+        };
 
     }]);
 
@@ -128,7 +170,7 @@
             this.limiter = new nsot.Limiter(
                 obj.limit, $location
             );
-        }
+        };
     }]);
 
 

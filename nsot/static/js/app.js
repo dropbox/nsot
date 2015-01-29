@@ -1,7 +1,7 @@
 (function() {
     "use strict";
 
-    var app = angular.module("nsotApp", ["ngRoute", "ngResource"]);
+    var app = angular.module("nsotApp", ["ngRoute", "ngResource", "ngTagsInput"]);
 
     app.config(function($interpolateProvider){
         $interpolateProvider.startSymbol("[[");

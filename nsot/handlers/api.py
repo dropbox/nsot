@@ -404,6 +404,7 @@ class AttributesHandler(ApiHandler):
             required = self.jbody.get("required", False)
             display = self.jbody.get("display", False)
             multi = self.jbody.get("multi", False)
+            constraints = self.jbody.get("constraints", {})
         except KeyError as err:
             raise exc.BadRequest("Missing Required Argument: {}".format(err.message))
 
@@ -412,7 +413,7 @@ class AttributesHandler(ApiHandler):
                 self.session, self.current_user.id,
                 site_id=site_id, name=name, description=description,
                 resource_name=resource_name, required=required, display=display,
-                multi=multi
+                multi=multi, constraints=constraints
             )
         except IntegrityError as err:
             raise exc.Conflict(str(err.orig))
@@ -686,6 +687,7 @@ class AttributeHandler(ApiHandler):
             required = self.jbody.get("required", False)
             display = self.jbody.get("display", False)
             multi = self.jbody.get("multi", False)
+            constraints = self.jbody.get("constraints", {})
         except KeyError as err:
             raise exc.BadRequest("Missing Required Argument: {}".format(err.message))
 
@@ -693,7 +695,7 @@ class AttributeHandler(ApiHandler):
             attribute.update(
                 self.current_user.id,
                 description=description, required=required,
-                display=display, multi=multi
+                display=display, multi=multi, constraints=constraints
             )
         except IntegrityError as err:
             raise exc.Conflict(str(err.orig))

@@ -13,40 +13,55 @@
         >Delete Attribute</button>
     </heading-bar>
 
-    <nsot-modal title="Update Attribute" modal-id="updateAttrModal">
+    <div class="row"><div class="col-sm-8 col-sm-offset-2">
+        <panel>
+            <panel-heading>
+                Attribute
+            </panel-heading>
+            <panel-body>
+                <dl class="dl-horizontal">
+                    <dt>Name</dt>
+                    <dd>[[attribute.name]]</dd>
+
+                    <dt>Resource Type</dt>
+                    <dd>[[attribute.resource_name]]</dd>
+
+                    <dt>Description</dt>
+                    <dd>[[attribute.description]]</dd>
+
+                    <dt>Value Pattern</dt>
+                    <dd>[[attribute.constraints.pattern]]</dd>
+
+                    <dt>Valid Values</dt>
+                    <dd>[[attribute.constraints.valid_values.join(", ")]]</dd>
+
+                    <dt>Required</dt>
+                    <dd><i ng-if="attribute.required" class="fa fa-check"></i></dd>
+
+                    <dt>Display</dt>
+                    <dd><i ng-if="attribute.display" class="fa fa-check"></i></dd>
+
+                    <dt>Allow Multiple Values</dt>
+                    <dd><i ng-if="attribute.multi" class="fa fa-check"></i></dd>
+
+                    <dt>Allow Empty Values</dt>
+                    <dd>
+                        <i ng-if="attribute.constraints.allow_empty" class="fa fa-check"></i>
+                    </dd>
+
+                </dl>
+
+            </panel-body>
+       </panel>
+    </div></div>
+
+    <nsot-modal title="Update Attribute" modal-id="updateAttrModal" modal-size="large">
         <div class="modal-body">
             <div ng-if="updateError" class="alert alert-danger">
                 [[updateError.code]] - [[updateError.message]]
             </div>
             <form novalidate name="attrForm" class="nsot-form">
-                <div>
-                    <label>Name</label> [[attribute.name]]
-                </div>
-                <div>
-                    <label>Resource Type</label> [[attribute.resource_name]]
-                </div>
-                <div class="form-group">
-                    <textarea style="resize: vertical;"
-                              class="form-control"
-                              rows="5"
-                              name="description"
-                              placeholder="Description"
-                              ng-model="attribute.description"
-                    >
-                    </textarea>
-                </div>
-                <label class="checkbox-inline">
-                    <input type="checkbox" name="required"
-                            ng-model="attribute.required"> Required
-                </label>
-                <label class="checkbox-inline">
-                    <input type="checkbox" name="display"
-                            ng-model="attribute.display"> Display
-                </label>
-                <label class="checkbox-inline">
-                    <input type="checkbox" name="multi"
-                            ng-model="attribute.multi"> Multi
-                </label>
+                <div ng-include="formUrl"></div>
             </form>
         </div>
         <div class="modal-footer">
@@ -60,7 +75,6 @@
             </button>
         </div>
     </nsot-modal>
-
 
     <nsot-modal title="Delete Attribute" modal-id="deleteAttrModal">
         <div class="modal-body">
@@ -81,7 +95,5 @@
             </button>
         </div>
     </nsot-modal>
-
-
 
 </div>

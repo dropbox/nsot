@@ -75,7 +75,8 @@
             restrict: "E",
             scope: {
                 "title": "@",
-                "modalId": "@"
+                "modalId": "@",
+                "modalSize": "@"
             },
             transclude: true,
             templateUrl: "/static/templates/directives/nsot-modal.html"
