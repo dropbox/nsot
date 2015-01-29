@@ -135,7 +135,6 @@
         $scope.user = null;
         $scope.attributes = {};
         $scope.networks = [];
-        $scope.network = new Network();
         $scope.paginator = null;
         $scope.error = null;
         $scope.admin = false;
@@ -143,7 +142,9 @@
 
         $scope.formMode = "create";
         $scope.formUrl = "/static/templates/includes/networks-form.html";
-        $scope.formAttrs = [];
+        $scope.formData = {
+            attributes: []
+        };
 
         var params = _.extend(pagerParams(), {
             siteId: siteId,
@@ -171,6 +172,24 @@
         $("body").on("show.bs.modal", "#createNetworkModal", function(e){
             Attribute.query({siteId: siteId}, function(response){
                 $scope.attributes = response.data;
+                $scope.attributesByName = _.reduce(
+                        $scope.attributes, function(acc, value, key){
+                    acc[value.name] = value;
+                    return acc;
+                }, {});
+
+                $scope.formData.attributes = _.chain($scope.attributes)
+                    .filter(function(value){
+                        return value.display;
+                    })
+                    .sortBy(function(value){
+                        return value.required ? 0 : 1;
+                    })
+                    .map(function(value){
+                        return {
+                            name: value.name
+                        };
+                    }).value();
             });
         });
 
@@ -180,22 +199,15 @@
 
 
         $scope.addAttr = function() {
-            $scope.formAttrs.push({});
+            $scope.formData.attributes.push({});
         };
 
         $scope.removeAttr = function(idx) {
-            $scope.formAttrs.splice(idx, 1);
+            $scope.formData.attributes.splice(idx, 1);
         };
 
         $scope.createNetwork = function() {
-            var network = $scope.network;
-            var optional_attrs = _.reduce($scope.formAttrs, function(acc, value, key){
-                acc[value.name] = value.value;
-                return acc;
-            }, {});
-
-            _.defaults(network.attributes, optional_attrs);
-
+            var network = Network.fromForm($scope.formData);
             network.$save({siteId: siteId}, function(network){
                 $location.path("/sites/" + siteId + "/networks/" + network.id);
             }, function(data){
@@ -223,7 +235,9 @@
         var networkId = $scope.networkId = $routeParams.networkId;
         $scope.formMode = "update";
         $scope.formUrl = "/static/templates/includes/networks-form.html";
-        $scope.formAttrs = [];
+        $scope.formData = {
+            attributes: []
+        };
 
 
         $q.all([
@@ -232,6 +246,7 @@
         ]).then(function(results){
             $scope.user = results[0];
             $scope.network = results[1];
+            $scope.formData = $scope.network.toForm();
             $scope.admin = $scope.user.isAdmin(siteId, ["admin"]);
 
             $scope.loading = false;
@@ -245,17 +260,11 @@
         $("body").on("show.bs.modal", "#updateNetworkModal", function(e){
             Attribute.query({siteId: siteId}, function(response){
                 $scope.attributes = response.data;
-                $scope.formAttrs = [];
-
-                _.forEach($scope.attributes, function(value, idx){
-                    if (!value.required && $scope.network.attributes[value.name]){
-                        $scope.formAttrs.push({
-                            name: value.name,
-                            value: $scope.network.attributes[value.name]
-                        });
-                    }
-                });
-
+                $scope.attributesByName = _.reduce(
+                        $scope.attributes, function(acc, value, key){
+                    acc[value.name] = value;
+                    return acc;
+                }, {});
             });
         });
 
@@ -264,25 +273,17 @@
         });
 
         $scope.addAttr = function() {
-            $scope.formAttrs.push({});
+            $scope.formData.attributes.push({});
         };
 
         $scope.removeAttr = function(idx) {
-            var attrName = $scope.formAttrs[idx].name;
-            delete $scope.network.attributes[attrName];
-            $scope.formAttrs.splice(idx, 1);
+            $scope.formData.attributes.splice(idx, 1);
         };
 
         $scope.updateNetwork = function(){
             var network = $scope.network;
-            var optional_attrs = _.reduce($scope.formAttrs, function(acc, value, key){
-                acc[value.name] = value.value;
-                return acc;
-            }, {});
-
-            _.extend(network.attributes, optional_attrs);
-
-            $scope.network.$update({siteId: siteId}, function(data){
+            network.updateFromForm($scope.formData);
+            network.$update({siteId: siteId}, function(data){
                 $route.reload();
             }, function(data){
                 $scope.updateError = data.data.error;

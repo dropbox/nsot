@@ -7,7 +7,7 @@
            name="cidr"
            placeholder="Network (required)"
            ng-if="formMode === 'create'"
-           ng-model="network.cidr"
+           ng-model="formData.cidr"
            ng-minlength="1"
            required
     >
@@ -15,62 +15,59 @@
         <label>cidr</label> [[network.network_address]]/[[network.prefix_length]]
     <span>
 </div>
+
 <h4 class="form-subheading">Attributes</h4>
 
-<div class="row" ng-repeat="(idx, attr) in attributes
-                            |filter:{required:true}">
-    <div class="col-sm-5">
+<div class="row" ng-repeat="attr in formData.attributes">
+
+    <div ng-if="attributesByName[attr.name].required" class="col-sm-4">
         <select name="attribute" class="form-control" disabled>
             <option>[[attr.name]]</option>
         </select>
     </div>
-    <div class="col-sm-6" style="padding-left: 0px;">
-        <div class="form-group"
-             ng-class="{
-                'has-error' : networkForm['value_' + $index].$invalid,
-                'has-success' : networkForm['value_' + $index].$valid,
-             }">
-            <input type="text"
-                   class="form-control"
-                   name="value_[[$index]]"
-                   placeholder="Value (required)"
-                   ng-model="network.attributes[attr.name]"
-                   required
-            >
-        </div>
-    </div>
-</div>
-
-<div class="row" ng-repeat="formAttr in formAttrs">
-    [[formAttr]] [[$index]]
-    <div class="col-sm-5">
+    <div ng-if="!attributesByName[attr.name].required" class="col-sm-4">
         <select
             name="attribute"
             class="form-control"
             required
-            ng-model="formAttrs[$index].name">
+            ng-change="formData.attributes[$index].value = undefined"
+            ng-model="formData.attributes[$index].name">
             <option value="" disabled selected></option>
-            <option value="[[attr.name]]"
-                    ng-repeat="(idx, attr) in attributes
+            <option value="[[val.name]]"
+                    ng-selected="[[
+                        formData.attributes[$parent.$index].name == val.name
+                    ]]"
+                    ng-repeat="(idx, val) in attributes
                                |filter:{required:false}">
-                [[attr.name]]
+                [[val.name]]
             </option>
         </select>
     </div>
-    <div class="col-sm-6" style="padding-left: 0px;">
 
-        <div class="form-group">
-            <input type="text"
+    <div class="col-sm-7" style="padding-left: 0px;">
+        <div class="form-group" ng-class="{
+            'has-error' : networkForm['value_' + $index].$invalid,
+            'has-success' : networkForm['value_' + $index].$valid,
+        }">
+            <input ng-if="!attributesByName[attr.name].multi"
+                   type="text"
                    class="form-control"
-                   name="value"
+                   name="value_[[$index]]"
                    placeholder="Value"
-                   ng-model="formAttrs[$index].value"
-                   required
+                   ng-model="formData.attributes[$index].value"
+                   ng-required="!attributesByName[attr.name].constraints.allow_empty"
             >
+            <tags-input ng-if="attributesByName[attr.name].multi"
+                        name="value_[[$index]]"
+                        ng-model="formData.attributes[$index].value"
+                        placeholder="Add multiple values"
+                        min-length="1"
+            ></tags-input>
         </div>
     </div>
-    <div class="col-sm-1">
-        <span class="attr-buttons">
+
+    <div class="col-sm-1 text-center">
+        <span ng-if="!attributesByName[attr.name].required" class="attr-buttons">
             <span class="fa fa-lg fa-minus-circle rm-attr-btn"
                   ng-click="removeAttr($index);"
             ></span>
@@ -86,3 +83,4 @@
         </a>
     </div>
 </div>
+

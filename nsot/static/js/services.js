@@ -136,11 +136,53 @@
     }]);
 
     app.factory("Network", ["$resource", "$http", function($resource, $http){
-        return $resource(
+        var Network = $resource(
             "/api/sites/:siteId/networks/:id",
             { siteId: "@siteId", id: "@id" },
             buildActions($http, "network", "networks")
         );
+
+        Network.prototype.updateFromForm = function(formData) {
+            return _.extend(this, {
+                cidr: formData.cidr,
+                attributes: _.reduce(formData.attributes, function(acc, attribute){
+                    if (_.isArray(attribute.value)) {
+                        attribute.value = _.map(attribute.value, function(val){
+                            return val.text
+                        });
+                    }
+                    acc[attribute.name] = attribute.value;
+                    return acc;
+                }, {})
+            });
+        };
+
+        Network.fromForm = function(formData) {
+            var network = new Network();
+            network.updateFromForm(formData);
+            return network;
+        };
+
+        Network.prototype.toForm = function() {
+            return {
+                cidr: this.network_address + "/" + this.prefix_length,
+                attributes: _.map(_.cloneDeep(this.attributes), function(attrVal, attrKey){
+                    if (_.isArray(attrVal)) {
+                        attrVal = _.map(attrVal, function(val) {
+                            return {text: val};
+                        });
+                    }
+
+                    return {
+                        name: attrKey,
+                        value: attrVal
+                    };
+
+                })
+            };
+        };
+
+        return Network;
     }]);
 
     app.factory("pagerParams", ["$location", function($location){
