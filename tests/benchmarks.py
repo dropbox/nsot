@@ -22,6 +22,7 @@ def test_create_1024(session, admin, site):
     for ip in network.subnets(new_prefix=30):
         models.Network.create(session, uid, sid, ip.exploded, {
             "aaaa": "value",
-        })
+        }, commit=False)
+    session.commit()
 
     print "Finished in {} seconds.".format(time.time() - start)

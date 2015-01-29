@@ -103,13 +103,15 @@ class Model(object):
 
     @classmethod
     def create(cls, session, _user_id, **kwargs):
+        commit = kwargs.pop("commit", True)
         try:
             cls.before_create(session, _user_id)
             obj = cls(**kwargs).add(session)
             session.flush()
             obj.after_create(_user_id)
             Change.create(session, _user_id, "Create", obj)
-            session.commit()
+            if commit:
+                session.commit()
         except Exception:
             session.rollback()
             raise
@@ -580,7 +582,8 @@ class Network(Model):
         query.update({Network.parent_id: self.id})
 
     @classmethod
-    def create(cls, session, user_id, site_id, cidr, attributes=None):
+    def create(cls, session, user_id, site_id, cidr, attributes=None, **kwargs):
+        commit = kwargs.pop("commit", True)
         if attributes is None:
             attributes = {}
 
@@ -627,7 +630,8 @@ class Network(Model):
             session.flush()
             Change.create(session, user_id, "Create", obj)
 
-            session.commit()
+            if commit:
+                session.commit()
         except Exception:
             session.rollback()
             raise
@@ -869,8 +873,6 @@ class Change(Model):
         }
 
         obj = cls(**kwargs).add(session)
-        session.flush()
-
         return obj
 
     def to_dict(self):
