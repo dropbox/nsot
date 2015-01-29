@@ -146,6 +146,7 @@
             return _.extend(this, {
                 cidr: formData.cidr,
                 attributes: _.reduce(formData.attributes, function(acc, attribute){
+                    if (!attribute.value) attribute.value = "";
                     if (_.isArray(attribute.value)) {
                         attribute.value = _.map(attribute.value, function(val){
                             return val.text
