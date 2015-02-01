@@ -19,7 +19,7 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship, object_session, aliased, validates
 from sqlalchemy.orm import synonym, sessionmaker, Session as _Session, backref
 from sqlalchemy.schema import Column, ForeignKey, Index
-from sqlalchemy.sql import func, label, literal
+from sqlalchemy.sql import func, label, literal, false
 from sqlalchemy.types import Integer, String, Text, Boolean, SmallInteger
 from sqlalchemy.types import Enum, DateTime, VARBINARY
 
@@ -308,7 +308,7 @@ class Site(Model):
         """
 
         if not any([include_networks, include_ips]):
-            return []
+            return self.session.query(Network).filter(false())
 
         if attribute_value is not None and attribute_name is None:
             raise ValueError("attribute_value requires attribute_name to be set.")
@@ -429,8 +429,6 @@ class Network(Model):
 
     def _purge_attribute_index(self):
         index_table = NetworkAttributeIndex.__table__
-
-        # Always purge the index
         self.session.execute(
             index_table.delete().where(index_table.c.network_id == self.id)
         )
@@ -497,7 +495,7 @@ class Network(Model):
         """
 
         if self.parent_id is None and not discover_mode:
-            return []
+            return self.session.query(Network).filter(false())
 
         if discover_mode and direct:
             raise ValueError("direct is incompatible with discover_mode")
@@ -507,7 +505,7 @@ class Network(Model):
             query = query.with_for_update()
 
         if direct:
-            return query.filter(Network.id == self.parent_id).all()
+            return query.filter(Network.id == self.parent_id)
 
         return query.filter(
             Network.is_ip == False,
@@ -515,7 +513,7 @@ class Network(Model):
             Network.prefix_length < self.prefix_length,
             Network.network_address <= self.network_address,
             Network.broadcast_address >= self.broadcast_address
-        ).all()
+        )
 
     def subnets(self, session, include_networks=True, include_ips=False,
                 direct=False, for_update=False):
@@ -529,7 +527,7 @@ class Network(Model):
         """
 
         if not any([include_networks, include_ips]) or self.is_ip:
-            return []
+            return self.session.query(Network).filter(false())
 
         query = session.query(Network)
         if for_update:
@@ -542,7 +540,7 @@ class Network(Model):
                 query = query.filter(Network.is_ip == True)
 
         if direct:
-            return query.filter(Network.parent_id == self.id).all()
+            return query.filter(Network.parent_id == self.id)
 
         return query.filter(
             Network.site_id == self.site_id,
@@ -550,7 +548,7 @@ class Network(Model):
             Network.prefix_length > self.prefix_length,
             Network.network_address >= self.network_address,
             Network.broadcast_address <= self.broadcast_address
-        ).all()
+        )
 
     @property
     def cidr(self):
@@ -558,6 +556,9 @@ class Network(Model):
             ipaddress.ip_address(self.network_address).exploded,
             self.prefix_length
         )
+    @property
+    def ip_network(self):
+        return ipaddress.ip_network(self.cidr)
 
     def __repr__(self):
         return "Network<{}>".format(self.cidr)
@@ -565,7 +566,8 @@ class Network(Model):
     def reparent_subnets(self, session):
         query = session.query(Network).with_for_update().filter(
             Network.parent_id == self.parent_id,
-            Network.id != self.id  # Don't include yourself...
+            Network.id != self.id,  # Don't include yourself...
+            Network.prefix_length > self.prefix_length,
         )
 
         # When adding a new root we're going to reparenting a subset
@@ -574,7 +576,6 @@ class Network(Model):
             query = query.filter(
                 Network.is_ip == False,
                 Network.ip_version == self.ip_version,
-                Network.prefix_length > self.prefix_length,
                 Network.network_address >= self.network_address,
                 Network.broadcast_address <= self.broadcast_address
             )
@@ -615,11 +616,10 @@ class Network(Model):
             # probably isn't worth it.
             obj.set_attributes(attributes)
 
-            supernets = obj.supernets(session, discover_mode=True, for_update=True)
+            supernets = obj.supernets(session, discover_mode=True, for_update=True).all()
             if supernets:
                 parent = max(supernets, key=attrgetter("prefix_length"))
                 obj.parent_id = parent.id
-
 
             if obj.parent_id is None and is_ip:
                 raise exc.ValidationError("IP Address needs base network.")

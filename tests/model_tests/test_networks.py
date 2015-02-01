@@ -30,6 +30,17 @@ def test_networks_creation_reparenting(session, admin, site):
     assert sorted(net_24.subnets(session)) == sorted([])
 
 
+def test_seqential_creation(session, admin, site):
+    net_8 = models.Network.create(session, admin.id, site.id, u"10.0.0.0/8")
+    net_22_1 = models.Network.create(session, admin.id, site.id, u"10.0.0.0/22")
+    net_22_2 = models.Network.create(session, admin.id, site.id, u"10.0.4.0/22")
+    net_22_3 = models.Network.create(session, admin.id, site.id, u"10.0.8.0/22")
+
+    assert net_8.id == net_22_1.parent_id
+    assert net_8.id == net_22_2.parent_id
+    assert net_8.id == net_22_3.parent_id
+
+
 def test_network_create_hostbits_set(session, admin, site):
     with pytest.raises(ValueError):
         models.Network.create(session, admin.id, site.id, u"10.0.0.0/0")
