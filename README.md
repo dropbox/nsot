@@ -111,3 +111,10 @@ sphinx-autobuild docs docs/_build/html/
 This will start a server listening on a port that you can browse to and will
 be automatically reloaded when you change any rst files. One downside of this
 approach is that is doesn't refresh when docstrings are modified.
+
+#### Managing frontend dependencies
+
+Frontend dependencies are managed through `bower`, however to ensure we always have
+a consistent build we checkin the dependencies. We make use of `bower-installer` to
+limit the depencies down to their core components to avoid checking in various
+README, src, or build artifact files.

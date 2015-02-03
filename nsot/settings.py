@@ -65,7 +65,6 @@ settings = Settings({
     "debug": False,
     "port": 8990,
     "user_auth_header": "X-NSoT-Email",
-    "cdnjs_prefix": "//cdnjs.cloudflare.com",
     "restrict_networks": [],
     "bind_address": None,
     "api_xsrf_enabled": True,

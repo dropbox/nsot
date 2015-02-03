@@ -21,9 +21,7 @@ def get_loglevel(args):
 
 def get_template_env(package="nsot", extra_filters=None, extra_globals=None):
     filters = {}
-    j_globals = {
-        "cdnjs_prefix": settings["cdnjs_prefix"],
-    }
+    j_globals = {}
 
     if extra_filters:
         filters.update(extra_filters)

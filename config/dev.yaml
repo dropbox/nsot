@@ -32,11 +32,6 @@ database: "sqlite:///nsot.sqlite"
 # Type: str
 user_auth_header: "X-NSoT-Email"
 
-# This is the prefix url in template to cdnjs. This allows you to point at
-# and internal mirror for production deployments.
-# Type: str
-cdnjs_prefix: "//cdnjs.cloudflare.com"
-
 # Allows you to restrict requests to certain IP addresses and/or IP networks
 # specified in CIDR notation.
 # Type: str or list
