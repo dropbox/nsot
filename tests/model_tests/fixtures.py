@@ -26,6 +26,7 @@ def user(session):
     session.commit()
     return user
 
+
 @pytest.fixture
 def admin(session):
     user = models.User(email="admin@localhost").add(session)
