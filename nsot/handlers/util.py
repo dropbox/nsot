@@ -1,5 +1,6 @@
 from ipaddress import ip_address
 import json
+import logging
 from tornado.web import RequestHandler, urlparse, HTTPError
 from tornado.escape import utf8
 from werkzeug.http import parse_options_header
@@ -9,6 +10,10 @@ from .. import models
 from ..settings import settings
 
 
+# Logging object
+log = logging.getLogger(__name__)
+
+
 class BaseHandler(RequestHandler):
     def initialize(self):
         self.session = self.application.my_settings.get("db_session")()
@@ -16,17 +21,28 @@ class BaseHandler(RequestHandler):
     def on_finish(self):
         self.session.close()
 
-    def get_current_user(self):
-        email = self.request.headers.get(settings.user_auth_header)
-        if not email:
-            return
-
+    def get_or_create_user(self, email):
+        """Get a user or create a new one and return a User object."""
         user = self.session.query(models.User).filter_by(email=email).first()
         if not user:
             user = models.User(email=email).add(self.session)
             self.session.commit()
 
         return user
+
+    def get_current_user(self):
+        """Default global user fetch by user_auth_header."""
+
+        # Fetch the email address from the auth_header (e.g. X-NSoT-Email)
+        auth_header = settings.user_auth_header
+        log.debug('  fetching auth_header: %s' % auth_header)
+        email = self.request.headers.get(auth_header)
+
+        if email is not None:
+            log.debug('auth_header authenticated user: %s' % email)
+            user = self.get_or_create_user(email)
+            return user
+        return None
 
     def get_client_ip(self):
         address, port = self.request.connection.context.address
@@ -46,6 +62,7 @@ class BaseHandler(RequestHandler):
         return False
 
     def prepare(self):
+        log.debug('BaseHandler.prepare()')
         if not self._is_permitted_network():
             raise exc.Forbidden("Connected from forbidden network.")
 
@@ -57,6 +74,7 @@ class BaseHandler(RequestHandler):
 
 
 class FeHandler(BaseHandler):
+
     def prepare(self):
         BaseHandler.prepare(self)
         # Need to access token to set Cookie.
@@ -84,6 +102,7 @@ class FeHandler(BaseHandler):
             else:
                 message = str(inst)
 
+        # Pass context to the error template
         self.render("error.html", code=status_code, message=message)
 
 
@@ -100,6 +119,48 @@ class ApiHandler(BaseHandler):
             else:
                 self._jbody = {}
         return self._jbody
+
+    def extract_token_credentials(self):
+        """Extract email/auth_token from request"""
+        authz = self.request.headers.get('Authorization')
+        if authz and authz.lower().startswith('authtoken '):
+            log.debug('Getting email/auth_token from Authorization header.')
+            auth_type, data = authz.split()
+            email, auth_token = data.split(':', 1)
+        else:
+            log.debug('Getting email/auth_token from arguments.')
+            email = self.get_argument('email', None)
+            auth_token = self.get_argument('auth_token', None)
+        log.debug('     email: %s' % email)
+        log.debug('auth_token: %s' % auth_token)
+        return email, auth_token
+
+    def get_current_user(self):
+        """Try user_auth_header, then try auth_token header."""
+        # Perform default authentication (user_auth_header)
+        user = super(ApiHandler, self).get_current_user()
+        if user is not None:
+            log.debug('API login default method succeeded!')
+            return user
+
+        # Args used for auth_token auth...
+        email, auth_token = self.extract_token_credentials()
+
+        # Do we want these here or just to return a generice 401 "Login
+        # required"?
+        if email is None:
+            raise exc.Unauthorized('Missing Required argument: email')
+        if auth_token is None:
+            raise exc.Unauthorized('Missing Required argument: auth_token')
+
+        user = models.User.verify_auth_token(email, auth_token)
+
+        # If user is bad this time, it's an invalid login
+        if user is None:
+            raise exc.Unauthorized('Invalid login/token expired.')
+
+        log.debug('token_auth authenticated user: %s' % email)
+        return user
 
     def check_xsrf_cookie(self):
         """Optionally check XSRF cookies on API calls."""

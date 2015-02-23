@@ -33,8 +33,12 @@ HANDLERS = [
         api.UserPermissionHandler
     ),
 
-    (r"/api/.*", api.NotFoundHandler),
+    # API Auth
+    (r"/api/authenticate", api.AuthTokenLoginHandler),
+    (r"/api/verify_token", api.AuthTokenVerifyHandler),
 
+    # API fallback
+    (r"/api/.*", api.NotFoundHandler),
 
     # Frontend Handlers
     (r".*", fe.AppHandler),

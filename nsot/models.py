@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 from calendar import timegm
+from cryptography.fernet import (Fernet, InvalidToken)
 from datetime import datetime
 from email.utils import parseaddr
 from operator import attrgetter
@@ -26,7 +27,10 @@ from sqlalchemy.types import Enum, DateTime, VARBINARY
 from . import constants
 from . import exc
 from .permissions import PermissionsFlag
+from .settings import settings
 
+
+log = logging.getLogger(__name__)
 
 RESOURCE_BY_IDX = (
     "Site", "Network", "Attribute", "Permission",
@@ -70,13 +74,24 @@ class Session(_Session):
 
 Session = sessionmaker(class_=Session)
 
-
 class Model(object):
     """ Custom model mixin with helper methods. """
+
+    def __repr__(self):
+        cls_name = self.__class__.__name__
+        return u'%s(id=%r)' % (cls_name, self.id)
 
     @property
     def session(self):
         return object_session(self)
+
+    @classmethod
+    def query(cls):
+        """Return a Query using session defaults."""
+        # The Model.query() method doesn't work on classmethods. We need a
+        # scoped_session for that
+        from .meta import ScopedSession
+        return ScopedSession().query(cls)
 
     @classmethod
     def get_or_create(cls, session, **kwargs):
@@ -131,7 +146,6 @@ class Model(object):
             session.rollback()
             raise
 
-
     def add(self, session):
         session._add(self)
         return self
@@ -172,6 +186,14 @@ def get_db_engine(url, echo=False):
 
     return engine
 
+def get_db_session(db_engine=None, database=None):
+    """Return a usable session object"""
+    if database is None:
+        database = settings.database
+    if db_engine is None:
+        db_engine = get_db_engine(database)
+    Session.configure(bind=db_engine)
+    return Session()
 
 def flush_transaction(method):
     @functools.wraps(method)
@@ -184,7 +206,7 @@ def flush_transaction(method):
             else:
                 self.session.flush()
         except Exception:
-            logging.exception("Transaction Failed. Rolling back.")
+            log.exception("Transaction Failed. Rolling back.")
             if self.session is not None:
                 self.session.rollback()
             raise
@@ -198,6 +220,9 @@ class User(Model):
 
     id = Column(Integer, primary_key=True)
     email = Column(String(length=255), unique=True, nullable=False)
+
+    # The user's secret key is used to generate their auth_token
+    secret_key = Column(String(length=255), default=Fernet.generate_key)
 
     @validates("email")
     def validate_email(self, key, value):
@@ -232,6 +257,54 @@ class User(Model):
             str(permission.site_id): permission.to_dict()
             for permission in permissions
         }
+
+    def generate_auth_token(self):
+        """Serialize user data and encrypt token."""
+        # Serialize data
+        data = json.dumps({'email': self.email })
+
+        # Encrypt w/ servers's secret_key
+        f = Fernet(bytes(settings.secret_key))
+        auth_token = f.encrypt(bytes(data))
+        return auth_token
+
+    def verify_secret_key(self, secret_key):
+        """Validate secret_key"""
+        return secret_key == self.secret_key
+
+    @classmethod
+    def verify_auth_token(cls, email, auth_token,
+                          expiration=None):
+        """Verify token and return a User object."""
+        if expiration is None:
+            expiration = settings.auth_token_expiry
+
+        # First we lookup the user by email
+        user = User.query().filter_by(email=email).scalar()
+
+        if user is None:
+            log.debug('Invalid user when verifying token')
+            return None  # Invalid user
+
+        # Decrypt auth_token w/ user's secret_key
+        f = Fernet(bytes(settings.secret_key))
+        try:
+            decrypted_data = f.decrypt(bytes(auth_token), ttl=expiration)
+        except InvalidToken:
+            log.debug('Invalid/expired auth_token when decrypting.')
+            return None  # Invalid token
+
+        # Deserialize data
+        try:
+            data = json.loads(decrypted_data)
+        except ValueError:
+            log.debug('Token could not be deserialized.')
+            return None  # Valid token, but expired
+
+        if email != data['email']:
+            log.debug('Invalid user when deserializing.')
+            return None  # User email did not match payload
+        return user
 
 
 class Permission(Model):

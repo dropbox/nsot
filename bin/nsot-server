@@ -49,6 +49,7 @@ def main(argv):
         "static_path": os.path.join(os.path.dirname(nsot.__file__), "static"),
         "debug": settings.debug,
         "xsrf_cookies": True,
+        "cookie_secret": settings.secret_key,
     }
 
     db_engine = get_db_engine(settings.database)

@@ -1,3 +1,4 @@
+import logging
 from sqlalchemy import desc
 from sqlalchemy.exc import IntegrityError
 
@@ -7,6 +8,9 @@ from .. import exc
 from ..decorators import any_perm
 from .. import models
 from ..util import qp_to_bool as qpbool
+
+
+log = logging.getLogger(__name__)
 
 
 class SitesHandler(ApiHandler):
@@ -1180,6 +1184,7 @@ class NetworkHandler(ApiHandler):
             ),
         })
 
+
 class NetworkSubnetsHandler(ApiHandler):
     def get(self, site_id, network_id):
         """ **Get subnets of a Network**
@@ -1547,6 +1552,113 @@ class ChangeHandler(ApiHandler):
             "change": change.to_dict(),
         })
 
+
+class AuthTokenLoginHandler(ApiHandler):
+    """Used to authenticate users and return an auth_token."""
+
+    def get_current_user(self):
+        try:
+            email = self.jbody['email']
+            secret_key = self.jbody['secret_key']
+        except KeyError as err:
+            raise exc.Unauthorized('Missing required field: {}'.format(err.message))
+
+        user = self.session.query(models.User).filter_by(email=email).scalar()
+
+        # Make sure we've got a user and the secret_key is valid
+        if user is not None and user.verify_secret_key(secret_key):
+            return user  # Auth success
+
+        raise exc.Unauthorized('Invalid email/secret_key')
+
+    def post(self):
+        """
+        **Obtain an auth_token used for API calls.**
+
+        **Example Request**:
+
+        .. sourcecode:: http
+
+            POST /api/authenticate HTTP/1.1
+            Host: localhost
+            Content-Type: application/json
+
+            {
+                "email": "user@localhost",
+                "secret_key": "RmjJASeWQDHIoP7LMpSKGkofkoXnhbiBqauCnCR_InI=",
+            }
+
+        **Example response**:
+
+        .. sourcecode:: http
+
+            HTTP/1.1 200 OK
+            Content-Type: application/json
+
+            {
+                "status": "ok",
+                "data": {
+                    "auth_token": "gAAAAAbu5=="
+                }
+            }
+
+        :reqjson string email: User's email address
+        :reqjson string secret_key: Secret key for the user
+
+        :reqheader Content-Type: The server expects a json body specified with
+                                 this header.
+
+        :statuscode 200: The request was successful.
+        :statuscode 401: The request was made without valid credentials.
+        """
+        user = self.get_current_user()
+
+        # Return the auth_token
+        self.success({
+            'auth_token': user.generate_auth_token()
+        })
+
+
+class AuthTokenVerifyHandler(ApiHandler):
+    """Used to verify an auth_token."""
+    def post(self):
+        """
+        **Verify an auth_token.**
+
+        **Example Request**:
+
+        .. sourcecode:: http
+
+            POST /api/verify_token HTTP/1.1
+            Host: localhost
+            Content-Type: application/json
+            Authorization: AuthToken user@localhost:gAAAAAbu5==
+
+        **Example response**:
+
+        .. sourcecode:: http
+
+            HTTP/1.1 200 OK
+            Content-Type: application/json
+
+            {
+                "status": "ok",
+                "data": true
+            }
+
+        :reqheader Authorization: required for all api requests.
+        :reqheader Content-Type: The server expects a json body specified with
+                                 this header.
+
+        :statuscode 200: The request was successful.
+        :statuscode 401: The request was made without valid credentials.
+        """
+        user = self.get_current_user()
+
+        # Return 'ok'
+        self.success(True)
+
+
 class UsersHandler(ApiHandler):
     def get(self):
         """ **Get all Users**
@@ -1665,6 +1777,7 @@ class UserHandler(ApiHandler):
             "user": user.to_dict(with_permissions=True),
         })
 
+
 class UserPermissionsHandler(ApiHandler):
     def get(self, user_id):
         """ **Get permissions for a specific User**
@@ -1726,6 +1839,7 @@ class UserPermissionsHandler(ApiHandler):
         self.success({
             "permissions": user.get_permissions(),
         })
+
 
 class UserPermissionHandler(ApiHandler):
     def get(self, user_id, site_id):

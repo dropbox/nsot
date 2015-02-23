@@ -1,8 +1,13 @@
+"""
+Project-wide utilities.
+"""
+
 import logging
 import tornado
 from jinja2 import Environment, PackageLoader
 
 from .settings import settings
+
 
 _TRUTHY = set([
     "true", "yes", "1", ""

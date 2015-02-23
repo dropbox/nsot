@@ -40,3 +40,13 @@ restrict_networks: "127.0.0.1"
 # Specifies whether to use XSRF headers/cookies for API calls. Default: true
 # Type: bool
 api_xsrf_enabled: false
+
+# Secret key used to encrypt/decrypt your secure cookies and API auth_tokens.
+# This MUST be a URL-safe base64-encoded 32-byte key. This must be kept secret.
+# Anyone with this key is able to create and read messages.
+# Type: str
+secret_key: "AzYHE3xqJyCykjFPYDt-iNapZEU7sxqfnXvtzG7Ddeg="
+
+# This is the expiration (in seconds) of auth_tokens used for API calls
+# Type: int
+auth_token_expiry: 600

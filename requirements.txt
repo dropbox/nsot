@@ -11,3 +11,4 @@ wsgiref==0.1.2
 bittle==0.2.1
 Werkzeug==0.9.6
 alembic==0.7.4
+cryptography==0.7.2
