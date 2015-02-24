@@ -65,6 +65,20 @@
             buildActions($http, "user", "users")
         );
 
+        User.prototype.rotateSecretKey = function(){
+            var userId = this.id;
+            return $http({
+                method: "POST",
+                url: "/api/users/" + userId + "/rotate_secret_key",
+                data: {},
+                transformResponse: appendTransform(
+                    $http.defaults.transformResponse, function(response) {
+                        return response.data.secret_key;
+                    }
+                )
+            });
+        };
+
         User.prototype.isAdmin = function(siteId, permissions){
             var user_permissions = this.permissions[siteId] || {};
                 user_permissions = user_permissions.permissions || [];
@@ -149,7 +163,7 @@
                     if (!attribute.value) attribute.value = "";
                     if (_.isArray(attribute.value)) {
                         attribute.value = _.map(attribute.value, function(val){
-                            return val.text
+                            return val.text;
                         });
                     }
                     acc[attribute.name] = attribute.value;

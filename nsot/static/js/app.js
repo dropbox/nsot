@@ -36,6 +36,10 @@
             templateUrl: "/static/templates/user.html",
             controller: "UserController"
         })
+        .when("/profile", {
+            template: "",
+            controller: "ProfileController"
+        })
         .when("/sites", {
             templateUrl: "/static/templates/sites.html",
             controller: "SitesController"

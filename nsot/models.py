@@ -231,15 +231,22 @@ class User(Model):
             raise exc.ValidationError("Must contain a valid e-mail address")
         return value
 
-    def to_dict(self, with_permissions=False):
+    def to_dict(self, with_permissions=False, with_secret_key=False):
         out = {
             "id": self.id,
             "email": self.email,
         }
+
+        if with_secret_key:
+            out["secret_key"] = self.secret_key
+
         if with_permissions:
             out["permissions"] = self.get_permissions()
 
         return out
+
+    def rotate_secret_key(self):
+        self.secret_key = Fernet.generate_key()
 
     def get_permissions(self, site_id=None):
         query = self.session.query(Permission).filter_by(

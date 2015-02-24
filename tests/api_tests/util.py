@@ -9,11 +9,12 @@ def assert_error(response, code):
     assert output["error"]["code"] == code
 
 
-def assert_success(response, data):
+def assert_success(response, data=None):
     output = response.json()
     assert response.status_code == 200
     assert output["status"] == "ok"
-    assert output["data"] == data
+    if data is not None:
+        assert output["data"] == data
 
 
 def assert_created(response, location, data=None):
