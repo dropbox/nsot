@@ -27,6 +27,7 @@ HANDLERS = [
     # Users
     (r"/api/users", api.UsersHandler),
     (r"/api/users/(?P<user_id>\d+)", api.UserHandler),
+    (r"/api/users/(?P<user_id>\d+)/rotate_secret_key", api.UserRotateSecretKeyHandler),
     (r"/api/users/(?P<user_id>\d+)/permissions", api.UserPermissionsHandler),
     (
         r"/api/users/(?P<user_id>\d+)/permissions/(?P<site_id>\d+)",

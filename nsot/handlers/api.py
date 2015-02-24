@@ -1754,11 +1754,15 @@ class UserHandler(ApiHandler):
         :param user_id: ID of the User to retrieve or 0 for self.
         :type user_id: int
 
+        :query bool with_secret_key: (*optional*) Include security_key
+                                     (Self only.)
+
         :reqheader X-NSoT-Email: required for all api requests.
 
         :statuscode 200: The request was successful.
         :statuscode 401: The request was made without being logged in.
-        :statuscode 404: The Site at site_id was not found.
+        :statuscode 403: The request was made with insufficient permissions.
+        :statuscode 404: The User was not found.
         """
 
         if user_id == "0":
@@ -1773,10 +1777,79 @@ class UserHandler(ApiHandler):
                 "No such User found at (id) = ({})".format(user_id)
             )
 
+        user_kwargs = {
+            "with_permissions": True,
+        }
+
+        with_secret_key = self.get_argument("with_secret_key", None)
+        if with_secret_key is not None:
+            if user != self.current_user:
+                raise exc.Forbidden("Can't access secret_key of user that isn't you.")
+            user_kwargs["with_secret_key"] = qpbool(with_secret_key)
+
         self.success({
-            "user": user.to_dict(with_permissions=True),
+            "user": user.to_dict(**user_kwargs),
         })
 
+
+class UserRotateSecretKeyHandler(ApiHandler):
+    def post(self, user_id):
+        """ **Get a specific User**
+
+        **Example Request**:
+
+        .. sourcecode:: http
+
+            POST /api/users/1/rotate_secret_key HTTP/1.1
+            Host: localhost
+            X-NSoT-Email: user@localhost
+
+        **Example response**:
+
+        .. sourcecode:: http
+
+            HTTP/1.1 200 OK
+            Content-Type: application/json
+
+            {
+                "status": "ok",
+                "data": {
+                    "secret_key": "k4ljk2345kl2j5k2fffml23",
+                }
+            }
+
+        :param user_id: ID of the User to rotate key for or 0 for self.
+        :type user_id: int
+
+        :reqheader X-NSoT-Email: required for all api requests.
+
+        :statuscode 200: The request was successful.
+        :statuscode 401: The request was made without being logged in.
+        :statuscode 403: The request was made with insufficient permissions.
+        :statuscode 404: The User was not found.
+        """
+
+        if user_id == "0":
+            user = self.current_user
+        else:
+            user = self.session.query(models.User).filter_by(
+                id=user_id,
+            ).scalar()
+
+        if user != self.current_user:
+            raise exc.Forbidden("Can't access secret_key of user that isn't you.")
+
+        if not user:
+            raise exc.NotFound(
+                "No such User found at (id) = ({})".format(user_id)
+            )
+
+        user.rotate_secret_key()
+        self.session.commit()
+
+        self.success({
+            "secret_key": user.secret_key,
+        })
 
 class UserPermissionsHandler(ApiHandler):
     def get(self, user_id):

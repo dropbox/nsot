@@ -1,4 +1,6 @@
-nsot.sqlite
+*.sqlite
+*.sqlite-journal
+
 # Bower Components
 _bc
 

@@ -45,6 +45,10 @@ body {
     color: #d9534f;
 }
 
+.clicky {
+    cursor: pointer;
+}
+
 .rm-attr-btn:hover {
     color: #c9302c;
     cursor: pointer;

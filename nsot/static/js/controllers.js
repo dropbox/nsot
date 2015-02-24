@@ -35,6 +35,17 @@
         });
     }]);
 
+    app.controller("ProfileController", [
+            "User", "$location", "$q",
+            function(User, $location, $q) {
+        $q.all([
+            User.get({id: 0}).$promise,
+        ]).then(function(results){
+            $location.path("/users/" + results[0].id);
+        });
+
+    }]);
+
     app.controller("SitesController", [
             "$scope", "$q", "$location", "Site", "User",
             function($scope, $q, $location, Site, User) {
@@ -120,9 +131,37 @@
     ]);
 
     app.controller("UserController", [
-            "$scope", "$route", "$location", "$q", "$routeParams",
-            function($scope, $route, $location, $q, $routeParams) {
+            "$scope", "$route", "$location", "$q", "$routeParams", "User",
+            function($scope, $route, $location, $q, $routeParams, User) {
+
         $scope.loading = true;
+        $scope.currentUser = null;
+        $scope.profileUser = null;
+        $scope.secret_key = null;
+        var userId = $routeParams.userId;
+        $scope.isSelf = false;
+
+        $scope.showKey = function(){
+            User.get({id: userId, with_secret_key: true}, function(data){
+                $scope.secret_key = data.secret_key;
+            });
+        };
+
+        $scope.rotateKey = function(){
+            $scope.profileUser.rotateSecretKey().success(function(new_key){
+                $scope.secret_key = new_key;
+            });
+        };
+
+        $q.all([
+            User.get({id: 0}).$promise,
+            User.get({id: userId}).$promise,
+        ]).then(function(results){
+            $scope.loading = false;
+            $scope.currentUser = results[0];
+            $scope.profileUser = results[1];
+            $scope.isSelf = $scope.currentUser.id === $scope.profileUser.id;
+        });
     }]);
 
     app.controller("NetworksController", [
