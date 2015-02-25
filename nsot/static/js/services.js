@@ -200,6 +200,57 @@
         return Network;
     }]);
 
+    app.factory("Device", ["$resource", "$http", function($resource, $http){
+        var Device = $resource(
+            "/api/sites/:siteId/devices/:id",
+            { siteId: "@siteId", id: "@id" },
+            buildActions($http, "device", "devices")
+        );
+
+        Device.prototype.updateFromForm = function(formData) {
+            return _.extend(this, {
+                hostname: formData.hostname,
+                attributes: _.reduce(formData.attributes, function(acc, attribute){
+                    if (!attribute.value) attribute.value = "";
+                    if (_.isArray(attribute.value)) {
+                        attribute.value = _.map(attribute.value, function(val){
+                            return val.text;
+                        });
+                    }
+                    acc[attribute.name] = attribute.value;
+                    return acc;
+                }, {})
+            });
+        };
+
+        Device.fromForm = function(formData) {
+            var device = new Device();
+            device.updateFromForm(formData);
+            return device;
+        };
+
+        Device.prototype.toForm = function() {
+            return {
+                hostname: this.hostname,
+                attributes: _.map(_.cloneDeep(this.attributes), function(attrVal, attrKey){
+                    if (_.isArray(attrVal)) {
+                        attrVal = _.map(attrVal, function(val) {
+                            return {text: val};
+                        });
+                    }
+
+                    return {
+                        name: attrKey,
+                        value: attrVal
+                    };
+
+                })
+            };
+        };
+
+        return Device;
+    }]);
+
     app.factory("pagerParams", ["$location", function($location){
 
         var defaults = {

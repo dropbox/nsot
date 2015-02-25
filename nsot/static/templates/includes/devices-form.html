@@ -1,0 +1,82 @@
+<div class="form-group" ng-class="{
+    'has-error' : deviceForm.hostname.$invalid,
+    'has-success' : deviceForm.hostname.$valid,
+}">
+    <input type="text"
+           class="form-control"
+           name="hostname"
+           placeholder="Hostname (required)"
+           ng-model="formData.hostname"
+           ng-minlength="1"
+           required
+    >
+</div>
+
+<h4 class="form-subheading">Attributes</h4>
+
+<div class="row" ng-repeat="attr in formData.attributes">
+
+    <div ng-if="attributesByName[attr.name].required" class="col-sm-4">
+        <select name="attribute" class="form-control" disabled>
+            <option>[[attr.name]]</option>
+        </select>
+    </div>
+    <div ng-if="!attributesByName[attr.name].required" class="col-sm-4">
+        <select
+            name="attribute"
+            class="form-control"
+            required
+            ng-change="formData.attributes[$index].value = undefined"
+            ng-model="formData.attributes[$index].name">
+            <option value="" disabled selected></option>
+            <option value="[[val.name]]"
+                    ng-selected="[[
+                        formData.attributes[$parent.$index].name == val.name
+                    ]]"
+                    ng-repeat="(idx, val) in attributes
+                               |filter:{required:false}">
+                [[val.name]]
+            </option>
+        </select>
+    </div>
+
+    <div class="col-sm-7" style="padding-left: 0px;">
+        <div class="form-group" ng-class="{
+            'has-error' : deviceForm['value_' + $index].$invalid,
+            'has-success' : deviceForm['value_' + $index].$valid,
+        }">
+            <input ng-if="!attributesByName[attr.name].multi"
+                   type="text"
+                   class="form-control"
+                   name="value_[[$index]]"
+                   placeholder="Value"
+                   ng-model="formData.attributes[$index].value"
+                   ng-required="!attributesByName[attr.name].constraints.allow_empty"
+            >
+            <tags-input ng-if="attributesByName[attr.name].multi"
+                        name="value_[[$index]]"
+                        ng-model="formData.attributes[$index].value"
+                        placeholder="Add multiple values"
+                        min-length="1"
+            ></tags-input>
+        </div>
+    </div>
+
+    <div class="col-sm-1 text-center">
+        <span ng-if="!attributesByName[attr.name].required" class="attr-buttons">
+            <span class="fa fa-lg fa-minus-circle rm-attr-btn"
+                  ng-click="removeAttr($index);"
+            ></span>
+        </span>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-sm-12 text-right">
+        <a ng-click="addAttr()" class="add-attr-btn">
+            Add an attribute
+            <i class="fa fa-lg fa-plus-circle add-attr-btn"></i>
+        </a>
+    </div>
+</div>
+

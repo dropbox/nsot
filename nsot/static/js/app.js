@@ -56,6 +56,14 @@
             templateUrl: "/static/templates/network.html",
             controller: "NetworkController"
         })
+        .when("/sites/:siteId/devices", {
+            templateUrl: "/static/templates/devices.html",
+            controller: "DevicesController"
+        })
+        .when("/sites/:siteId/devices/:deviceId", {
+            templateUrl: "/static/templates/device.html",
+            controller: "DeviceController"
+        })
         .when("/sites/:siteId/attributes", {
             templateUrl: "/static/templates/attributes.html",
             controller: "AttributesController"

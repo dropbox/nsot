@@ -10,6 +10,10 @@ HANDLERS = [
     (r"/api/sites/(?P<site_id>\d+)/attributes", api.AttributesHandler),
     (r"/api/sites/(?P<site_id>\d+)/attributes/(?P<attribute_id>\d+)", api.AttributeHandler),
 
+    # Devices
+    (r"/api/sites/(?P<site_id>\d+)/devices", api.DevicesHandler),
+    (r"/api/sites/(?P<site_id>\d+)/devices/(?P<device_id>\d+)", api.DeviceHandler),
+
     # Networks
     (r"/api/sites/(?P<site_id>\d+)/networks", api.NetworksHandler),
     (r"/api/sites/(?P<site_id>\d+)/networks/(?P<network_id>\d+)", api.NetworkHandler),

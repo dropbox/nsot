@@ -19,8 +19,16 @@ Networks
 A network resource can represent an IP Network and an IP Address. Working
 with networks is usually done with CIDR notation.
 
-Networks can have any number of arbitrary attributes as defined in the next
-section.
+Networks can have any number of arbitrary attributes as defined below.
+
+Devices
+-------
+
+A device represents various hardware components on your network such as
+routers, switches, console servers, pdus, servers, etc.
+
+Devices also support arbitrary attributes similar to Networks.
+
 
 Attributes
 ------------------

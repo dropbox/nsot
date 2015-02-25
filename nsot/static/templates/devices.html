@@ -1,0 +1,64 @@
+<loading-panel ng-if="loading"></loading-panel>
+<div ng-if="!loading">
+    <heading-bar heading="Device">
+        <dropdown ctxt-obj="paginator.limiter"></dropdown>
+        <paginator pager="paginator.pager"></paginator>
+
+        <button
+            class="btn btn-success"
+            data-toggle="modal"
+            data-target="#createDeviceModal"
+            ng-if="admin"
+        >Create Device</button>
+    </heading-bar>
+
+    <nsot-modal title="Create Device" modal-id="createDeviceModal" modal-size="large">
+        <div class="modal-body">
+            <div ng-if="error" class="alert alert-danger">
+                [[error.code]] - [[error.message]]
+            </div>
+            <form novalidate name="deviceForm" class="nsot-form">
+                <div ng-include="formUrl"></div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">
+                Close
+            </button>
+            <button type="submit" ng-click="createDevice()"
+                    class="btn btn-primary" ng-disabled="deviceForm.$invalid"
+            >
+                Create
+            </button>
+        </div>
+    </nsot-modal>
+
+    <div class="row" class="row"><div class="col-sm-10 col-sm-offset-1">
+        <panel>
+            <panel-heading>Devices</panel-heading>
+            <panel-body ng-if="!devices.length" class="text-center">
+                No Devices
+            </panel-body>
+            <panel-body ng-if="devices.length">
+                <table class="table table-condensed table-hover">
+                    <thead>
+                        <tr>
+                            <th class="col-sm-3">Hostname</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr ng-repeat="device in devices">
+                            <td>
+                                <a href="/sites/[[siteId]]/devices/[[device.id]]"
+                                >[[device.hostname]]</a>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </panel-body>
+        </panel>
+
+    </div></div>
+
+
+</div>

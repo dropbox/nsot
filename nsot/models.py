@@ -15,7 +15,7 @@ import time
 from sqlalchemy import create_engine, or_, union_all, desc
 from sqlalchemy.event import listen
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.ext.declarative import declarative_base, declared_attr
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship, object_session, aliased, validates
 from sqlalchemy.orm import synonym, sessionmaker, Session as _Session, backref
@@ -33,7 +33,7 @@ from .settings import settings
 log = logging.getLogger(__name__)
 
 RESOURCE_BY_IDX = (
-    "Site", "Network", "Attribute", "Permission",
+    "Site", "Network", "Attribute", "Permission", "Device"
 )
 RESOURCE_BY_NAME = {
     obj_type: idx
@@ -46,7 +46,7 @@ IP_VERSIONS = ("4", "6")
 
 VALID_CHANGE_RESOURCES = set(RESOURCE_BY_IDX)
 VALID_ATTRIBUTE_RESOURCES = set([
-    "Network",
+    "Network", "Device",
 ])
 
 
@@ -371,6 +371,30 @@ class Site(Model):
             permissions=["admin"]
         )
 
+    def devices(self, attribute_name=None, attribute_value=None):
+        """ Helper method for grabbing Networks.
+
+            Args:
+                attribute_name: Filter to networks that contain this attribute name
+                attribute_value: Filter to networks that contain this attribute value
+        """
+
+        if attribute_value is not None and attribute_name is None:
+            raise ValueError("attribute_value requires attribute_name to be set.")
+
+        query = self.session.query(Device)
+
+        if attribute_name is not None:
+            query = query.outerjoin(Device.attr_idx).filter(
+                DeviceAttributeIndex.name == attribute_name
+            )
+            if attribute_value is not None:
+                query = query.filter(DeviceAttributeIndex.value == attribute_value)
+
+        query = query.filter(Device.site_id==self.id)
+
+        return query
+
     def networks(self, include_networks=True, include_ips=False, root=False,
                  subnets_of=None, supernets_of=None,
                  attribute_name=None, attribute_value=None):
@@ -452,8 +476,188 @@ class Site(Model):
         }
 
 
-class Network(Model):
+class AttributeIndexMixin(object):
+    """ Shared columns for AttributeIndex tables. """
+    id = Column(Integer, primary_key=True)
+
+    name = Column(String(length=64), nullable=False, index=True)
+    value = Column(String(length=255), nullable=False, index=True)
+
+    @declared_attr
+    def attribute_id(self):
+        return Column(Integer, ForeignKey("attributes.id"), nullable=False)
+
+    @declared_attr
+    def attribute(self):
+        return relationship("Attribute")
+
+
+class NetworkAttributeIndex(AttributeIndexMixin, Model):
+    """ An Inverted Index for looking up Networks by their attributes."""
+
+    __tablename__ = "network_attribute_index"
+
+    resource_id = Column(Integer, ForeignKey("networks.id"), nullable=False)
+    resource = relationship("Network", backref="attr_idx")
+
+
+class DeviceAttributeIndex(AttributeIndexMixin, Model):
+    """ An Inverted Index for looking up Devices by their attributes."""
+
+    __tablename__ = "device_attribute_index"
+
+    resource_id = Column(Integer, ForeignKey("devices.id"), nullable=False)
+    resource = relationship("Device", backref="attr_idx")
+
+
+class AttributeModelMixin(object):
+    """ Shared columns and methods for resources that support attributes. """
+
+    # Attributes is a Serialized LOB field. Lookups of these attributes
+    # is done against an Inverted Index table
+    _attributes = Column("attributes", Text)
+
+    def _purge_attribute_index(self):
+        index_table = self._index_class.__table__
+        self.session.execute(
+            index_table.delete().where(index_table.c.resource_id == self.id)
+        )
+
+    def get_attributes(self):
+        if self._attributes is None:
+            return {}
+        return json.loads(self._attributes)
+
+    def set_attributes(self, attributes, valid_attributes=None):
+        if not isinstance(attributes, dict):
+            raise exc.ValidationError("Expected dictionary but received {}".format(
+                type(attributes)
+            ))
+
+        if valid_attributes is None:
+            valid_attributes = Attribute.all_by_name(self.session, self._resource_name)
+
+        missing_attributes = {
+            attribute.name
+            for attribute in valid_attributes.itervalues()
+            if attribute.required and attribute.name not in attributes
+        }
+
+        if missing_attributes:
+            raise exc.ValidationError("Missing required attributes: {}".format(
+                ", ".join(missing_attributes)
+            ))
+
+        inserts = []
+        for name, value in attributes.iteritems():
+            if name not in valid_attributes:
+                raise exc.ValidationError("Attribute name (%s) does not exist.".format(
+                    name
+                ))
+
+            if not isinstance(name, basestring):
+                raise exc.ValidationError("Attribute names must be a string type")
+
+            attribute = valid_attributes[name]
+            inserts.extend(attribute.validate_value(value))
+
+        for insert in inserts:
+            insert["resource_id"] = self.id
+
+        self._purge_attribute_index()
+        if inserts:
+            index_table = self._index_class.__table__
+            self.session.execute(index_table.insert(), inserts)
+
+        self._attributes = json.dumps(attributes)
+
+    def update(self, user_id, **kwargs):
+        session = self.session
+        try:
+            for key, value in kwargs.iteritems():
+                if key == "attributes":
+                    self.set_attributes(value)
+                else:
+                    setattr(self, key, value)
+            session.flush()
+            Change.create(session, user_id, "Update", self)
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
+
+
+class Device(AttributeModelMixin, Model):
+    """ Represents a network device. """
+
+    # Class attributes used by Mixin
+    _index_class = DeviceAttributeIndex
+    _resource_name = "Device"
+
+    __tablename__ = "devices"
+    __table_args__ = (
+        Index(
+            "hostname_idx",
+            "site_id", "hostname",
+            unique=True
+        ),
+    )
+
+    id = Column(Integer, primary_key=True)
+    site_id = Column(Integer, ForeignKey("sites.id"), nullable=False, index=True)
+    hostname = Column(String(255), nullable=False, index=True)
+
+    @classmethod
+    def create(cls, session, user_id, site_id, hostname, attributes=None, **kwargs):
+
+        # TODO(gary): Decent duplication between Device and  Network create method.
+        #             Clean this up at some point.
+        commit = kwargs.pop("commit", True)
+        if attributes is None:
+            attributes = {}
+
+        try:
+            obj = cls(site_id=site_id, hostname=hostname)
+            obj.add(session)
+            # Need to get a primary key for the new network to update subnets.
+            session.flush()
+            # Attributes have to be added after the initial flush since we need the
+            # id to setup the inverted index. This will mean we have to send another
+            # update later. This could be improved by separating the index step but
+            # probably isn't worth it.
+            obj.set_attributes(attributes)
+            Change.create(session, user_id, "Create", obj)
+
+            if commit:
+                session.commit()
+
+        except Exception:
+            session.rollback()
+            raise
+
+        return obj
+
+    @validates("hostname")
+    def validate_hostname(self, key, value):
+        if len(value) < 1:
+            raise exc.ValidationError("hostname must be non-zero length string.")
+        return value
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "site_id": self.site_id,
+            "hostname": self.hostname,
+            "attributes": self.get_attributes(),
+        }
+
+
+class Network(AttributeModelMixin, Model):
     """ Represents a subnet or ipaddress. """
+
+    # Class attributes used by Mixin
+    _index_class = NetworkAttributeIndex
+    _resource_name = "Network"
 
     __tablename__ = "networks"
     __table_args__ = (
@@ -483,10 +687,6 @@ class Network(Model):
     # Simple boolean
     is_ip = Column(Boolean, nullable=False, default=False, index=True)
 
-    # Attributes is a Serialized LOB field. Lookups of these attributes
-    # is done against an Inverted Index table
-    _attributes = Column("attributes", Text)
-
     @validates("ip_version")
     def validate_ip_version(self, key, value):
         if value not in IP_VERSIONS:
@@ -507,62 +707,8 @@ class Network(Model):
             "attributes": self.get_attributes(),
         }
 
-    def _purge_attribute_index(self):
-        index_table = NetworkAttributeIndex.__table__
-        self.session.execute(
-            index_table.delete().where(index_table.c.network_id == self.id)
-        )
-
     def before_delete(self):
         self._purge_attribute_index()
-
-    def get_attributes(self):
-        if self._attributes is None:
-            return {}
-        return json.loads(self._attributes)
-
-    def set_attributes(self, attributes, valid_attributes=None):
-        if not isinstance(attributes, dict):
-            raise exc.ValidationError("Expected dictionary but received {}".format(
-                type(attributes)
-            ))
-
-        if valid_attributes is None:
-            valid_attributes = Attribute.all_by_name(self.session, "Network")
-
-        missing_attributes = {
-            attribute.name
-            for attribute in valid_attributes.itervalues()
-            if attribute.required and attribute.name not in attributes
-        }
-
-        if missing_attributes:
-            raise exc.ValidationError("Missing required attributes: {}".format(
-                ", ".join(missing_attributes)
-            ))
-
-        inserts = []
-        for name, value in attributes.iteritems():
-            if name not in valid_attributes:
-                raise exc.ValidationError("Attribute name (%s) does not exist.".format(
-                    name
-                ))
-
-            if not isinstance(name, basestring):
-                raise exc.ValidationError("Attribute names must be a string type")
-
-            attribute = valid_attributes[name]
-            inserts.extend(attribute.validate_value(value))
-
-        for insert in inserts:
-            insert["network_id"] = self.id
-
-        self._purge_attribute_index()
-        if inserts:
-            index_table = NetworkAttributeIndex.__table__
-            self.session.execute(index_table.insert(), inserts)
-
-        self._attributes = json.dumps(attributes)
 
     def supernets(self, session, direct=False, discover_mode=False, for_update=False):
         """ Get networks that are a supernet of a network.
@@ -717,22 +863,6 @@ class Network(Model):
             raise
 
         return obj
-
-    def update(self, user_id, **kwargs):
-        session = self.session
-        try:
-            for key, value in kwargs.iteritems():
-                if key == "attributes":
-                    self.set_attributes(value)
-                else:
-                    setattr(self, key, value)
-            session.flush()
-            Change.create(session, user_id, "Update", self)
-            session.commit()
-        except Exception:
-            session.rollback()
-            raise
-
 
 class Attribute(Model):
 
@@ -970,23 +1100,6 @@ class Change(Model):
             "resource_id": self.resource_id,
             "resource": resource,
         }
-
-
-class NetworkAttributeIndex(Model):
-    """ An Inverted Index for looking up Networks by their attributes."""
-
-    __tablename__ = "network_attribute_index"
-
-    id = Column(Integer, primary_key=True)
-
-    name = Column(String(length=64), nullable=False, index=True)
-    value = Column(String(length=255), nullable=False, index=True)
-
-    network_id = Column(Integer, ForeignKey("networks.id"), nullable=False)
-    network = relationship(Network, backref="attr_idx")
-
-    attribute_id = Column(Integer, ForeignKey("attributes.id"), nullable=False)
-    attribute = relationship(Attribute)
 
 
 class Counter(Model):
