@@ -1,0 +1,61 @@
+<loading-panel ng-if="loading"></loading-panel>
+<div ng-if="!loading">
+    <heading-bar heading="Device"
+        subheading="[[device.hostname]]">
+        <button ng-if="admin"
+            class="btn btn-info"
+            data-toggle="modal"
+            data-target="#updateDeviceModal"
+        >Update Device</button>
+        <button ng-if="admin"
+            class="btn btn-danger"
+            data-toggle="modal"
+            data-target="#deleteDeviceModal"
+        >Delete Device</button>
+    </heading-bar>
+
+    <nsot-modal title="Update Device" modal-id="updateDeviceModal" modal-size="large">
+        <div class="modal-body">
+            <div ng-if="updateError" class="alert alert-danger">
+                [[updateError.code]] - [[updateError.message]]
+            </div>
+            <form novalidate name="deviceForm" class="nsot-form">
+                <div ng-include="formUrl"></div>
+            </form>
+
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">
+                Close
+            </button>
+            <button type="submit" ng-click="updateDevice()"
+                    class="btn btn-primary" ng-disabled="deviceForm.$invalid"
+            >
+                Update
+            </button>
+        </div>
+    </nsot-modal>
+
+    <nsot-modal title="Delete Device" modal-id="deleteDeviceModal">
+        <div class="modal-body">
+            <div ng-if="deleteError" class="alert alert-danger">
+                [[deleteError.code]] - [[deleteError.message]]
+            </div>
+            Are you sure you want to delete this device?
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">
+                Close
+            </button>
+            <button type="submit"
+                    ng-click="deleteDevice()"
+                    class="btn btn-primary"
+            >
+                Delete
+            </button>
+        </div>
+    </nsot-modal>
+
+
+
+</div>

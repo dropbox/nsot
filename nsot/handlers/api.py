@@ -480,6 +480,7 @@ class AttributesHandler(ApiHandler):
         :query int limit: (*optional*) Limit result to N resources.
         :query int offset: (*optional*) Skip the first N resources.
         :query string name: (*optional*) Filter to attribute with name
+        :query string resource_name: (*optional*) Filter to attributes for a specific resource.
         :query bool required: (*optional*) Filter to attributes that are required
         :query bool display: (*optional*) Filter to attributes meant to be displayed.
         :query bool multi: (*optional*) Filter on whether list type or not
@@ -777,6 +778,384 @@ class AttributeHandler(ApiHandler):
         self.success({
             "message": "Attribute {} deleted from Site {}.".format(
                 attribute_id, site_id
+            ),
+        })
+
+
+class DevicesHandler(ApiHandler):
+
+    @any_perm("admin")
+    def post(self, site_id):
+        """ **Create a Device**
+
+        **Example Request**:
+
+        .. sourcecode:: http
+
+            POST /api/sites/1/devices HTTP/1.1
+            Host: localhost
+            Content-Type: application/json
+            X-NSoT-Email: user@localhost
+
+            {
+                "hostname": "foobarhost",
+                "attributes": {
+                    "owner": "network-tools"
+                }
+            }
+
+        **Example response**:
+
+        .. sourcecode:: http
+
+            HTTP/1.1 201 OK
+            Location: /api/sites/1/devices/1
+
+            {
+                "status": "ok",
+                "data": {
+                    "device": {
+                        "id": 1,
+                        "site_id": 1,
+                        "hostname": "foobarhost",
+                        "attributes": {"owner": "network-tools"}
+                    }
+                }
+            }
+
+        :permissions: * **admin**
+
+        :param site_id: ID of the Site where this should be created.
+        :type site_id: int
+
+        :reqjson string hostname: The hostname of the network device.
+        :reqjson object attributes: (*optional*) An object of key/value pairs
+                                    attached to this device.
+
+        :reqheader Content-Type: The server expects a json body specified with
+                                 this header.
+        :reqheader X-NSoT-Email: required for all api requests.
+
+        :resheader Location: URL to the created resource.
+
+        :statuscode 201: The site was successfully created.
+        :statuscode 400: The request was malformed.
+        :statuscode 401: The request was made without being logged in.
+        :statuscode 403: The request was made with insufficient permissions.
+        :statuscode 404: The Site at site_id was not found.
+        :statuscode 409: There was a conflict with another resource.
+        """
+        site = self.session.query(models.Site).filter_by(id=site_id).scalar()
+        if not site:
+            raise exc.NotFound("No such Site found at id {}".format(site_id))
+
+        try:
+            hostname = self.jbody["hostname"]
+            attributes = self.jbody.get("attributes", {})
+        except KeyError as err:
+            raise exc.BadRequest("Missing Required Argument: {}".format(err.message))
+
+        try:
+            device = models.Device.create(
+                self.session, self.current_user.id, site_id=site_id,
+                hostname=hostname, attributes=attributes,
+            )
+        except IntegrityError as err:
+            raise exc.Conflict(err.orig.message)
+        except (ValueError, exc.ValidationError) as err:
+            raise exc.BadRequest(err.message)
+
+        self.created("/api/sites/{}/devices/{}".format(site_id, device.id), {
+            "device": device.to_dict(),
+        })
+
+    def get(self, site_id):
+        """ **Get all Devices**
+
+        **Example Request**:
+
+        .. sourcecode:: http
+
+            GET /api/sites/1/devices HTTP/1.1
+            Host: localhost
+            X-NSoT-Email: user@localhost
+
+        **Example response**:
+
+        .. sourcecode:: http
+
+            HTTP/1.1 200 OK
+            Content-Type: application/json
+
+            {
+                "status": "ok",
+                "data": {
+                    "devices": [
+                        {
+                            "id": 1,
+                            "site_id": 1,
+                            "hostname": "foobarhost",
+                            "attributes": {"owner": "network-tools"}
+                        }
+                    ],
+                    "limit": null,
+                    "offset": 0,
+                    "total": 1,
+                }
+            }
+
+        :param site_id: ID of the Site to retrieve Devices from.
+        :type site_id: int
+
+        :query int limit: (*optional*) Limit result to N resources.
+        :query int offset: (*optional*) Skip the first N resources.
+
+        :reqheader X-NSoT-Email: required for all api requests.
+
+        :statuscode 200: The request was successful.
+        :statuscode 401: The request was made without being logged in.
+        :statuscode 404: The Site at site_id was not found.
+        """
+        site = self.session.query(models.Site).filter_by(id=site_id).scalar()
+        if not site:
+            raise exc.NotFound("No such Site found at id {}".format(site_id))
+
+        devices = site.devices()
+
+        offset, limit = self.get_pagination_values()
+        devices, total = self.paginate_query(devices, offset, limit)
+
+        self.success({
+            "devices": [device.to_dict() for device in devices],
+            "limit": limit,
+            "offset": offset,
+            "total": total,
+        })
+
+
+class DeviceHandler(ApiHandler):
+    def get(self, site_id, device_id):
+        """ **Get a specific Device**
+
+        **Example Request**:
+
+        .. sourcecode:: http
+
+            GET /api/sites/1/devices/1 HTTP/1.1
+            Host: localhost
+            X-NSoT-Email: user@localhost
+
+        **Example response**:
+
+        .. sourcecode:: http
+
+            HTTP/1.1 200 OK
+            Content-Type: application/json
+
+            {
+                "status": "ok",
+                "data": {
+                    "device": {
+                        "id": 1,
+                        "site_id": 1,
+                        "hostname": "foobarhost",
+                        "attributes": {"owner": "network-tools"}
+                    }
+                }
+            }
+
+        :param site_id: ID of the Site this Device is under.
+        :type site_id: int
+
+        :param device_id: ID of the Device being retrieved.
+        :type device_id: int
+
+        :reqheader X-NSoT-Email: required for all api requests.
+
+        :statuscode 200: The request was successful.
+        :statuscode 401: The request was made without being logged in.
+        :statuscode 404: The Site or Device was not found.
+        """
+        site = self.session.query(models.Site).filter_by(id=site_id).scalar()
+        if not site:
+            raise exc.NotFound("No such Site found at id {}".format(site_id))
+
+        device = self.session.query(models.Device).filter_by(
+            id=device_id,
+            site_id=site_id
+        ).scalar()
+
+        if not device:
+            raise exc.NotFound(
+                "No such Device found at (site_id, id) = ({}, {})".format(
+                    site_id, device_id
+                )
+            )
+
+        self.success({
+            "device": device.to_dict(),
+        })
+
+    @any_perm("admin")
+    def put(self, site_id, device_id):
+        """ **Update a Device**
+
+        **Example Request**:
+
+        .. sourcecode:: http
+
+            PUT /api/sites/1/devices/1 HTTP/1.1
+            Host: localhost
+            Content-Type: application/json
+            X-NSoT-Email: user@localhost
+
+            {
+                "hostname": "foobarhost",
+                "attributes": {"owner": "network-eng"}
+            }
+
+        **Example response**:
+
+        .. sourcecode:: http
+
+            HTTP/1.1 200 OK
+            Content-Type: application/json
+
+            {
+                "status": "ok",
+                "data": {
+                    "device": {
+                        "id": 1,
+                        "site_id": 1,
+                        "hostname": "foobarhost",
+                        "attributes": {"owner": "network-eng"}
+                    }
+                }
+            }
+
+
+        :permissions: * **admin**
+
+        :param site_id: ID of the Site that should be updated.
+        :type site_id: int
+
+        :param device_id: ID of the Attribute being updated.
+        :type device_id: int
+
+        :reqjson string hostname: The hostname of the device.
+        :reqjson object attributes: (*optional*) A key/value pair of attributes
+                                    attached to the device
+
+        :reqheader Content-Type: The server expects application/json.
+        :reqheader X-NSoT-Email: required for all api requests.
+
+        :statuscode 200: The request was successful.
+        :statuscode 400: The request was malformed.
+        :statuscode 401: The request was made without being logged in.
+        :statuscode 403: The request was made with insufficient permissions.
+        :statuscode 404: The Site or Device was not found.
+        :statuscode 409: There was a conflict with another resource.
+        """
+        site = self.session.query(models.Site).filter_by(id=site_id).scalar()
+        if not site:
+            raise exc.NotFound("No such Site found at id {}".format(site_id))
+
+        device = self.session.query(models.Device).filter_by(
+            id=device_id,
+            site_id=site_id
+        ).scalar()
+
+        if not device:
+            raise exc.NotFound(
+                "No such Device found at (site_id, id) = ({}, {})".format(
+                    site_id, device_id
+                )
+            )
+
+        try:
+            hostname = self.jbody["hostname"]
+            attributes = self.jbody.get("attributes", {})
+        except KeyError as err:
+            raise exc.BadRequest("Missing Required Argument: {}".format(err.message))
+
+        try:
+            device.update(self.current_user.id, hostname=hostname, attributes=attributes)
+        except IntegrityError as err:
+            raise exc.Conflict(err.orig.message)
+        except exc.ValidationError as err:
+            raise exc.BadRequest(err.message)
+
+        self.success({
+            "device": device.to_dict(),
+        })
+
+    @any_perm("admin")
+    def delete(self, site_id, device_id):
+        """ **Delete a Device**
+
+        **Example Request**:
+
+        .. sourcecode:: http
+
+            DELETE /api/sites/1/devices/1 HTTP/1.1
+            Host: localhost
+            X-NSoT-Email: user@localhost
+
+        **Example response**:
+
+        .. sourcecode:: http
+
+            HTTP/1.1 200 OK
+            Content-Type: application/json
+
+            {
+                "status": "ok",
+                "data": {
+                    "message": Device 1 deleted."
+                }
+            }
+
+
+        :permissions: * **admin**
+
+        :param site_id: ID of the Site that should be updated.
+        :type site_id: int
+
+        :param device_id: ID of the Device being deleted.
+        :type device_id: int
+
+        :reqheader X-NSoT-Email: required for all api requests.
+
+        :statuscode 200: The request was successful.
+        :statuscode 401: The request was made without being logged in.
+        :statuscode 403: The request was made with insufficient permissions.
+        :statuscode 404: The Site or Attribute was not found.
+        :statuscode 409: There was a conflict with another resource.
+        """
+        site = self.session.query(models.Site).filter_by(id=site_id).scalar()
+        if not site:
+            raise exc.NotFound("No such Site found at id {}".format(site_id))
+
+        device = self.session.query(models.Device).filter_by(
+            id=device_id,
+            site_id=site_id
+        ).scalar()
+
+        if not device:
+            raise exc.NotFound(
+                "No such Device found at (site_id, id) = ({}, {})".format(
+                    site_id, device_id
+                )
+            )
+
+        try:
+            device.delete(self.current_user.id)
+        except IntegrityError as err:
+            raise exc.Conflict(err.orig.message)
+
+        self.success({
+            "message": "Device {} deleted from Site {}.".format(
+                device_id, site_id
             ),
         })
 

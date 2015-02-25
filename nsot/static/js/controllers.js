@@ -209,7 +209,7 @@
         });
 
         $("body").on("show.bs.modal", "#createNetworkModal", function(e){
-            Attribute.query({siteId: siteId}, function(response){
+            Attribute.query({siteId: siteId, resource_name: "Network"}, function(response){
                 $scope.attributes = response.data;
                 $scope.attributesByName = _.reduce(
                         $scope.attributes, function(acc, value, key){
@@ -297,7 +297,7 @@
         });
 
         $("body").on("show.bs.modal", "#updateNetworkModal", function(e){
-            Attribute.query({siteId: siteId}, function(response){
+            Attribute.query({siteId: siteId, resource_name: "Network"}, function(response){
                 $scope.attributes = response.data;
                 $scope.attributesByName = _.reduce(
                         $scope.attributes, function(acc, value, key){
@@ -340,6 +340,179 @@
 
     }]);
 
+    app.controller("DevicesController", [
+            "$scope", "$location", "$q", "$routeParams",
+            "User", "Device", "Attribute", "pagerParams", "Paginator",
+            function($scope, $location, $q, $routeParams,
+                     User, Device, Attribute, pagerParams, Paginator) {
+
+        $scope.loading = true;
+        $scope.user = null;
+        $scope.attributes = {};
+        $scope.devices = [];
+        $scope.paginator = null;
+        $scope.error = null;
+        $scope.admin = false;
+        var siteId = $scope.siteId = $routeParams.siteId;
+
+        $scope.formUrl = "/static/templates/includes/devices-form.html";
+        $scope.formData = {
+            attributes: []
+        };
+
+        var params = _.extend(pagerParams(), {
+            siteId: siteId,
+        });
+
+        $q.all([
+            User.get({id: 0}).$promise,
+            Device.query(params).$promise
+        ]).then(function(results){
+            $scope.user = results[0];
+            $scope.devices = results[1].data;
+            $scope.admin = $scope.user.isAdmin(siteId, ["admin"]);
+
+
+            $scope.paginator = new Paginator(results[1]);
+            $scope.loading = false;
+        }, function(data){
+            if (data.status === 404) {
+                $location.path("/");
+                $location.replace();
+            }
+        });
+
+        $("body").on("show.bs.modal", "#createDeviceModal", function(e){
+            Attribute.query({siteId: siteId, resource_name: "Device"}, function(response){
+                $scope.attributes = response.data;
+                $scope.attributesByName = _.reduce(
+                        $scope.attributes, function(acc, value, key){
+                    acc[value.name] = value;
+                    return acc;
+                }, {});
+
+                $scope.formData.attributes = _.chain($scope.attributes)
+                    .filter(function(value){
+                        return value.display;
+                    })
+                    .sortBy(function(value){
+                        return value.required ? 0 : 1;
+                    })
+                    .map(function(value){
+                        return {
+                            name: value.name
+                        };
+                    }).value();
+            });
+        });
+
+        $scope.$on('$destroy', function() {
+            $("body").off("show.bs.modal", "#createDeviceModal");
+        });
+
+
+        $scope.addAttr = function() {
+            $scope.formData.attributes.push({});
+        };
+
+        $scope.removeAttr = function(idx) {
+            $scope.formData.attributes.splice(idx, 1);
+        };
+
+        $scope.createDevice = function() {
+            var device = Device.fromForm($scope.formData);
+            device.$save({siteId: siteId}, function(device){
+                $location.path("/sites/" + siteId + "/devices/" + device.id);
+            }, function(data){
+                $scope.error = data.data.error;
+            });
+        };
+
+    }
+    ]);
+
+    app.controller("DeviceController", [
+            "$scope", "$route", "$location", "$q", "$routeParams",
+            "User", "Device", "Attribute",
+            function($scope, $route, $location, $q, $routeParams,
+                     User, Device, Attribute) {
+
+        $scope.loading = true;
+        $scope.user = {};
+        $scope.device = {};
+        $scope.attributes = {};
+        $scope.admin = false;
+        $scope.updateError = null;
+        $scope.deleteError = null;
+        var siteId = $scope.siteId = $routeParams.siteId;
+        var deviceId = $scope.deviceId = $routeParams.deviceId;
+        $scope.formMode = "update";
+        $scope.formUrl = "/static/templates/includes/devices-form.html";
+        $scope.formData = {
+            attributes: []
+        };
+
+
+        $q.all([
+            User.get({id: 0}).$promise,
+            Device.get({siteId: siteId, id: deviceId}).$promise
+        ]).then(function(results){
+            $scope.user = results[0];
+            $scope.device = results[1];
+            $scope.formData = $scope.device.toForm();
+            $scope.admin = $scope.user.isAdmin(siteId, ["admin"]);
+
+            $scope.loading = false;
+        }, function(data){
+            if (data.status === 404) {
+                $location.path("/");
+                $location.replace();
+            }
+        });
+
+        $("body").on("show.bs.modal", "#updateDeviceModal", function(e){
+            Attribute.query({siteId: siteId, resource_name: "Device"}, function(response){
+                $scope.attributes = response.data;
+                $scope.attributesByName = _.reduce(
+                        $scope.attributes, function(acc, value, key){
+                    acc[value.name] = value;
+                    return acc;
+                }, {});
+            });
+        });
+
+        $scope.$on('$destroy', function() {
+            $("body").off("show.bs.modal", "#updateDeviceModal");
+        });
+
+        $scope.addAttr = function() {
+            $scope.formData.attributes.push({});
+        };
+
+        $scope.removeAttr = function(idx) {
+            $scope.formData.attributes.splice(idx, 1);
+        };
+
+        $scope.updateDevice = function(){
+            var device = $scope.device;
+            device.updateFromForm($scope.formData);
+            device.$update({siteId: siteId}, function(data){
+                $route.reload();
+            }, function(data){
+                $scope.updateError = data.data.error;
+            });
+        };
+
+        $scope.deleteDevice = function(){
+            $scope.device.$delete({siteId: siteId}, function(){
+                $location.path("/sites/" + siteId + "/devices");
+            }, function(data){
+                $scope.deleteError = data.data.error;
+            });
+        };
+
+
+    }]);
     app.controller("AttributesController", [
             "$scope", "$route", "$location", "$q", "$routeParams",
             "User", "Attribute",
