@@ -551,7 +551,7 @@ class AttributeModelMixin(object):
         inserts = []
         for name, value in attributes.iteritems():
             if name not in valid_attributes:
-                raise exc.ValidationError("Attribute name (%s) does not exist.".format(
+                raise exc.ValidationError("Attribute name ({}) does not exist.".format(
                     name
                 ))
 
