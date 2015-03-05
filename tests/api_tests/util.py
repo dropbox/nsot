@@ -20,7 +20,7 @@ def assert_success(response, data=None):
 def assert_created(response, location, data=None):
     output = response.json()
     assert response.status_code == 201
-    assert response.headers["Location"] == location
+    assert response.headers.get("Location") == location
     assert output["status"] == "ok"
     if data is not None:
         assert output["data"] == data

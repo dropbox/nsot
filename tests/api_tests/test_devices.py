@@ -71,6 +71,33 @@ def test_creation(tornado_server):
     )
 
 
+def test_collection_creation(tornado_server):
+    client = Client(tornado_server)
+
+    client.create("/sites", name="Test Site")  # 1
+
+    # Successfully create a collection of Devices
+    collection = [
+        {"hostname": "device1"},
+        {"hostname": "device2"},
+        {"hostname": "device3"},
+    ]
+    collection_response = client.create(
+        "/sites/1/devices",
+        devices=collection
+    )
+    assert_created(collection_response, None)
+
+    # Successfully get all created Devices
+    output = collection_response.json()
+    output['data'].update({"limit": None, "offset": 0})
+
+    assert_success(
+        client.get("/sites/1/devices"),
+        output['data'],
+    )
+
+
 def test_update(tornado_server):
     admin_client = Client(tornado_server, "admin")
     user_client = Client(tornado_server, "user")
