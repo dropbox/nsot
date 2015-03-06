@@ -324,7 +324,7 @@ class AttributesHandler(ApiHandler):
 
     @any_perm("admin")
     def post(self, site_id):
-        """ **Create an Attribute**
+        """ **Create an Attribute or collection of Attributes**
 
         **Example Request**:
 
@@ -369,6 +369,75 @@ class AttributesHandler(ApiHandler):
                 }
             }
 
+        You may also create a collection of objects by submitting them as a list
+        inside of a dictionary with an ``attributes`` key.
+
+        **Example collection request**:
+
+        .. sourcecode:: http
+
+            POST /api/sites/1/attributes HTTP/1.1
+            Host: localhost
+            Content-Type: application/json
+            X-NSoT-Email: user@localhost
+
+            {
+                "attributes": [
+                    {
+                        "name": "owner",
+                        "resource_name": "Network",
+                    },
+                    {
+                        "name": "metro",
+                        "resource_name": "Network",
+                    }
+                ]
+            }
+
+        **Example collection response**:
+
+        Note that when creating a collection the response will not contain a
+        ``Location`` header.
+
+        .. sourcecode:: http
+
+            HTTP/1.1 201 OK
+
+            {
+                "status": "ok",
+                "data": {
+                    "attributes": [
+                        {
+                            "id": 1,
+                            "name": "owner",
+                            "resource_name": "Network",
+                            "required": false,
+                            "display": false,
+                            "multi": false,
+                            "constraints": {
+                                "allow_empty": false,
+                                "pattern": "",
+                                "valid_values": []
+                            }
+                        },
+                        {
+                            "id": 2,
+                            "name": "metro",
+                            "resource_name": "Network",
+                            "required": false,
+                            "display": false,
+                            "multi": false,
+                            "constraints": {
+                                "allow_empty": false,
+                                "pattern": "",
+                                "valid_values": []
+                            }
+                        }
+                    ],
+                    "total": 2
+                }
+            }
+
         :permissions: * **admin**
 
         :param site_id: ID of the Site where this should be created.
@@ -401,34 +470,57 @@ class AttributesHandler(ApiHandler):
         if not site:
             raise exc.NotFound("No such Site found at id {}".format(site_id))
 
-        try:
-            name = self.jbody["name"]
-            resource_name = self.jbody["resource_name"]
-            description = self.jbody.get("description")
-            required = self.jbody.get("required", False)
-            display = self.jbody.get("display", False)
-            multi = self.jbody.get("multi", False)
-            constraints = self.jbody.get("constraints", {})
-        except KeyError as err:
-            raise exc.BadRequest("Missing Required Argument: {}".format(err.message))
+        # Fetch collection from the body or the body itself
+        objects = self.jbody.get('attributes', [self.jbody])
 
+        attributes = []
+        for obj in objects:
+            try:
+                name = obj["name"]
+                description = obj.get("description")
+                resource_name = obj["resource_name"]
+                required = obj.get("required", False)
+                display = obj.get("display", False)
+                multi = obj.get("multi", False)
+                constraints = obj.get("constraints", {})
+            except KeyError as err:
+                raise exc.BadRequest("Missing Required Argument: {}".format(err.message))
+
+            attribute = self.create_object(
+                site_id, name, description, resource_name, required, display,
+                multi, constraints, commit=False
+            )
+            attributes.append(attribute.to_dict())
+        else:
+            self.session.commit()
+
+        # Return a collection w/ no Location header
+        if len(attributes) > 1:
+            self.created(
+                data={"attributes": attributes, "total": len(attributes)}
+            )
+        # Or return a single object
+        else:
+            attribute = attributes[0]
+            uri = "/api/sites/{}/attributes/{}".format(site_id, attribute['id'])
+            self.created(uri, {"attribute": attribute})
+
+    def create_object(self, site_id, name, description, resource_name, required,
+                      display, multi, constraints, commit=True):
+        """Create an Attribute object."""
+        site_id = int(site_id)
         try:
             attribute = models.Attribute.create(
                 self.session, self.current_user.id,
                 site_id=site_id, name=name, description=description,
                 resource_name=resource_name, required=required, display=display,
-                multi=multi, constraints=constraints
+                multi=multi, constraints=constraints, commit=commit
             )
         except IntegrityError as err:
             raise exc.Conflict(str(err.orig))
         except exc.ValidationError as err:
             raise exc.BadRequest(err.message)
-
-        self.created("/api/sites/{}/attributes/{}".format(
-            site_id, attribute.id
-        ), {
-            "attribute": attribute.to_dict(),
-        })
+        return attribute
 
     def get(self, site_id):
         """ **Get all Attributes**
@@ -786,7 +878,7 @@ class DevicesHandler(ApiHandler):
 
     @any_perm("admin")
     def post(self, site_id):
-        """ **Create a Device**
+        """ **Create a Device or collection of Devices**
 
         **Example Request**:
 
@@ -823,6 +915,55 @@ class DevicesHandler(ApiHandler):
                 }
             }
 
+        You may also create a collection of objects by submitting them as a list
+        inside of a dictionary with an ``devices`` key.
+
+        **Example collection request**:
+
+        .. sourcecode:: http
+
+            POST /api/sites/1/devices HTTP/1.1
+            Host: localhost
+            Content-Type: application/json
+            X-NSoT-Email: user@localhost
+
+            {
+                "devices": [
+                    {"hostname": "foobarhost1"},
+                    {"hostname": "foobarhost2"}
+                ]
+            }
+
+        **Example collection response**:
+
+        Note that when creating a collection the response will not contain a
+        ``Location`` header.
+
+        .. sourcecode:: http
+
+            HTTP/1.1 201 OK
+
+            {
+                "status": "ok",
+                "data": {
+                    "devices": [
+                        {
+                            "id": 1,
+                            "hostname": "foobarhost1",
+                            "site_id": 1,
+                            "attributes": {}
+                        },
+                        {
+                            "id": 2,
+                            "hostname": "foobarhost2",
+                            "site_id": 1,
+                            "attributes": {}
+                        }
+                    ],
+                    "total": 2
+                }
+            }
+
         :permissions: * **admin**
 
         :param site_id: ID of the Site where this should be created.
@@ -849,25 +990,46 @@ class DevicesHandler(ApiHandler):
         if not site:
             raise exc.NotFound("No such Site found at id {}".format(site_id))
 
-        try:
-            hostname = self.jbody["hostname"]
-            attributes = self.jbody.get("attributes", {})
-        except KeyError as err:
-            raise exc.BadRequest("Missing Required Argument: {}".format(err.message))
+        # Fetch collection from the body or the body itself as a list.
+        objects = self.jbody.get('devices', [self.jbody])
 
+        devices = []
+        for obj in objects:
+            try:
+                hostname = obj["hostname"]
+                attributes = obj.get("attributes", {})
+            except KeyError as err:
+                raise exc.BadRequest("Missing Required Argument: {}".format(err.message))
+
+            device = self.create_object(
+                site_id, hostname, attributes, commit=False
+            )
+            devices.append(device.to_dict())
+        else:
+            self.session.commit()
+
+        # Return a collection w/ no Location header
+        if len(devices) > 1:
+            self.created(data={"devices": devices, "total": len(devices)})
+        # Or return a single object
+        else:
+            device = devices[0]
+            uri = "/api/sites/{}/devices/{}".format(site_id, device['id'])
+            self.created(uri, {"device": device})
+
+    def create_object(self, site_id, hostname, attributes, commit=True):
+        """Create a Device object."""
+        site_id = int(site_id)
         try:
             device = models.Device.create(
                 self.session, self.current_user.id, site_id=site_id,
-                hostname=hostname, attributes=attributes,
+                hostname=hostname, attributes=attributes, commit=commit
             )
         except IntegrityError as err:
             raise exc.Conflict(err.orig.message)
         except (ValueError, exc.ValidationError) as err:
             raise exc.BadRequest(err.message)
-
-        self.created("/api/sites/{}/devices/{}".format(site_id, device.id), {
-            "device": device.to_dict(),
-        })
+        return device
 
     def get(self, site_id):
         """ **Get all Devices**
@@ -1164,7 +1326,7 @@ class NetworksHandler(ApiHandler):
 
     @any_perm("admin")
     def post(self, site_id):
-        """ **Create a Network**
+        """ **Create a Network or collection of Networks**
 
         **Example Request**:
 
@@ -1205,6 +1367,63 @@ class NetworksHandler(ApiHandler):
                 }
             }
 
+        You may also create a collection of objects by submitting them as a list
+        inside of a dictionary with an ``networks`` key.
+
+        **Example collection request**:
+
+        .. sourcecode:: http
+
+            POST /api/sites/1/networks HTTP/1.1
+            Host: localhost
+            Content-Type: application/json
+            X-NSoT-Email: user@localhost
+
+            {
+                "networks": [
+                    {"cidr": "10.0.0.0/8"},
+                    {"cidr": "172.16.0.0/12"}
+                ]
+            }
+
+        **Example collection response**:
+
+        Note that when creating a collection the response will not contain a
+        ``Location`` header.
+
+        .. sourcecode:: http
+
+            HTTP/1.1 201 OK
+
+            {
+                "status": "ok",
+                "data": {
+                    "networks": [
+                        {
+                            "id": 1,
+                            "parent_id": null,
+                            "site_id": 1,
+                            "is_ip": false,
+                            "ip_version": "4",
+                            "network_address": "10.0.0.0",
+                            "prefix_length": "8",
+                            "attributes": {}
+                        },
+                        {
+                            "id": 2,
+                            "parent_id": null,
+                            "site_id": 1,
+                            "is_ip": false,
+                            "ip_version": "4",
+                            "network_address": "172.16.0.0",
+                            "prefix_length": "12",
+                            "attributes": {}
+                        }
+                    ],
+                    "total": 2
+                }
+            }
+
         :permissions: * **admin**
 
         :param site_id: ID of the Site where this should be created.
@@ -1231,12 +1450,36 @@ class NetworksHandler(ApiHandler):
         if not site:
             raise exc.NotFound("No such Site found at id {}".format(site_id))
 
-        try:
-            cidr = self.jbody["cidr"]
-            attributes = self.jbody.get("attributes", {})
-        except KeyError as err:
-            raise exc.BadRequest("Missing Required Argument: {}".format(err.message))
+        # Fetch collection from the body or the body itself
+        objects = self.jbody.get('networks', [self.jbody])
 
+        networks = []
+        for obj in objects:
+            try:
+                cidr = obj["cidr"]
+                attributes = obj.get("attributes", {})
+            except KeyError as err:
+                raise exc.BadRequest("Missing Required Argument: {}".format(err.message))
+
+            network = self.create_object(
+                site_id, cidr, attributes, commit=False
+            )
+            networks.append(network.to_dict())
+        else:
+            self.session.commit()
+
+        # Return a collection w/ no Location header
+        if len(networks) > 1:
+            self.created(data={"networks": networks, "total": len(networks)})
+        # Or return a single object
+        else:
+            network = networks[0]
+            uri = "/api/sites/{}/networks/{}".format(site_id, network['id'])
+            self.created(uri, {"network": network})
+
+    def create_object(self, site_id, cidr, attributes, commit=True):
+        """Create a Network object."""
+        site_id = int(site_id)
         try:
             network = models.Network.create(
                 self.session, self.current_user.id, site_id,
@@ -1246,10 +1489,7 @@ class NetworksHandler(ApiHandler):
             raise exc.Conflict(err.orig.message)
         except (ValueError, exc.ValidationError) as err:
             raise exc.BadRequest(err.message)
-
-        self.created("/api/sites/{}/networks/{}".format(site_id, network.id), {
-            "network": network.to_dict(),
-        })
+        return network
 
     def get(self, site_id):
         """ **Get all Networks**

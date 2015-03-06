@@ -217,18 +217,23 @@ class ApiHandler(BaseHandler):
         })
 
     def success(self, data):
+        """200 OK"""
         self.write({
             "status": "ok",
             "data": data,
         })
         self.finish()
 
-    def created(self, location, data):
+    def created(self, location=None, data=None):
+        """201 CREATED"""
         self.set_status(201)
-        self.set_header(
-            "Location",
-            urlparse.urljoin(utf8(self.request.uri), utf8(location))
-        )
+        if data is None:
+            data = {}
+        if location is not None:
+            self.set_header(
+                "Location",
+                urlparse.urljoin(utf8(self.request.uri), utf8(location))
+            )
         self.write({
             "status": "ok",
             "data": data,

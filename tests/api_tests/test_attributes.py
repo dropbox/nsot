@@ -70,6 +70,33 @@ def test_creation(tornado_server):
     )
 
 
+def test_collection_creation(tornado_server):
+    client = Client(tornado_server)
+
+    client.create("/sites", name="Test Site")  # 1
+
+    # Successfully create a collection of Attributes
+    collection = [
+        {"name": "attr1", "resource_name": "Network"},
+        {"name": "attr2", "resource_name": "Network"},
+        {"name": "attr3", "resource_name": "Network"},
+    ]
+    collection_response = client.create(
+        "/sites/1/attributes",
+        attributes=collection
+    )
+    assert_created(collection_response, None)
+
+    # Successfully get all created Attributes
+    output = collection_response.json()
+    output['data'].update({"limit": None, "offset": 0})
+
+    assert_success(
+        client.get("/sites/1/attributes"),
+        output['data'],
+    )
+
+
 def test_update(tornado_server):
     client = Client(tornado_server)
 

@@ -79,6 +79,33 @@ def test_creation(tornado_server):
     )
 
 
+def test_collection_creation(tornado_server):
+    client = Client(tornado_server)
+
+    client.create("/sites", name="Test Site")  # 1
+
+    # Successfully create a collection of Networks
+    collection = [
+        {"cidr": "1.1.1.0/24"},
+        {"cidr": "2.2.2.0/24"},
+        {"cidr": "3.3.3.0/24"},
+    ]
+    collection_response = client.create(
+        "/sites/1/networks",
+        networks=collection
+    )
+    assert_created(collection_response, None)
+
+    # Successfully get all created Networks
+    output = collection_response.json()
+    output['data'].update({"limit": None, "offset": 0})
+
+    assert_success(
+        client.get("/sites/1/networks"),
+        output['data'],
+    )
+
+
 def test_update(tornado_server):
     admin_client = Client(tornado_server, "admin")
     user_client = Client(tornado_server, "user")
