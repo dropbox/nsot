@@ -34,6 +34,14 @@ def test_creation(tornado_server):
         400
     )
 
+    # Null hostname
+    assert_error(
+        admin_client.create("/sites/1/devices",
+            hostname=None
+        ),
+        400
+    )
+
     # Verify Successful Creation
     assert_created(
         admin_client.create("/sites/1/devices",

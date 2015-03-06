@@ -639,7 +639,7 @@ class Device(AttributeModelMixin, Model):
 
     @validates("hostname")
     def validate_hostname(self, key, value):
-        if len(value) < 1:
+        if not value:
             raise exc.ValidationError("hostname must be non-zero length string.")
         return value
 
