@@ -813,6 +813,9 @@ class Network(AttributeModelMixin, Model):
         commit = kwargs.pop("commit", True)
         if attributes is None:
             attributes = {}
+        if not cidr:
+            msg = "Invalid CIDR: {}. Must be IPv4/IPv6 notation.".format(cidr)
+            raise exc.ValidationError(msg)
 
         network = cidr
         if isinstance(cidr, unicode):

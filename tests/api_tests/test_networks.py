@@ -34,6 +34,14 @@ def test_creation(tornado_server):
         400
     )
 
+    # Null cidr
+    assert_error(
+        admin_client.create("/sites/1/networks",
+            cidr=None,
+        ),
+        400
+    )
+
     # Verify Successful Creation
     assert_created(
         admin_client.create("/sites/1/networks",
