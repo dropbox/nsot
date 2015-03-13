@@ -4,7 +4,8 @@ import requests
 
 from .fixtures import tornado_server, tornado_app
 from .util import (
-    assert_error, assert_success, assert_created, assert_deleted, Client
+    assert_error, assert_success, assert_created, assert_deleted, Client,
+    load_json, run_set_queries
 )
 
 
@@ -85,6 +86,41 @@ def test_creation(tornado_server):
             "site_id": 1
         }}
     )
+
+
+def test_set_queries(tornado_server):
+    """Test set queries for Networks."""
+    client = Client(tornado_server)
+
+    client.create('/sites', name='Test Site')  # 1
+
+    # Pre-load the attributes
+    attr_data = load_json('attributes.json')
+    client.create(
+        '/sites/1/attributes',
+        attributes=attr_data['attributes']
+    )
+
+    # Populate the device objects.
+    network_data = load_json('networks.json')
+    client.create(
+        '/sites/1/networks',
+        networks=network_data['networks']
+    )
+
+    # Mapping of query string to file containing expected response data for
+    # each query.
+    network_queries = (
+        # INTERSECTION: foo=bar
+        ('foo=bar', 'query1.json'),
+        # INTERSECTION: foo=bar owner=jathan
+        ('foo=bar owner=jathan', 'query2.json'),
+        # DIFFERENCE: -owner=gary
+        ('-owner=gary', 'query3.json'),
+        # UNION: cluster +foo=baz
+        ('cluster +foo=baz', 'query4.json'),
+    )
+    run_set_queries('networks', client, network_queries)
 
 
 def test_collection_creation(tornado_server):

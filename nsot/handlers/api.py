@@ -7,7 +7,7 @@ from .util import ApiHandler
 from .. import exc
 from ..decorators import any_perm
 from .. import models
-from ..util import qp_to_bool as qpbool
+from ..util import qp_to_bool as qpbool, parse_set_query
 
 
 log = logging.getLogger(__name__)
@@ -1095,6 +1095,151 @@ class DevicesHandler(ApiHandler):
         })
 
 
+class DevicesQueryHandler(ApiHandler):
+    """
+    Use set operations syntax to perform queries for Devices.
+    """
+    def get(self, site_id):
+        """
+        **Intersection request**:
+
+        .. sourcecode:: http
+
+            GET /api/sites/1/devices/query?query=foo%3Dbar HTTP/1.1
+            Host: localhost
+            X-NSoT-Email: user@localhost
+
+        **Intersection response**:
+
+        .. sourcecode:: http
+
+            HTTP/1.1 200 OK
+            Content-Type: application/json
+
+            {
+                "status": "ok",
+                "data": {
+                    "devices": [
+                        {
+                            "attributes": {
+                                "owner": "team-networking",
+                                "foo": "bar"
+                            },
+                            "hostname": "foo-bar1",
+                            "site_id": 1,
+                            "id": 1
+                        },
+                        {
+                            "attributes": {
+                                "owner": "jathan",
+                                "foo": "bar"
+                            },
+                            "hostname": "foo-bar3",
+                            "site_id": 1,
+                            "id": 3
+                        }
+                    ]
+                }
+            }
+
+        **Difference request**:
+
+        .. sourcecode:: http
+
+            GET /api/sites/1/devices/query?query=foo%3Dbar+-owner%3Djathan HTTP/1.1
+            Host: localhost
+            X-NSoT-Email: user@localhost
+
+        **Difference response**:
+
+        .. sourcecode:: http
+
+            HTTP/1.1 200 OK
+            Content-Type: application/json
+
+            {
+                "status": "ok",
+                "data": {
+                    "devices": [
+                        {
+                            "attributes": {
+                                "owner": "team-networking",
+                                "foo": "bar"
+                            },
+                            "hostname": "foo-bar1",
+                            "site_id": 1,
+                            "id": 1
+                        }
+                    ]
+                }
+            }
+
+        :param site_id: ID of the Site to retrieve Devices from.
+        :type site_id: int
+
+        :param query: Set query representation
+        :type query: str
+
+        :reqheader X-NSoT-Email: required for all api requests.
+
+        :statuscode 200: The request was successful.
+        :statuscode 401: The request was made without being logged in.
+        :statuscode 404: The Site at site_id was not found.
+        """
+        site = self.session.query(models.Site).filter_by(id=site_id).scalar()
+        if not site:
+            raise exc.NotFound("No such Site found at id {}".format(site_id))
+
+        query = self.get_argument("query", "")
+
+        # Try to convert attributes into a dict.
+        try:
+            attributes = parse_set_query(query)
+        except (ValueError, TypeError):
+            attributes = []
+
+        devices = site.devices()
+
+        # Iterate a/v pairs and combine query results using MySQL-compatible set
+        # operations w/ the ORM
+        for action, name, value in attributes:
+            next_set = site.devices(attribute_name=name, attribute_value=value)
+
+            # This is the MySQL-compatible manual implementation
+            if action == 'union':
+                log.debug('SQL UNION')
+                devices = devices.union(next_set)
+            elif action == 'difference':
+                log.debug('SQL DIFFERENCE')
+                devices = devices.filter(
+                    models.Device.id.notin_(
+                        next_set.with_entities(models.Device.id)
+                    )
+                )
+            elif action == 'intersection':
+                log.debug('SQL INTERSECTION')
+                devices = devices.filter(
+                    models.Device.id.in_(
+                        next_set.with_entities(models.Device.id)
+                    )
+                )
+            else:
+                raise exc.BadRequest('BAD SET QUERY: %r' % (action,))
+
+        # Always order the objects by ID
+        devices = devices.order_by(models.Device.id)
+
+        offset, limit = self.get_pagination_values()
+        devices, total = self.paginate_query(devices, offset, limit)
+
+        self.success({
+            "devices": [device.to_dict() for device in devices],
+            "limit": limit,
+            "offset": offset,
+            "total": total,
+        })
+
+
 class DeviceHandler(ApiHandler):
     def get(self, site_id, device_id):
         """ **Get a specific Device**
@@ -1560,6 +1705,165 @@ class NetworksHandler(ApiHandler):
             root=root_only, include_ips=include_ips,
             include_networks=include_networks
         )
+
+        offset, limit = self.get_pagination_values()
+        networks, total = self.paginate_query(networks, offset, limit)
+
+        self.success({
+            "networks": [network.to_dict() for network in networks],
+            "limit": limit,
+            "offset": offset,
+            "total": total,
+        })
+
+
+class NetworksQueryHandler(ApiHandler):
+    """
+    Use set operations syntax to perform queries for Networks.
+    """
+    def get(self, site_id):
+        """
+        **Intersection request**:
+
+        .. sourcecode:: http
+
+            GET /api/sites/1/networks/query?query=owner%3Djathan HTTP/1.1
+            Host: localhost
+            X-NSoT-Email: user@localhost
+
+        **Intersection response**:
+
+        .. sourcecode:: http
+
+            HTTP/1.1 200 OK
+            Content-Type: application/json
+
+            {
+                "status": "ok",
+                "data": {
+                    "networks": [
+                        {
+                            "is_ip": false,
+                            "site_id": 1,
+                            "network_address": "10.0.0.0",
+                            "parent_id": null,
+                            "prefix_length": 8,
+                            "ip_version": "4",
+                            "attributes": {
+                                "owner": "jathan",
+                                "cluster": ""
+                            },
+                            "id": 1
+                        },
+                        {
+                            "is_ip": false,
+                            "site_id": 1,
+                            "network_address": "10.20.30.0",
+                            "parent_id": 1,
+                            "prefix_length": 24,
+                            "ip_version": "4",
+                            "attributes": {
+                                "owner": "jathan",
+                                "foo": "bar"
+                            },
+                            "id": 4
+                        }
+                    ]
+                }
+            }
+
+        **Difference request**:
+
+        .. sourcecode:: http
+
+            GET /api/sites/1/networks/query?query=owner%3Djathan+-foo%3Dbar HTTP/1.1
+            Host: localhost
+            X-NSoT-Email: user@localhost
+
+        **Difference response**:
+
+        .. sourcecode:: http
+
+            HTTP/1.1 200 OK
+            Content-Type: application/json
+
+            {
+                "status": "ok",
+                "data": {
+                    "networks": [
+                        {
+                            "is_ip": false,
+                            "site_id": 1,
+                            "network_address": "10.0.0.0",
+                            "parent_id": null,
+                            "prefix_length": 8,
+                            "ip_version": "4",
+                            "attributes": {
+                                "owner": "jathan",
+                                "cluster": ""
+                            },
+                            "id": 1
+                        }
+                    ]
+                }
+            }
+
+        :param site_id: ID of the Site to retrieve Devices from.
+        :type site_id: int
+
+        :param query: Set query representation
+        :typ query: str
+
+        :reqheader X-NSoT-Email: required for all api requests.
+
+        :statuscode 200: The request was successful.
+        :statuscode 401: The request was made without being logged in.
+        :statuscode 404: The Site at site_id was not found.
+        """
+
+        site = self.session.query(models.Site).filter_by(id=site_id).scalar()
+        if not site:
+            raise exc.NotFound("No such Site found at id {}".format(site_id))
+
+        query = self.get_argument("query", "")
+
+        # Try to convert attributes into a dict.
+        try:
+            attributes = parse_set_query(query)
+        except (ValueError, TypeError):
+            attributes = []
+
+        networks = site.networks()
+
+        # Iterate a/v pairs and combine query results using MySQL-compatible set
+        # operations w/ the ORM
+        for action, name, value in attributes:
+            next_set = site.networks(attribute_name=name,
+                                     attribute_value=value)
+
+            # This is the MySQL-compatible manual implementation
+            if action == 'union':
+                log.debug('SQL UNION')
+                networks = networks.union(next_set)
+            elif action == 'difference':
+                log.debug('SQL DIFFERENCE')
+                networks = networks.filter(
+                    models.Network.id.notin_(
+                        next_set.with_entities(models.Network.id)
+                    )
+                )
+            elif action == 'intersection':
+                log.debug('SQL INTERSECTION')
+                networks = networks.filter(
+                    models.Network.id.in_(
+                        next_set.with_entities(models.Network.id)
+                    )
+                )
+            else:
+                raise exc.BadRequest('BAD SET QUERY: %r' % (action,))
+
+        # Always order the objects by ID
+        networks = networks.order_by(models.Network.id)
 
         offset, limit = self.get_pagination_values()
         networks, total = self.paginate_query(networks, offset, limit)

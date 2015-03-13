@@ -1,0 +1,38 @@
+{
+    "status": "ok",
+    "data": {
+        "total": 2,
+        "limit": null,
+        "networks": [
+            {
+                "is_ip": false,
+                "site_id": 1,
+                "network_address": "10.0.0.0",
+                "parent_id": null,
+                "prefix_length": 8,
+                "ip_version": "4",
+                "attributes": {
+                    "owner": "gary",
+                    "cluster": "lax",
+                    "foo": "bar"
+                },
+                "id": 2
+            },
+            {
+                "is_ip": false,
+                "site_id": 1,
+                "network_address": "169.254.0.0",
+                "parent_id": null,
+                "prefix_length": 16,
+                "ip_version": "4",
+                "attributes": {
+                    "owner": "jathan",
+                    "cluster": "sjc",
+                    "foo": "bar"
+                },
+                "id": 4
+            }
+        ],
+        "offset": 0
+    }
+}

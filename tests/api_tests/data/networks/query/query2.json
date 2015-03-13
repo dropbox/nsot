@@ -1,0 +1,24 @@
+{
+    "status": "ok",
+    "data": {
+        "total": 1,
+        "limit": null,
+        "networks": [
+            {
+                "is_ip": false,
+                "site_id": 1,
+                "network_address": "169.254.0.0",
+                "parent_id": null,
+                "prefix_length": 16,
+                "ip_version": "4",
+                "attributes": {
+                    "owner": "jathan",
+                    "cluster": "sjc",
+                    "foo": "bar"
+                },
+                "id": 4
+            }
+        ],
+        "offset": 0
+    }
+}

@@ -4,7 +4,8 @@ import requests
 
 from .fixtures import tornado_server, tornado_app
 from .util import (
-    assert_error, assert_success, assert_created, assert_deleted, Client
+    assert_error, assert_success, assert_created, assert_deleted, Client,
+    load_json, run_set_queries
 )
 
 
@@ -20,23 +21,24 @@ def test_creation(tornado_server):
 
     # Invalid permissions
     assert_error(
-        user_client.create("/sites/1/devices",
-            hostname="device1", attributes={"attr1": "foo"}
+        user_client.create(
+            "/sites/1/devices", hostname="device1", attributes={"attr1": "foo"}
         ),
         403
     )
 
     # Missing required field (hostname)
     assert_error(
-        admin_client.create("/sites/1/devices",
-            attributes={"attr1": "foo"}
+        admin_client.create(
+            "/sites/1/devices", attributes={"attr1": "foo"}
         ),
         400
     )
 
     # Null hostname
     assert_error(
-        admin_client.create("/sites/1/devices",
+        admin_client.create(
+            "/sites/1/devices",
             hostname=None
         ),
         400
@@ -44,8 +46,8 @@ def test_creation(tornado_server):
 
     # Verify Successful Creation
     assert_created(
-        admin_client.create("/sites/1/devices",
-            hostname="device1", attributes={"attr1": "foo"}
+        admin_client.create(
+            "/sites/1/devices", hostname="device1", attributes={"attr1": "foo"}
         ),
         "/api/sites/1/devices/1"
     )
@@ -106,6 +108,41 @@ def test_collection_creation(tornado_server):
     )
 
 
+def test_set_queries(tornado_server):
+    """Test set queries for Devices."""
+    client = Client(tornado_server)
+
+    client.create('/sites', name='Test Site')  # 1
+
+    # Pre-load the attributes
+    attr_data = load_json('attributes.json')
+    client.create(
+        '/sites/1/attributes',
+        attributes=attr_data['attributes']
+    )
+
+    # Populate the device objects.
+    device_data = load_json('devices.json')
+    client.create(
+        '/sites/1/devices',
+        devices=device_data['devices']
+    )
+
+    # Mapping of query string to file containing expected response data for
+    # each query.
+    device_queries = (
+        # INTERSECTION: foo=bar
+        ('foo=bar', 'query1.json'),
+        # INTERSECTION: foo=bar owner=jathan
+        ('foo=bar owner=jathan', 'query2.json'),
+        # DIFFERENCE: -owner=gary
+        ('-owner=gary', 'query3.json'),
+        # UNION: cluster +foo=baz
+        ('cluster +foo=baz', 'query4.json'),
+    )
+    run_set_queries('devices', client, device_queries)
+
+
 def test_update(tornado_server):
     admin_client = Client(tornado_server, "admin")
     user_client = Client(tornado_server, "user")
@@ -114,8 +151,8 @@ def test_update(tornado_server):
     admin_client.create(
         "/sites/1/attributes", resource_name="Device", name="attr1"
     )  # 1
-    admin_client.create("/sites/1/devices",
-        hostname="foo", attributes={"attr1": "foo"}
+    admin_client.create(
+        "/sites/1/devices", hostname="foo", attributes={"attr1": "foo"}
     )
 
     # Empty Update should only clear attributes.
@@ -147,6 +184,7 @@ def test_update(tornado_server):
         user_client.update("/sites/1/devices/1"),
         403
     )
+
 
 def test_deletion(tornado_server):
     client = Client(tornado_server)
