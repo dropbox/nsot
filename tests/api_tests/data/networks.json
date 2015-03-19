@@ -1,0 +1,36 @@
+{
+    "networks": [
+        {
+            "attributes": {
+                "cluster": "", 
+                "foo": "baz", 
+                "owner": "jathan"
+            }, 
+            "cidr": "192.168.0.0/16"
+        }, 
+        {
+            "attributes": {
+                "cluster": "lax", 
+                "foo": "bar", 
+                "owner": "gary"
+            }, 
+            "cidr": "10.0.0.0/8"
+        }, 
+        {
+            "attributes": {
+                "cluster": "lax", 
+                "foo": "baz", 
+                "owner": "gary"
+            }, 
+            "cidr": "172.16.0.0/12"
+        }, 
+        {
+            "attributes": {
+                "cluster": "sjc", 
+                "foo": "bar", 
+                "owner": "jathan"
+            }, 
+            "cidr": "169.254.0.0/16"
+        }
+    ]
+}

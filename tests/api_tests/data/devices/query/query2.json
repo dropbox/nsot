@@ -1,0 +1,20 @@
+{
+    "status": "ok",
+    "data": {
+        "total": 1,
+        "limit": null,
+        "devices": [
+            {
+                "attributes": {
+                    "owner": "jathan",
+                    "cluster": "",
+                    "foo": "bar"
+                },
+                "hostname": "foo-bar1",
+                "site_id": 1,
+                "id": 1
+            }
+        ],
+        "offset": 0
+    }
+}

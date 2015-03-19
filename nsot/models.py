@@ -186,14 +186,30 @@ def get_db_engine(url, echo=False):
 
     return engine
 
+
 def get_db_session(db_engine=None, database=None):
-    """Return a usable session object"""
+    """
+    Return a usable session object.
+
+    If not provided, this will attempt to retreive the database and db_engine
+    from settings. If settings have not been updated from a config, this will
+    return ``None``.
+
+    :param db_engine:
+        Database engine to use
+
+    :param database:
+        URI for database
+    """
     if database is None:
         database = settings.database
+        if database is None:
+            return None
     if db_engine is None:
         db_engine = get_db_engine(database)
     Session.configure(bind=db_engine)
     return Session()
+
 
 def flush_transaction(method):
     @functools.wraps(method)

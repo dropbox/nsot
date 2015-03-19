@@ -1,0 +1,40 @@
+{
+    "attributes": [
+        {
+            "resource_name": "Device",
+            "name": "cluster",
+            "constraints": {
+                "allow_empty": true
+            },
+            "description": "Device cluster."
+        },
+        {
+            "resource_name": "Device",
+            "name": "foo",
+            "description": "Foo for Devices."
+        },
+        {
+            "resource_name": "Device",
+            "name": "owner",
+            "description": "Device owner."
+        },
+        {
+            "resource_name": "Network",
+            "name": "cluster",
+            "constraints": {
+                "allow_empty": true
+            },
+            "description": "Network cluster."
+        },
+        {
+            "resource_name": "Network",
+            "name": "foo",
+            "description": "Foo for Networks."
+        },
+        {
+            "resource_name": "Network",
+            "name": "owner",
+            "description": "Network owner."
+        }
+    ]
+}
