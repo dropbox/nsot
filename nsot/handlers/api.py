@@ -1069,6 +1069,11 @@ class DevicesHandler(ApiHandler):
         :param site_id: ID of the Site to retrieve Devices from.
         :type site_id: int
 
+        :query string hostname:
+            (*optional*) Filter to device with hostname
+        :query string attributes:
+            (*optional*) Filter to device with matching attribute in k=v
+            format. Can be supplied multiple times.
         :query int limit: (*optional*) Limit result to N resources.
         :query int offset: (*optional*) Skip the first N resources.
 
@@ -1083,6 +1088,23 @@ class DevicesHandler(ApiHandler):
             raise exc.NotFound("No such Site found at id {}".format(site_id))
 
         devices = site.devices()
+
+        hostname = self.get_argument("hostname", None)
+        attributes = self.get_arguments("attributes", [])
+
+        if hostname is not None:
+            devices = devices.filter_by(hostname=hostname)
+
+        # Just iterate the attributes and try to look them up as if they are k=v
+        # and naively do an intersection query.
+        for attribute in attributes:
+            key, _, val = attribute.partition('=')
+            next_set = site.devices(key, val)
+            devices = devices.filter(
+                models.Device.id.in_(
+                    next_set.with_entities(models.Device.id)
+                )
+            )
 
         offset, limit = self.get_pagination_values()
         devices, total = self.paginate_query(devices, offset, limit)
