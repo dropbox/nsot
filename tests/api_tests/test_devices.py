@@ -108,6 +108,48 @@ def test_collection_creation(tornado_server):
     )
 
 
+def test_filters(tornado_server):
+    """Test hostname/attribute filters for Devices."""
+    client = Client(tornado_server)
+
+    client.create('/sites', name='Test Site')  # 1
+
+    # Pre-load the attributes
+    attr_data = load_json('attributes.json')
+    client.create(
+        '/sites/1/attributes',
+        attributes=attr_data['attributes']
+    )
+
+    # Populate the device objects.
+    device_data = load_json('devices.json')
+    client.create(
+        '/sites/1/devices',
+        devices=device_data['devices']
+    )
+
+    # Test lookup by hostnme
+    hostname_output = load_json('devices/filter1.json')
+    assert_success(
+        client.get("/sites/1/devices?hostname=foo-bar3"),
+        hostname_output['data'],
+    )
+
+    # Test lookup by attributes
+    attr_output = load_json('devices/filter2.json')
+    assert_success(
+        client.get("/sites/1/devices?attributes=foo=baz"),
+        attr_output['data'],
+    )
+
+    # Test lookup with multiple attributes
+    multiattr_output = load_json('devices/filter3.json')
+    assert_success(
+        client.get("/sites/1/devices?attributes=foo=baz&attributes=cluster=lax"),
+        multiattr_output['data'],
+    )
+
+
 def test_set_queries(tornado_server):
     """Test set queries for Devices."""
     client = Client(tornado_server)
