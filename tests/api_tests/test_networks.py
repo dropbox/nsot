@@ -150,6 +150,69 @@ def test_collection_creation(tornado_server):
     )
 
 
+def test_filters(tornado_server):
+    """Test hostname/attribute filters for Devices."""
+    client = Client(tornado_server)
+
+    client.create('/sites', name='Test Site')  # 1
+
+    # Pre-load the attributes
+    attr_data = load_json('attributes.json')
+    client.create(
+        '/sites/1/attributes',
+        attributes=attr_data['attributes']
+    )
+
+    # Populate the device objects.
+    network_data = load_json('networks.json')
+    client.create(
+        '/sites/1/networks',
+        networks=network_data['networks']
+    )
+
+    # Test lookup by cidr
+    cidr_output = load_json('networks/filter1.json')
+    assert_success(
+        client.get("/sites/1/networks?cidr=10.0.0.0/8"),
+        cidr_output['data'],
+    )
+
+    # Test lookup by attributes
+    attr_output = load_json('networks/filter2.json')
+    assert_success(
+        client.get("/sites/1/networks?attributes=foo=baz"),
+        attr_output['data'],
+    )
+
+    # Test lookup with multiple attributes
+    multiattr_output = load_json('networks/filter3.json')
+    assert_success(
+        client.get("/sites/1/networks?attributes=foo=baz&attributes=cluster=lax"),
+        multiattr_output['data'],
+    )
+
+    # Test lookup by network_address
+    addr_output = load_json('networks/filter4.json')
+    assert_success(
+        client.get("/sites/1/networks?network_address=169.254.0.0"),
+        addr_output['data'],
+    )
+
+    # Test lookup by prefix_length
+    prefix_output = load_json('networks/filter5.json')
+    assert_success(
+        client.get("/sites/1/networks?prefix_length=16"),
+        prefix_output['data'],
+    )
+
+    # Test lookup by network_address + prefix_length
+    nwpf_output = load_json('networks/filter6.json')
+    assert_success(
+        client.get("/sites/1/networks?network_address=10.0.0.0&prefix_length=8"),
+        nwpf_output['data'],
+    )
+
+
 def test_update(tornado_server):
     admin_client = Client(tornado_server, "admin")
     user_client = Client(tornado_server, "user")

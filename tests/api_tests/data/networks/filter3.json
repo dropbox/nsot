@@ -1,0 +1,24 @@
+{
+    "status": "ok",
+    "data": {
+        "total": 1,
+        "limit": null,
+        "networks": [
+            {
+                "is_ip": false,
+                "site_id": 1,
+                "network_address": "172.16.0.0",
+                "parent_id": null,
+                "prefix_length": 12,
+                "ip_version": "4",
+                "attributes": {
+                    "owner": "gary",
+                    "cluster": "lax",
+                    "foo": "baz"
+                },
+                "id": 3
+            }
+        ],
+        "offset": 0
+    }
+}

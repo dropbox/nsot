@@ -1,3 +1,4 @@
+import ipaddress
 import logging
 from sqlalchemy import desc
 from sqlalchemy.exc import IntegrityError
@@ -1708,6 +1709,15 @@ class NetworksHandler(ApiHandler):
                                       Default: true
         :query bool include_ips: (*optional*) Include IP addresses.
                                  Default: false
+        :query string network_address:
+            (*optional*) Filter to networks matching this network address
+        :query int prefix_length:
+            (*optional*) Filter to networks matching this prefix length
+        :query string cidr:
+            (*optional*) Filter to networks matching this CIDR. If provided,
+            this overrides ``network_address`` and ``prefix_length``
+        :query string attributes:
+            (*optional*) Filter to device with matching attribute in k=v
 
         :reqheader X-NSoT-Email: required for all api requests.
 
@@ -1727,6 +1737,41 @@ class NetworksHandler(ApiHandler):
             root=root_only, include_ips=include_ips,
             include_networks=include_networks
         )
+
+        # Filters for address/prefix/attributes
+        cidr = self.get_argument("cidr", None)
+        attributes = self.get_arguments("attributes", [])
+        network_address = self.get_argument("network_address", None)
+        prefix_length = self.get_argument("prefix_length", None)
+
+        # If cidr is provided, use it to populate network_address and prefix_length
+        if cidr is not None:
+            log.debug('got cidr: %s' % cidr)
+            network_address, _, prefix_length = cidr.partition('/')
+        # If network_address is provided, pack it.
+        if network_address is not None:
+            log.debug('got network_address: %s' % network_address)
+            network_address = ipaddress.ip_address(network_address).packed
+            networks = networks.filter_by(network_address=network_address)
+        # If prefix_length is provided, convert it to an int.
+        if prefix_length is not None:
+            log.debug('got prefix_length: %s' % prefix_length)
+            try:
+                prefix_length = int(prefix_length)
+            except ValueError:
+                raise ValueError('Invalid prefix_length: %s' % prefix_length)
+            networks = networks.filter_by(prefix_length=prefix_length)
+
+        # Iterate the attributes and try to look them up as if they are k=v
+        # and naively do an intersection query.
+        for attribute in attributes:
+            key, _, val = attribute.partition('=')
+            next_set = site.networks(attribute_name=key, attribute_value=val)
+            networks = networks.filter(
+                models.Network.id.in_(
+                    next_set.with_entities(models.Network.id)
+                )
+            )
 
         offset, limit = self.get_pagination_values()
         networks, total = self.paginate_query(networks, offset, limit)
