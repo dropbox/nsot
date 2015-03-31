@@ -46,6 +46,9 @@ class Settings(object):
     # Overrides
 
     def override_restrict_networks(self, values):
+        if values is None:
+            return []
+
         if not isinstance(values, (list, set)):
             values = [values]
 
