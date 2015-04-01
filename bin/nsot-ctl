@@ -9,7 +9,6 @@ import BaseHTTPServer
 import code
 import getpass
 import logging
-from mrproxy import UserProxyHandler
 from pprint import pprint
 
 import nsot
@@ -75,6 +74,13 @@ def migrations_revision_command(args):
 
 
 def user_proxy_command(args):
+    try:
+        from mrproxy import UserProxyHandler
+    except ImportError:
+        raise SystemExit(
+            'mrproxy is required for the user proxy. Please see README.md.'
+        )
+
     class ServerArgs(object):
         def __init__(self, backend_port, username):
             self.backend_port = backend_port
