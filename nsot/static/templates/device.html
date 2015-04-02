@@ -14,6 +14,60 @@
         >Delete Device</button>
     </heading-bar>
 
+    <div class="row">
+        <div class="col-sm-4">
+            <panel>
+                <panel-heading>
+                    Attributes
+                </panel-heading>
+                <panel-body>
+                    <dl class="dl-horizontal">
+                        <dt ng-repeat-start="(key, value) in device.attributes">[[key]]</dt>
+                        <dd ng-repeat-end>[[value]]</dd>
+                    </dl>
+                </panel-body>
+            </panel>
+        </div>
+        <div class="col-sm-8">
+            <panel>
+                <panel-heading>
+                    Recent Changes
+                </panel-heading>
+                <panel-body>
+                    <table class="table table-condensed table-hover">
+                        <thead>
+                            <tr>
+                                <th class="col-sm-1">ID</th>
+                                <th class="col-sm-2">User</th>
+                                <th class="col-sm-1">Event</th>
+                                <th class="col-sm-2">Change At</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr ng-repeat="change in changes">
+                                <td>
+                                    <a ng-href="/sites/[[siteId]]/changes/[[change.id]]">
+                                        [[change.id]]
+                                    </a>
+                                </td>
+                                <td>[[change.user.email]]</td>
+                                <td>[[change.event]]</td>
+                                <td>[[change.change_at|from_now]]</td>
+                            </tr>
+                            <tr>
+                                <td colspan="4" class="text-center">
+                                    <a ng-href="/sites/[[siteId]]/changes?resource_name=Device&resource_id=[[device.id]]">
+                                        More
+                                    </a>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </panel-body>
+            </panel>
+        </div>
+    </div>
+
     <nsot-modal title="Update Device" modal-id="updateDeviceModal" modal-size="large">
         <div class="modal-body">
             <div ng-if="updateError" class="alert alert-danger">

@@ -93,6 +93,8 @@
                                         href="https://github.com/dropbox/nsot">
                                             <i class="fa fa-fw fa-github"></i> Source
                                     </a></li>
+                                    <li class="divider"></li>
+                                    <li><a><i class="fa fa-fw fa-paper-plane"></i> Version: {{NSOT_VERSION}}</a></li>
                                 </ul>
                             </li>
                         </ul>
@@ -108,6 +110,10 @@
                 </div>
             </div>
         </div>
+
+        <script type="text/javascript">
+            window.NSOT_VERSION = '{{NSOT_VERSION}}';
+        </script>
 
         <script src="/static/vendor/angular/js/angular.min.js"></script>
         <script src="/static/vendor/angular-route/js/angular-route.min.js"></script>
