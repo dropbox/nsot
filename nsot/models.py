@@ -810,10 +810,17 @@ class Network(AttributeModelMixin, Model):
             Network.parent_id == self.parent_id,
             Network.id != self.id,  # Don't include yourself...
             Network.prefix_length > self.prefix_length,
-            Network.ip_version == self.ip_version,
-            Network.network_address >= self.network_address,
-            Network.broadcast_address <= self.broadcast_address
         )
+
+        # When adding a new root we're going to reparenting a subset
+        # of roots so it's a bit more complicated so limit to all subnetworks
+        if self.parent_id is None:
+            query = query.filter(
+                Network.is_ip == False,
+                Network.ip_version == self.ip_version,
+                Network.network_address >= self.network_address,
+                Network.broadcast_address <= self.broadcast_address
+            )
 
         query.update({Network.parent_id: self.id})
 
