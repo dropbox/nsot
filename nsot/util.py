@@ -8,6 +8,7 @@ import tornado
 from jinja2 import Environment, PackageLoader
 
 from .settings import settings
+from .version import __version__
 
 
 log = logging.getLogger(__name__)
@@ -29,7 +30,9 @@ def get_loglevel(args):
 
 def get_template_env(package="nsot", extra_filters=None, extra_globals=None):
     filters = {}
-    j_globals = {}
+    j_globals = {
+        "NSOT_VERSION": __version__,
+    }
 
     if extra_filters:
         filters.update(extra_filters)

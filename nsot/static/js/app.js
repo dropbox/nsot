@@ -83,4 +83,10 @@
         .otherwise({redirectTo: "/"});
     });
 
+    app.run(["$rootScope", function($rootScope){
+        $rootScope.NSOT_VERSION = window.NSOT_VERSION;
+    }]);
+
+
+
 })();

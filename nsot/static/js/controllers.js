@@ -259,9 +259,9 @@
 
     app.controller("NetworkController", [
             "$scope", "$route", "$location", "$q", "$routeParams",
-            "User", "Network", "Attribute",
+            "User", "Network", "Attribute", "Change",
             function($scope, $route, $location, $q, $routeParams,
-                     User, Network, Attribute) {
+                     User, Network, Attribute, Change) {
 
         $scope.loading = true;
         $scope.user = {};
@@ -281,10 +281,15 @@
 
         $q.all([
             User.get({id: 0}).$promise,
-            Network.get({siteId: siteId, id: networkId}).$promise
+            Network.get({siteId: siteId, id: networkId}).$promise,
+            Change.query({
+                siteId: siteId, limit: 10, offset: 0,
+                resource_name: "Network", resource_id: networkId
+            }).$promise
         ]).then(function(results){
             $scope.user = results[0];
             $scope.network = results[1];
+            $scope.changes = results[2].data;
             $scope.formData = $scope.network.toForm();
             $scope.admin = $scope.user.isAdmin(siteId, ["admin"]);
 
@@ -433,9 +438,9 @@
 
     app.controller("DeviceController", [
             "$scope", "$route", "$location", "$q", "$routeParams",
-            "User", "Device", "Attribute",
+            "User", "Device", "Attribute", "Change",
             function($scope, $route, $location, $q, $routeParams,
-                     User, Device, Attribute) {
+                     User, Device, Attribute, Change) {
 
         $scope.loading = true;
         $scope.user = {};
@@ -455,10 +460,15 @@
 
         $q.all([
             User.get({id: 0}).$promise,
-            Device.get({siteId: siteId, id: deviceId}).$promise
+            Device.get({siteId: siteId, id: deviceId}).$promise,
+            Change.query({
+                siteId: siteId, limit: 10, offset: 0,
+                resource_name: "Device", resource_id: deviceId
+            }).$promise
         ]).then(function(results){
             $scope.user = results[0];
             $scope.device = results[1];
+            $scope.changes = results[2].data;
             $scope.formData = $scope.device.toForm();
             $scope.admin = $scope.user.isAdmin(siteId, ["admin"]);
 
