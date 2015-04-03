@@ -35,6 +35,11 @@
             "resource_name": "Network",
             "name": "owner",
             "description": "Network owner."
+        },
+        {
+            "resource_name": "Network",
+            "name": "hostname",
+            "description": "Address hostname."
         }
     ]
 }
