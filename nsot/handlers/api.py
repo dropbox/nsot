@@ -1766,7 +1766,12 @@ class NetworksHandler(ApiHandler):
         # and naively do an intersection query.
         for attribute in attributes:
             key, _, val = attribute.partition('=')
-            next_set = site.networks(attribute_name=key, attribute_value=val)
+            # Retrieve next set of networks using the same arguments as the
+            # initial query.
+            next_set = site.networks(
+                attribute_name=key, attribute_value=val, root=root_only,
+                include_ips=include_ips, include_networks=include_networks
+            )
             networks = networks.filter(
                 models.Network.id.in_(
                     next_set.with_entities(models.Network.id)

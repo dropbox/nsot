@@ -31,6 +31,24 @@
                 "owner": "jathan"
             }, 
             "cidr": "169.254.0.0/16"
+        },
+        {
+            "attributes": {
+                "hostname": "foo-bar1"
+            },
+            "cidr": "192.168.0.1/32"
+        },
+        {
+            "attributes": {
+                "hostname": "foo-bar1"
+            },
+            "cidr": "192.168.0.0/24"
+        },
+        {
+            "attributes": {
+                "hostname": "foo-bar1"
+            },
+            "cidr": "192.168.0.0/25"
         }
     ]
 }
