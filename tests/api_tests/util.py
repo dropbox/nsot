@@ -5,20 +5,36 @@ import urllib
 import urlparse
 
 
+def _deep_sort(obj):
+    if isinstance(obj, dict):
+        return {
+            key: _deep_sort(value)
+            for key, value in obj.iteritems()
+        }
+    elif isinstance(obj, list):
+        return sorted([
+            _deep_sort(elem) for elem in obj
+        ])
+    return obj
+
+
 def assert_error(response, code):
     output = response.json()
     assert output["status"] == "error"
     assert output["error"]["code"] == code
 
 
-def assert_success(response, data=None):
+def assert_success(response, data=None, ignore_order=True):
     output = response.json()
     assert response.status_code == 200
     assert output["status"] == "ok"
     if data is not None:
         print 'OUTPUT DATA = %r' % (output['data'],)
         print 'QUERY DATA = %r' % (data,)
-        assert output["data"] == data
+        if ignore_order:
+            assert _deep_sort(output["data"]) == _deep_sort(data)
+        else:
+            assert output["data"] == data
 
 
 def assert_created(response, location, data=None):
