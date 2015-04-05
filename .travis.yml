@@ -6,6 +6,6 @@ install:
     - pip install -r requirements-dev.txt
     - pip install .
 
-script: py.test -v tests/
+script: py.test -vv tests/
 
 after_success: curl -X POST http://readthedocs.org/build/nsot
