@@ -50,3 +50,12 @@ secret_key: "AzYHE3xqJyCykjFPYDt-iNapZEU7sxqfnXvtzG7Ddeg="
 # This is the expiration (in seconds) of auth_tokens used for API calls
 # Type: int
 auth_token_expiry: 600
+
+# This is a Sentry-compatible DSN for sending tracebacks to Sentry. If set, any
+# errors will be sent to the specified Sentry DSN URI. For this to work you
+# must also have the `python-raven` client installed. You may install it using
+# # `pip install raven`.
+#
+# See: http://raven.readthedocs.org/en/latest/config/index.html#the-sentry-dsn
+# Type: str
+sentry_dsn: null
