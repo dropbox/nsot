@@ -73,4 +73,5 @@ settings = Settings({
     "api_xsrf_enabled": True,
     "secret_key": "SECRET_KEY",
     "auth_token_expiry": 600,  # 10 minutes
+    "sentry_dsn": None,
 })

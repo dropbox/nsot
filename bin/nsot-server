@@ -4,11 +4,19 @@ import argparse
 import logging
 import os
 import sys
+from sqlalchemy.exc import OperationalError
 from threading import Thread
 from time import sleep
 import tornado.ioloop
 import tornado.httpserver
 import tornado.web
+
+# Try to import raven so we can log exceptions to Sentry.
+try:
+    from raven.contrib.tornado import AsyncSentryClient
+    raven_installed = True
+except ImportError:
+    raven_installed = False
 
 import nsot
 from nsot.app import Application
@@ -16,8 +24,6 @@ from nsot.settings import settings
 from nsot.models import get_db_engine, Session
 from nsot.util import get_loglevel, get_template_env
 
-
-from sqlalchemy.exc import OperationalError
 
 sa_log = logging.getLogger("sqlalchemy.engine.base.Engine")
 
@@ -62,6 +68,20 @@ def main(argv):
     }
 
     application = Application(my_settings=my_settings, **tornado_settings)
+
+    # If Sentry DSN is set, try to import raven
+    if settings.sentry_dsn:
+        if not raven_installed:
+            logging.warning(
+                'Sentry DSN set but raven not installed. Not enabling Sentry.'
+            )
+        else:
+            logging.info(
+                'Sentry DSN set and raven installed. Enabling Sentry.'
+            )
+            application.sentry_client = AsyncSentryClient(settings.sentry_dsn)
+    else:
+        logging.info('Sentry DSN not set. Not enabling Sentry.')
 
     port = args.port or settings.port
 
