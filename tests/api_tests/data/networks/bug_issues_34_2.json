@@ -1,46 +1,47 @@
 {
-    "status": "ok",
     "data": {
-        "total": 3,
         "limit": null,
         "networks": [
             {
+                "attributes": {
+                    "hostname": "foo-bar1",
+                    "vlan": "300"
+                },
+                "id": 5,
+                "ip_version": "4",
                 "is_ip": true,
-                "site_id": 1,
                 "network_address": "192.168.0.1",
                 "parent_id": 7,
                 "prefix_length": 32,
-                "ip_version": "4",
+                "site_id": 1
+            },
+            {
                 "attributes": {
                     "hostname": "foo-bar1"
                 },
-                "id": 5
-            },
-            {
+                "id": 6,
+                "ip_version": "4",
                 "is_ip": false,
-                "site_id": 1,
                 "network_address": "192.168.0.0",
                 "parent_id": 1,
                 "prefix_length": 24,
-                "ip_version": "4",
+                "site_id": 1
+            },
+            {
                 "attributes": {
                     "hostname": "foo-bar1"
                 },
-                "id": 6
-            },
-            {
+                "id": 7,
+                "ip_version": "4",
                 "is_ip": false,
-                "site_id": 1,
                 "network_address": "192.168.0.0",
                 "parent_id": 6,
                 "prefix_length": 25,
-                "ip_version": "4",
-                "attributes": {
-                    "hostname": "foo-bar1"
-                },
-                "id": 7
+                "site_id": 1
             }
         ],
-        "offset": 0
-    }
+        "offset": 0,
+        "total": 3
+    },
+    "status": "ok"
 }

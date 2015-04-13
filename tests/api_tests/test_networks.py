@@ -122,6 +122,13 @@ def test_set_queries(tornado_server):
     )
     run_set_queries('networks', client, network_queries)
 
+    # Test that --include-ips actually does that.
+    include_ips_data = load_json('networks/query/query5.json')
+    assert_success(
+        client.get("/sites/1/networks/query?query=vlan=300&include_ips=True"),
+        include_ips_data['data'],
+    )
+
 
 def test_collection_creation(tornado_server):
     client = Client(tornado_server)
