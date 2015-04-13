@@ -297,13 +297,17 @@ class User(Model):
 
     @classmethod
     def verify_auth_token(cls, email, auth_token,
-                          expiration=None):
+                          expiration=None, session=None):
         """Verify token and return a User object."""
         if expiration is None:
             expiration = settings.auth_token_expiry
 
         # First we lookup the user by email
-        user = User.query().filter_by(email=email).scalar()
+        if session is None:
+            query = User.query()
+        else:
+            query = session.query(User)
+        user = query.filter_by(email=email).scalar()
 
         if user is None:
             log.debug('Invalid user when verifying token')

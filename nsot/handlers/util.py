@@ -164,7 +164,9 @@ class ApiHandler(BaseHandler):
         if auth_token is None:
             raise exc.Unauthorized('Missing Required argument: auth_token')
 
-        user = models.User.verify_auth_token(email, auth_token)
+        user = models.User.verify_auth_token(
+            email, auth_token, session=self.session
+        )
 
         # If user is bad this time, it's an invalid login
         if user is None:
