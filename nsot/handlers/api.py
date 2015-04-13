@@ -1884,7 +1884,14 @@ class NetworksQueryHandler(ApiHandler):
         :type site_id: int
 
         :param query: Set query representation
-        :typ query: str
+        :type query: str
+
+        :query bool root_only: (*optional*) Filter to root networks.
+                               Default: false
+        :query bool include_networks: (*optional*) Include non-IP networks.
+                                      Default: true
+        :query bool include_ips: (*optional*) Include IP addresses.
+                                 Default: false
 
         :reqheader X-NSoT-Email: required for all api requests.
 
@@ -1898,6 +1905,9 @@ class NetworksQueryHandler(ApiHandler):
             raise exc.NotFound("No such Site found at id {}".format(site_id))
 
         query = self.get_argument("query", "")
+        root_only = qpbool(self.get_argument("root_only", False))
+        include_networks = qpbool(self.get_argument("include_networks", True))
+        include_ips = qpbool(self.get_argument("include_ips", False))
 
         # Try to convert attributes into a dict.
         try:
@@ -1905,13 +1915,18 @@ class NetworksQueryHandler(ApiHandler):
         except (ValueError, TypeError):
             attributes = []
 
-        networks = site.networks()
+        networks = site.networks(
+            root=root_only, include_ips=include_ips,
+            include_networks=include_networks
+        )
 
         # Iterate a/v pairs and combine query results using MySQL-compatible set
         # operations w/ the ORM
         for action, name, value in attributes:
-            next_set = site.networks(attribute_name=name,
-                                     attribute_value=value)
+            next_set = site.networks(
+                attribute_name=name, attribute_value=value, root=root_only,
+                include_ips=include_ips, include_networks=include_networks
+            )
 
             # This is the MySQL-compatible manual implementation
             if action == 'union':

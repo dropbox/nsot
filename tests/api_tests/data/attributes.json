@@ -40,6 +40,17 @@
             "resource_name": "Network",
             "name": "hostname",
             "description": "Address hostname."
+        },
+        {
+            "resource_name": "Network",
+            "name": "vlan",
+            "constraints": {
+                "valid_values": [
+                    "300",
+                    "400"
+                ]
+            },
+            "description": "Network VLAN."
         }
     ]
 }

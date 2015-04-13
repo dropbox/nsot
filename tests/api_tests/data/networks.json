@@ -34,6 +34,7 @@
         },
         {
             "attributes": {
+                "vlan": "300",
                 "hostname": "foo-bar1"
             },
             "cidr": "192.168.0.1/32"

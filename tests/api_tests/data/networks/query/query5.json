@@ -1,0 +1,23 @@
+{
+    "status": "ok",
+    "data": {
+        "total": 1,
+        "limit": null,
+        "networks": [
+            {
+                "is_ip": true,
+                "site_id": 1,
+                "network_address": "192.168.0.1",
+                "parent_id": 7,
+                "prefix_length": 32,
+                "ip_version": "4",
+                "attributes": {
+                    "vlan": "300",
+                    "hostname": "foo-bar1"
+                },
+                "id": 5
+            }
+        ],
+        "offset": 0
+    }
+}
