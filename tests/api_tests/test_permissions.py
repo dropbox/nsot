@@ -1,58 +1,83 @@
-import json
-import pytest
-import requests
+# -*- coding: utf-8 -*-
+from __future__ import unicode_literals
 
-from .fixtures import tornado_server, tornado_app
+import pytest
+
+# Allow everything in there to access the DB
+pytestmark = pytest.mark.django_db
+
+import copy
+from django.core.urlresolvers import reverse
+import json
+import logging
+from rest_framework import status
+
+from .fixtures import live_server, client, user, site
 from .util import (
-    assert_error, assert_success, assert_created, assert_deleted, Client
+    assert_created, assert_error, assert_success, assert_deleted, load_json,
+    Client, load
 )
 
 
-def test_permissions(tornado_server):
-    admin_client = Client(tornado_server, "admin")
-    user_client = Client(tornado_server, "user")
+log = logging.getLogger(__name__)
 
-    admin_client.create("/sites", name="Test Site")
-    admin_client.create("/sites/1/attributes", resource_name="Network", name="attr1")
-    admin_client.create("/sites/1/networks", cidr="10.0.0.0/24")
 
-    user_client.get("/")  # Just create user id 2
+def test_permissions(live_server, user, site):
+    admin_client = Client(live_server, 'admin')
+    user_client = Client(live_server, 'user')
 
-    assert_success(
-        user_client.get("/users/1/permissions"),
-        {"permissions": {"1": {"permissions": ["admin"], "site_id": 1, "user_id": 1}}}
+    # URIs
+    attr_uri = site.list_uri('attribute')
+    net_uri = site.list_uri('network')
+    dev_uri = site.list_uri('device')
+
+    # Create an Attribute
+    attr_resp = admin_client.create(
+        attr_uri, resource_name='Network', name='attr1'
     )
+    attr = attr_resp.json()['data']['attribute']
+    attr_obj_uri = site.detail_uri('attribute', id=attr['id'])
 
-    assert_success(
-        admin_client.get("/users/1/permissions/1"),
-        {"permission": {"permissions": ["admin"], "site_id": 1, "user_id": 1}}
-    )
+    # Create a Network
+    net_resp = admin_client.create(net_uri, cidr='10.0.0.0/24')
+    net = net_resp.json()['data']['network']
+    net_obj_uri = site.detail_uri('network', id=net['id'])
 
-    # Explicitly Set permissions for user_client to have none.
-    assert_success(admin_client.update(
-        "/users/2/permissions/1", permissions=[]
-    ),
-        {"permission": {"permissions": [], "site_id": 1, "user_id": 2}}
-    )
+    # Create a Device
+    dev_resp = admin_client.create(dev_uri, hostname='dev1')
+    dev= dev_resp.json()['data']['device']
+    dev_obj_uri = site.detail_uri('device', id=dev['id'])
 
     # User shouldn't be able to update site or create/update other resources
+    # Site
     assert_error(
-        user_client.update("/sites/1", name="attr1"),
-        403
+        user_client.update(site.detail_uri(), name='site1'),
+        status.HTTP_403_FORBIDDEN
+    )
+    # Attribute
+    assert_error(
+        user_client.create(attr_uri, name='attr2'),
+        status.HTTP_403_FORBIDDEN
     )
     assert_error(
-        user_client.create("/sites/1/attributes", name="attr2"),
-        403
+        user_client.update(attr_obj_uri, required=True),
+        status.HTTP_403_FORBIDDEN
+    )
+    # Network
+    assert_error(
+        user_client.create(net_uri, cidr='10.0.0.0/8'),
+        status.HTTP_403_FORBIDDEN
     )
     assert_error(
-        user_client.update("/sites/1/attributes/1", required=True),
-        403
+        user_client.update(net_obj_uri, attributes={'attr1': 'foo'}),
+        status.HTTP_403_FORBIDDEN
+    )
+    # Device
+    assert_error(
+        user_client.create(dev_uri, name='dev2'),
+        status.HTTP_403_FORBIDDEN
     )
     assert_error(
-        user_client.create("/sites/1/networks", cidr="10.0.0.0/8"),
-        403
-    )
-    assert_error(
-        user_client.update("/sites/1/networks/1", attributes={"attr1": "foo"}),
-        403
+        user_client.update(dev_obj_uri, hostname='foobar'),
+        status.HTTP_403_FORBIDDEN
     )

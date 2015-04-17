@@ -1,220 +1,202 @@
+# -*- coding: utf-8 -*-
+from __future__ import unicode_literals
+
 import pytest
-from sqlalchemy.exc import IntegrityError
+# Allow everything in there to access the DB
+pytestmark = pytest.mark.django_db
 
-from nsot import exc
-from nsot import models
+from django.db import IntegrityError
+from django.db.models import ProtectedError
+from django.core.exceptions import ValidationError as DjangoValidationError
+import logging
 
-from .fixtures import session, site, user, admin
+from nsot import exc, models
+
+from .fixtures import admin_user, user, site, transactional_db
 
 
-def test_creation(session, site, admin):
-    models.Attribute.create(
-        session, admin.id,
-        resource_name="Network",
-        site_id=site.id, name="test_attribute"
+def test_creation(site):
+    attr = models.Attribute.objects.create(
+        resource_name='Network',
+        site=site, name='test_attribute'
     )
-    session.commit()
 
-    attributes = session.query(models.Attribute).all()
-    assert len(attributes) == 1
-    assert attributes[0].id == 1
+    attributes = models.Attribute.objects.all()
+
+    assert attributes.count() == 1
+    assert attributes[0].id == attr.id
     assert attributes[0].site_id == site.id
-    assert attributes[0].name == "test_attribute"
-    assert attributes[0].required == False
+    assert attributes[0].name == attr.name
+    assert attributes[0].required == attr.required
 
 
-def test_conflict(session, site, admin):
-    models.Attribute.create(
-        session, admin.id,
-        resource_name="Network",
-        site_id=site.id, name="test_attribute"
+def test_conflict(site):
+    models.Attribute.objects.create(
+        resource_name='Network',
+        site=site, name='test_attribute'
     )
 
-    with pytest.raises(IntegrityError):
-        models.Attribute.create(
-            session, admin.id,
-            resource_name="Network",
-            site_id=site.id, name="test_attribute"
+    with pytest.raises(DjangoValidationError):
+        models.Attribute.objects.create(
+            resource_name='Network',
+            site=site, name='test_attribute'
         )
 
-    models.Attribute.create(
-        session, admin.id,
-        resource_name="Network",
-        site_id=site.id, name="test_attribute_2"
+    models.Attribute.objects.create(
+        resource_name='Network',
+        site=site, name='test_attribute_2'
     )
 
 
-def test_validation(session, site, admin):
+def test_validation(site, transactional_db):
     with pytest.raises(exc.ValidationError):
-        models.Attribute.create(
-            session, admin.id,
-            resource_name="Network",
-            site_id=site.id, name=None,
+        models.Attribute.objects.create(
+            resource_name='Network',
+            site=site, name=None,
         )
 
     with pytest.raises(exc.ValidationError):
-        models.Attribute.create(
-            session, admin.id,
-            resource_name="Network",
-            site_id=site.id, name="",
+        models.Attribute.objects.create(
+            resource_name='Network',
+            site=site, name='',
         )
 
-    attribute = models.Attribute.create(
-        session, admin.id,
-        resource_name="Network",
-        site_id=site.id, name="test_attribute"
+    attribute = models.Attribute.objects.create(
+        resource_name='Network',
+        site=site, name='test_attribute'
     )
 
     with pytest.raises(exc.ValidationError):
-        attribute.update(admin.id, name="")
+        attribute.name = ''
+        attribute.save()
 
     with pytest.raises(exc.ValidationError):
-        attribute.update(admin.id, name=None)
+        attribute.name = None
+        attribute.save()
 
-    attribute.update(admin.id, name="test_attribute_new")
-    session.commit()
+    attribute.name = 'test_attribute_new'
+    attribute.save()
 
 
-def test_deletion(session, site, admin):
-    attribute = models.Attribute.create(
-        session, admin.id,
-        resource_name="Network",
-        site_id=site.id, name="test_attribute"
+def test_deletion(site):
+    attribute = models.Attribute.objects.create(
+        resource_name='Network',
+        site=site, name='test_attribute'
     )
 
-    network = models.Network.create(
-        session, admin.id, site.id,
-        cidr=u"10.0.0.0/8", attributes={"test_attribute": "foo"}
+    network = models.Network.objects.create(
+        cidr='10.0.0.0/8', site=site, attributes={'test_attribute': 'foo'}
     )
 
-    with pytest.raises(IntegrityError):
-        attribute.delete(admin.id)
+    with pytest.raises(ProtectedError):
+        attribute.delete()
 
-    network.delete(admin.id)
-    attribute.delete(admin.id)
+    network.delete()
+    attribute.delete()
 
 
-def test_required(session, site, admin):
-    attribute_1 = models.Attribute.create(
-        session, admin.id,
-        resource_name="Network",
-        site_id=site.id, name="required_1", required=True
+def test_required(site):
+    attribute_1 = models.Attribute.objects.create(
+        resource_name='Network',
+        site=site, name='required_1', required=True
     )
-
-    attribute_2 = models.Attribute.create(
-        session, admin.id,
-        resource_name="Network",
-        site_id=site.id, name="required_2", required=True
+    attribute_2 = models.Attribute.objects.create(
+        resource_name='Network',
+        site=site, name='required_2', required=True
     )
 
     with pytest.raises(exc.ValidationError):
-        network = models.Network.create(
-            session, admin.id, site.id,
-            cidr=u"10.0.0.0/8"
+        network = models.Network.objects.create(
+            cidr='10.0.0.0/8', site=site, attributes={}
         )
 
     with pytest.raises(exc.ValidationError):
-        network = models.Network.create(
-            session, admin.id, site.id,
-            cidr=u"10.0.0.0/8", attributes={
-                "required_1": "foo",
-            }
+        network = models.Network.objects.create(
+            site=site, cidr='10.0.0.0/8', attributes={'required_1': 'foo'}
         )
 
-    network = models.Network.create(
-        session, admin.id, site.id,
-        cidr=u"10.0.0.0/8", attributes={
-            "required_1": "foo",
-            "required_2": "bar",
-        }
+    network = models.Network.objects.create(
+        cidr=u'10.0.0.0/8',
+        attributes={'required_1': 'foo', 'required_2': 'bar'},
+        site=site,
     )
 
 
-def test_multi(session, site, admin):
-    multi = models.Attribute.create(
-        session, admin.id,
-        resource_name="Network", display=True,
-        site_id=site.id, name="multi", multi=True
+def test_multi(site):
+    multi = models.Attribute.objects.create(
+        resource_name='Network', display=True,
+        site=site, name='multi', multi=True
     )
 
-    not_multi = models.Attribute.create(
-        session, admin.id,
-        resource_name="Network",
-        site_id=site.id, name="not_multi", multi=False
+    not_multi = models.Attribute.objects.create(
+        resource_name='Network',
+        site=site, name='not_multi', multi=False
     )
 
-    models.Network.create(session, admin.id, site.id, cidr=u"10.0.0.0/8")
+    models.Network.objects.create(site=site, cidr='10.0.0.0/8')
 
-    models.Network.create(
-        session, admin.id, site.id, cidr=u"10.0.0.1",
-        attributes={
-            "multi": ["test", "testing", "testtttt"]
-        }
+    network = models.Network.objects.create(
+        site=site, cidr='10.0.0.1',
+        attributes={'multi': ['test', 'testing', 'testtttt']}
     )
 
     with pytest.raises(exc.ValidationError):
-        models.Network.create(
-            session, admin.id, site.id, cidr=u"10.0.0.2",
-            attributes={
-                "not_multi": ["test", "testing", "testtttt"]
-            }
+        network = models.Network.objects.create(
+            site=site, cidr=u'10.0.0.2',
+            attributes={'not_multi': ['test', 'testing', 'testtttt']}
         )
 
 
-def test_constraints(session, site, admin):
-    default = models.Attribute.create(
-        session, admin.id,
-        resource_name="Network", site_id=site.id, name="default"
+def test_constraints(site):
+    default = models.Attribute.objects.create(
+        resource_name='Network', site=site, name='default'
     )
 
-    allow_empty = models.Attribute.create(
-        session, admin.id,
-        resource_name="Network", site_id=site.id, name="allow_empty",
-        constraints={"allow_empty": True}
+    allow_empty = models.Attribute.objects.create(
+        resource_name='Network', site=site, name='allow_empty',
+        constraints={'allow_empty': True}
     )
 
-    pattern = models.Attribute.create(
-        session, admin.id,
-        resource_name="Network", site_id=site.id, name="pattern",
-        constraints={"pattern": "\d\d\d+"}
+    pattern = models.Attribute.objects.create(
+        resource_name='Network', site=site, name='pattern',
+        constraints={'pattern': '\d\d\d+'}
     )
 
-    valid = models.Attribute.create(
-        session, admin.id,
-        resource_name="Network", site_id=site.id, name="valid",
-        constraints={"valid_values": ["foo", "bar", "baz"]}
+    valid = models.Attribute.objects.create(
+        resource_name='Network', site=site, name='valid',
+        constraints={'valid_values': ['foo', 'bar', 'baz']}
     )
 
     # Test that ValidationError is raised when constraints are not a dict
     with pytest.raises(exc.ValidationError):
-        models.Attribute.create(
-            session, admin.id, resource_name='Network', site_id='site.id',
+        models.Attribute.objects.create(
+            resource_name='Network', site=site,
             name='invalid', constraints=['foo', 'bar', 'baz']
         )
 
-    network = models.Network.create(session, admin.id, site.id, cidr=u"10.0.0.0/8")
+    network = models.Network.objects.create(site=site, cidr='10.0.0.0/8')
 
     with pytest.raises(exc.ValidationError):
-        network.update(admin.id, attributes={"default": ""})
+        network.set_attributes({'default': ''})
 
     # Test allow_empty
-    network.update(admin.id, attributes={"allow_empty": ""})
+    network.set_attributes({'allow_empty': ''})
 
     # Test pattern
     with pytest.raises(exc.ValidationError):
-        network.update(admin.id, attributes={"pattern": ""})
+        network.set_attributes({'pattern': ''})
 
     with pytest.raises(exc.ValidationError):
-        network.update(admin.id, attributes={"pattern": "foo"})
+        network.set_attributes({'pattern': 'foo'})
 
     with pytest.raises(exc.ValidationError):
-        network.update(admin.id, attributes={"pattern": "10"})
+        network.set_attributes({'pattern': '10'})
 
-    network.update(admin.id, attributes={"pattern": "100"})
-    network.update(admin.id, attributes={"pattern": "1000000"})
+    network.set_attributes({'pattern': '100'})
+    network.set_attributes({'pattern': '1000000'})
 
     # Test valid_values
     with pytest.raises(exc.ValidationError):
-        network.update(admin.id, attributes={"valid": "hello"})
+        network.set_attributes({'valid': 'hello'})
 
-    network.update(admin.id, attributes={"valid": "foo"})
+    network.set_attributes({'valid': 'foo'})

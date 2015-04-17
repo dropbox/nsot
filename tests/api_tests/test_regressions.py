@@ -1,48 +1,63 @@
-"""
-Regression tests for Network objects.
-"""
+# -*- coding: utf-8 -*-
+from __future__ import unicode_literals
 
-import json
 import pytest
-import requests
 
-from .fixtures import tornado_server, tornado_app
+# Allow everything in there to access the DB
+pytestmark = pytest.mark.django_db
+
+import copy
+from django.core.urlresolvers import reverse
+import json
+import logging
+from rest_framework import status
+
+
+from .fixtures import live_server, client, user, site
 from .util import (
-    assert_error, assert_success, assert_created, assert_deleted, Client,
-    load_json, run_set_queries
+    assert_created, assert_error, assert_success, assert_deleted, load_json,
+    Client, load, filter_networks
 )
 
 
-def test_network_bug_issues_34(tornado_server):
-    """Test set queries for Networks."""
-    client = Client(tornado_server)
+log = logging.getLogger(__name__)
 
-    client.create('/sites', name='Test Site')  # 1
+
+def test_network_bug_issues_34(client, site):
+    """Test set queries for Networks."""
+
+    # URIs
+    attr_uri = site.list_uri('attribute')
+    net_uri = site.list_uri('network')
 
     # Pre-load the attributes
-    attr_data = load_json('attributes.json')
-    client.create(
-        '/sites/1/attributes',
-        attributes=attr_data['attributes']
-    )
+    client.post(attr_uri, data=load('attributes.json'))
 
-    # Populate the device objects.
-    network_data = load_json('networks.json')
-    client.create(
-        '/sites/1/networks',
-        networks=network_data['networks']
-    )
+    # Populate the network objects and retreive them for testing.
+    client.post(net_uri, data=load('networks.json'))
+    net_resp = client.retrieve(net_uri, include_ips=True)
+    net_out = net_resp.json()['data']
+    networks = net_out['networks']
 
     # Filter networks w/ attribute hostname=foo-bar1
-    n1_output = load_json('networks/bug_issues_34_1.json')
+    expected = copy.deepcopy(net_out)
+    wanted = ['192.168.0.0/24', '192.168.0.0/25']
+    expected['networks'] = filter_networks(networks, wanted)
+    expected.update({'limit': None, 'offset': 0, 'total': len(wanted)})
+
     assert_success(
-        client.get("/sites/1/networks?attributes=hostname=foo-bar1"),
-        n1_output['data'],
+        client.retrieve(net_uri, attributes='hostname=foo-bar1'),
+        expected
     )
 
     # Filter networks w/ attribute hostname=foo-bar1, including IPs
-    n2_output = load_json('networks/bug_issues_34_2.json')
+    wanted = ['192.168.0.1/32', '192.168.0.0/24', '192.168.0.0/25']
+    expected['networks'] = filter_networks(networks, wanted)
+    expected.update({'total': len(wanted)})
+
     assert_success(
-        client.get("/sites/1/networks?attributes=hostname=foo-bar1&include_ips=True"),
-        n2_output['data'],
+        client.retrieve(
+            net_uri, attributes='hostname=foo-bar1', include_ips=True
+        ),
+        expected
     )

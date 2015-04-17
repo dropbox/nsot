@@ -2,8 +2,7 @@
 
 import os
 
-import setuptools
-from distutils.core import setup
+from setuptools import setup, find_packages
 
 execfile('nsot/version.py')
 
@@ -19,30 +18,32 @@ def get_package_data(package, base_dir):
         for dirname in dirnames:
             get_package_data(package, dirname)
 
-get_package_data("nsot", "nsot/static")
-get_package_data("nsot", "nsot/templates")
-get_package_data("nsot", "nsot/migrations")
+get_package_data('nsot', 'nsot/static')
+get_package_data('nsot', 'nsot/templates')
+get_package_data('nsot', 'nsot/migrations')
 
 kwargs = {
-    "name": "nsot",
-    "version": str(__version__),
-    "packages": ["nsot", "nsot.handlers"],
-    "package_data": package_data,
-    "scripts": ["bin/nsot-server", "bin/nsot-ctl"],
-    "description": "Network Source of Truth (IP Address Management).",
-    "author": "Gary M. Josack",
-    "maintainer": "Gary M. Josack",
-    "author_email": "gary@dropbox.com",
-    "maintainer_email": "gary@dropbox.com",
-    "license": "Apache",
-    "install_requires": required,
-    "url": "https://github.com/dropbox/nsot",
-    "download_url": "https://github.com/dropbox/nsot/archive/master.tar.gz",
-    "classifiers": [
-        "Programming Language :: Python",
-        "Topic :: Software Development",
-        "Topic :: Software Development :: Libraries",
-        "Topic :: Software Development :: Libraries :: Python Modules",
+    'name': 'nsot',
+    'version': str(__version__),
+    'packages': find_packages(exclude=['tests']),
+    'package_data': package_data,
+    'description': 'Network Source of Truth (IP Address Management).',
+    'author': 'Gary M. Josack',
+    'maintainer': 'Gary M. Josack',
+    'author_email': 'gary@dropbox.com',
+    'maintainer_email': 'gary@dropbox.com',
+    'license': 'Apache',
+    'install_requires': required,
+    'url': 'https://github.com/dropbox/nsot',
+    'entry_points': """
+        [console_scripts]
+        nsot-server=nsot.util:main
+    """,
+    'classifiers': [
+        'Programming Language :: Python',
+        'Topic :: Software Development',
+        'Topic :: Software Development :: Libraries',
+        'Topic :: Software Development :: Libraries :: Python Modules',
     ]
 }
 

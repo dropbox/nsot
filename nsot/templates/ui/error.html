@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+{% autoescape on %}
+<html lang="en">
+    <head>
+        <title>NSoT Error</title>
+
+        <link href="/static/vendor/bootstrap/css/bootstrap.min.css"
+              rel="stylesheet"
+              media="screen">
+        <link href="/static/css/nsot.css" rel="stylesheet" media="screen">
+    </head>
+    <body>
+        <div class="container-fluid">
+            <div class="row content">
+                <div class="col-md-6 col-md-offset-3 text-center">
+                    <div class="panel panel-default notification-box">
+                        <div class="panel-heading"><strong>
+                            Error Loading Application
+                        </strong></div>
+                        <div class="panel-body">
+                            You've failed to access the NSoT Frontend Application.
+                            This usually means you've tried to access without an
+                            authenticating proxy. Please contact your administrator.
+                            <hr>
+                            <div class="alert alert-danger">
+                                {{code}} - {{message}}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>
+{% endautoescape %}

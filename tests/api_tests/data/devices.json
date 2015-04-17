@@ -1,36 +1,34 @@
-{
-    "devices": [
-        {
-            "attributes": {
-                "cluster": "", 
-                "foo": "bar", 
-                "owner": "jathan"
-            }, 
-            "hostname": "foo-bar1"
+[
+    {
+        "attributes": {
+            "cluster": "", 
+            "foo": "bar", 
+            "owner": "jathan"
         }, 
-        {
-            "attributes": {
-                "cluster": "", 
-                "foo": "baz", 
-                "owner": "gary"
-            }, 
-            "hostname": "foo-bar2"
+        "hostname": "foo-bar1"
+    }, 
+    {
+        "attributes": {
+            "cluster": "", 
+            "foo": "baz", 
+            "owner": "gary"
         }, 
-        {
-            "attributes": {
-                "cluster": "lax", 
-                "foo": "baz", 
-                "owner": "jathan"
-            }, 
-            "hostname": "foo-bar3"
+        "hostname": "foo-bar2"
+    }, 
+    {
+        "attributes": {
+            "cluster": "lax", 
+            "foo": "baz", 
+            "owner": "jathan"
         }, 
-        {
-            "attributes": {
-                "cluster": "sjc", 
-                "foo": "bar", 
-                "owner": "gary"
-            }, 
-            "hostname": "foo-bar4"
-        }
-    ]
-}
+        "hostname": "foo-bar3"
+    }, 
+    {
+        "attributes": {
+            "cluster": "sjc", 
+            "foo": "bar", 
+            "owner": "gary"
+        }, 
+        "hostname": "foo-bar4"
+    }
+]

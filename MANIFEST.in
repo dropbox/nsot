@@ -1,5 +1,6 @@
 include LICENSE
 include runtests
+include pytest.ini
 include README
 include README.md
 include requirements.txt

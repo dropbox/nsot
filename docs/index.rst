@@ -11,4 +11,3 @@ Contents:
    intro
    config
    api
-   api-ref

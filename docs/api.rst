@@ -42,8 +42,6 @@ that is formatted like so::
 
     Authorization: AuthToken {email}:{secret_key}
 
-Please see the :ref:`api-ref` for examples.
-
 Requests
 --------
 

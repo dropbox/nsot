@@ -1,0 +1,53 @@
+# -*- coding: utf-8 -*-
+from __future__ import unicode_literals
+
+from django.core.handlers.wsgi import STATUS_CODE_TEXT as status_text
+from django.shortcuts import render
+from django.views.generic import TemplateView
+import logging
+
+
+log = logging.getLogger(__name__)
+
+
+class FeView(TemplateView):
+    """
+    Front-end UI view that hands-off rendering to Angular.js.
+
+    Any additional context needed to be passed to the templates, should be added
+    in ``.get_context_data()``.
+    """
+    template_name = 'ui/app.html'
+
+    def get_context_data(self, **kwargs):
+        from nsot import __version__
+        context = super(FeView, self).get_context_data(**kwargs)
+        context['NSOT_VERSION'] = __version__
+        return context
+
+
+def render_error(request, status_code, template_name='ui/error.html'):
+    """Generic base for rendering error pages."""
+    message = status_text.get(status_code)
+    context = {'code': status_code, 'message': message}
+    return render(request, template_name, context, status=status_code)
+
+
+def handle400(request):
+    """Handler for 400."""
+    return render_error(request, 400)
+
+
+def handle403(request):
+    """Handler for 403."""
+    return render_error(request, 403)
+
+
+def handle404(request):
+    """Handler for 404."""
+    return render_error(request, 404)
+
+
+def handle500(request):
+    """Handler for 500."""
+    return render_error(request, 500)

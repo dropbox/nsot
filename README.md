@@ -63,14 +63,20 @@ on development instances.
 
 ```bash
 
+# Initialize the config
+nsot-server init
+
 # Setup the database.
-nsot-ctl -vvv -c config/dev.yaml migrations latest
+nsot-server upgrade
 
 # Run the development reverse proxy
-nsot-ctl -vv -c config/dev.yaml user_proxy
+nsot-server user_proxy
+
+# Deploy the static files
+nsot-server collectstatic
 
 # Run the frontend server
-nsot-server --config=config/dev.yaml -vv
+nsot-server start
 
 ```
 
@@ -82,7 +88,7 @@ should be sufficient to just run
 
 ```bash
 
-nsot-ctl -vvv -c config/dev.yaml migrations revision
+nsot-server makemigrations api
 
 ```
 
@@ -91,7 +97,7 @@ with
 
 ```bash
 
-nsot-ctl -vvv -c config/dev.yaml migrations latest
+nsot-server migrate
 
 ```
 

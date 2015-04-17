@@ -1,293 +1,111 @@
+# -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
 from calendar import timegm
 from cryptography.fernet import (Fernet, InvalidToken)
-from datetime import datetime
-from email.utils import parseaddr
-from operator import attrgetter
-import functools
+from custom_user.models import AbstractEmailUser
+from django.db import models
+from django.db.models.query_utils import Q
+from django.conf import settings
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.core.validators import EmailValidator
+from django_extensions.db.fields.json import JSONField
 import ipaddress
-import re
 import json
 import logging
-import time
-
-from sqlalchemy import create_engine, or_, union_all, desc
-from sqlalchemy.event import listen
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.declarative import declarative_base, declared_attr
-from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import relationship, object_session, aliased, validates
-from sqlalchemy.orm import synonym, sessionmaker, Session as _Session, backref
-from sqlalchemy.schema import Column, ForeignKey, Index
-from sqlalchemy.sql import func, label, literal, false
-from sqlalchemy.types import Integer, String, Text, Boolean, SmallInteger
-from sqlalchemy.types import Enum, DateTime, VARBINARY
+from operator import attrgetter
+from polymorphic import PolymorphicModel
+import re
 
 from . import constants
 from . import exc
-from .permissions import PermissionsFlag
-from .settings import settings
+from . import fields
+from .util import generate_secret_key, parse_set_query
 
 
 log = logging.getLogger(__name__)
 
 RESOURCE_BY_IDX = (
-    "Site", "Network", "Attribute", "Permission", "Device"
+    'Site', 'Network', 'Attribute', 'Permission', 'Device'
 )
 RESOURCE_BY_NAME = {
     obj_type: idx
     for idx, obj_type in enumerate(RESOURCE_BY_IDX)
 }
 
-CHANGE_EVENTS = ("Create", "Update", "Delete")
-IP_VERSIONS = ("4", "6")
+CHANGE_EVENTS = ('Create', 'Update', 'Delete')
+IP_VERSIONS = ('4', '6')
 
 
 VALID_CHANGE_RESOURCES = set(RESOURCE_BY_IDX)
 VALID_ATTRIBUTE_RESOURCES = set([
-    "Network", "Device",
+    'Network', 'Device',
 ])
 
-
-class Session(_Session):
-    """ Custom session meant to utilize add on the model.
-
-        This Session overrides the add/add_all methods to prevent them
-        from being used. This is to for using the add methods on the
-        models themselves where overriding is available.
-    """
-
-    _add = _Session.add
-    _add_all = _Session.add_all
-    _delete = _Session.delete
-
-    def add(self, *args, **kwargs):
-        raise NotImplementedError("Use add method on models instead.")
-
-    def add_all(self, *args, **kwargs):
-        raise NotImplementedError("Use add method on models instead.")
-
-    def delete(self, *args, **kwargs):
-        raise NotImplementedError("Use delete method on models instead.")
+ATTRIBUTE_RESOURCES = ('Network', 'Device')
 
 
-Session = sessionmaker(class_=Session)
 
-class Model(object):
-    """ Custom model mixin with helper methods. """
+class Site(models.Model):
+    """A namespace for attribtues, devices, and networks."""
+    name = models.CharField(max_length=255, unique=True)
+    description = models.TextField(default='', blank=True)
 
-    def __repr__(self):
-        cls_name = self.__class__.__name__
-        return u'%s(id=%r)' % (cls_name, self.id)
+    def __unicode__(self):
+        return self.name
 
-    @property
-    def session(self):
-        return object_session(self)
-
-    @classmethod
-    def query(cls):
-        """Return a Query using session defaults."""
-        # The Model.query() method doesn't work on classmethods. We need a
-        # scoped_session for that
-        from .meta import ScopedSession
-        return ScopedSession().query(cls)
-
-    @classmethod
-    def get_or_create(cls, session, **kwargs):
-        instance = session.query(cls).filter_by(**kwargs).scalar()
-        if instance:
-            return instance, False
-
-        instance = cls(**kwargs)
-        instance.add(session)
-
-        return instance, True
-
-    @property
-    def model_name(self):
-        obj_name = type(self).__name__
-        return obj_name
-
-    @classmethod
-    def before_create(cls, session, user_id):
-        """ Hook for before object creation."""
-
-    def after_create(self, user_id):
-        """ Hook for after object creation."""
-
-    @classmethod
-    def create(cls, session, _user_id, **kwargs):
-        commit = kwargs.pop("commit", True)
-        try:
-            cls.before_create(session, _user_id)
-            obj = cls(**kwargs).add(session)
-            session.flush()
-            obj.after_create(_user_id)
-            Change.create(session, _user_id, "Create", obj)
-            if commit:
-                session.commit()
-        except Exception:
-            session.rollback()
-            raise
-
-        return obj
-
-    def update(self, user_id, **kwargs):
-        session = self.session
-        try:
-            for key, value in kwargs.iteritems():
-                setattr(self, key, value)
-
-            session.flush()
-            Change.create(session, user_id, "Update", self)
-            session.commit()
-        except Exception:
-            session.rollback()
-            raise
-
-    def add(self, session):
-        session._add(self)
-        return self
-
-    def before_delete(self):
-        """ Hook for extra model cleanup before delete. """
-
-    def after_delete(self):
-        """ Hook for extra model cleanup after delete. """
-
-    def delete(self, user_id):
-        session = self.session
-        try:
-            Change.create(session, user_id, "Delete", self)
-            self.before_delete()
-            session._delete(self)
-            self.after_delete()
-            session.commit()
-        except Exception:
-            session.rollback()
-            raise
-
-
-Model = declarative_base(cls=Model)
-
-
-# Foreign Keys are ignored by default in SQLite. Don't do that.
-def _set_sqlite_pragma(dbapi_connection, connection_record):
-    cursor = dbapi_connection.cursor()
-    cursor.execute("PRAGMA foreign_keys=ON;")
-    cursor.close()
-
-
-def get_db_engine(url, echo=False):
-    engine = create_engine(url, pool_recycle=300, echo=echo)
-    if engine.driver == "pysqlite":
-        listen(engine, "connect", _set_sqlite_pragma)
-
-    return engine
-
-
-def get_db_session(db_engine=None, database=None):
-    """
-    Return a usable session object.
-
-    If not provided, this will attempt to retreive the database and db_engine
-    from settings. If settings have not been updated from a config, this will
-    return ``None``.
-
-    :param db_engine:
-        Database engine to use
-
-    :param database:
-        URI for database
-    """
-    if database is None:
-        database = settings.database
-        if database is None:
-            return None
-    if db_engine is None:
-        db_engine = get_db_engine(database)
-    Session.configure(bind=db_engine)
-    return Session()
-
-
-def flush_transaction(method):
-    @functools.wraps(method)
-    def wrapper(self, *args, **kwargs):
-        dryrun = kwargs.pop("dryrun", False)
-        try:
-            ret = method(self, *args, **kwargs)
-            if dryrun:
-                self.session.rollback()
-            else:
-                self.session.flush()
-        except Exception:
-            log.exception("Transaction Failed. Rolling back.")
-            if self.session is not None:
-                self.session.rollback()
-            raise
-        return ret
-    return wrapper
-
-
-class User(Model):
-
-    __tablename__ = "users"
-
-    id = Column(Integer, primary_key=True)
-    email = Column(String(length=255), unique=True, nullable=False)
-
-    # The user's secret key is used to generate their auth_token
-    secret_key = Column(String(length=255), default=Fernet.generate_key)
-
-    @validates("email")
-    def validate_email(self, key, value):
-        _, email = parseaddr(value)
-        if email == '' or "@" not in value:
-            raise exc.ValidationError("Must contain a valid e-mail address")
+    def clean_name(self, value):
+        if not value:
+            raise exc.ValidationError({
+                'name': 'This is a required field.'
+            })
         return value
 
-    def to_dict(self, with_permissions=False, with_secret_key=False):
-        out = {
-            "id": self.id,
-            "email": self.email,
+    def clean_fields(self, exclude=None):
+        self.name = self.clean_name(self.name)
+
+    def save(self, *args, **kwargs):
+        self.full_clean()  # First validate fields are correct
+        super(Site, self).save(*args, **kwargs)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'description': self.description,
         }
 
-        if with_secret_key:
-            out["secret_key"] = self.secret_key
 
-        if with_permissions:
-            out["permissions"] = self.get_permissions()
+class User(AbstractEmailUser):
+    """A custom user object that utilizes email as the username."""
+    secret_key = models.CharField(max_length=44, default=generate_secret_key)
 
-        return out
-
-    def rotate_secret_key(self):
-        self.secret_key = Fernet.generate_key()
-
-    def get_permissions(self, site_id=None):
-        query = self.session.query(Permission).filter_by(
-            user_id=self.id
-        )
-
-        if site_id is not None:
-            query = query.filter_by(site_id=site_id)
-
-        permissions = query.all()
+    def get_permissions(self):
+        permissions = []
+        if self.is_staff or self.is_superuser:
+            permissions.append('admin')
+        sites = Site.objects.all()
 
         return {
-            # JSON keys can't be ints so be consistent in
-            # python
-            str(permission.site_id): permission.to_dict()
-            for permission in permissions
+            str(site.id): {
+                'permissions': permissions,
+                'site_id': site.id,
+                'user_id': self.id
+            }
+            for site in sites
         }
+
+    def rotate_secret_key(self):
+        self.secret_key = generate_secret_key()
+        self.save()
 
     def generate_auth_token(self):
         """Serialize user data and encrypt token."""
         # Serialize data
-        data = json.dumps({'email': self.email })
+        data = json.dumps({'email': self.email})
 
         # Encrypt w/ servers's secret_key
-        f = Fernet(bytes(settings.secret_key))
+        f = Fernet(bytes(settings.SECRET_KEY))
         auth_token = f.encrypt(bytes(data))
         return auth_token
 
@@ -296,732 +114,637 @@ class User(Model):
         return secret_key == self.secret_key
 
     @classmethod
-    def verify_auth_token(cls, email, auth_token,
-                          expiration=None, session=None):
+    def verify_auth_token(cls, email, auth_token, expiration=None):
         """Verify token and return a User object."""
         if expiration is None:
-            expiration = settings.auth_token_expiry
+            expiration = settings.AUTH_TOKEN_EXPIRY
 
         # First we lookup the user by email
-        if session is None:
-            query = User.query()
-        else:
-            query = session.query(User)
-        user = query.filter_by(email=email).scalar()
+        query = cls.objects.filter(email=email)
+        user = query.first()
 
         if user is None:
             log.debug('Invalid user when verifying token')
-            return None  # Invalid user
+            raise exc.ValidationError({
+                'auth_token': 'Invalid user when verifying token'
+            })
+            # return None  # Invalid user
 
         # Decrypt auth_token w/ user's secret_key
-        f = Fernet(bytes(settings.secret_key))
+        f = Fernet(bytes(settings.SECRET_KEY))
         try:
             decrypted_data = f.decrypt(bytes(auth_token), ttl=expiration)
         except InvalidToken:
             log.debug('Invalid/expired auth_token when decrypting.')
-            return None  # Invalid token
+            raise exc.ValidationError({
+                'auth_token': 'Invalid/expired auth_token.'
+            })
+            # return None  # Invalid token
 
         # Deserialize data
         try:
             data = json.loads(decrypted_data)
         except ValueError:
             log.debug('Token could not be deserialized.')
-            return None  # Valid token, but expired
+            raise exc.ValidationError({
+                'auth_token': 'Token could not be deserialized.'
+            })
+            # return None  # Valid token, but expired
 
         if email != data['email']:
             log.debug('Invalid user when deserializing.')
-            return None  # User email did not match payload
+            raise exc.ValidationError({
+                'auth_token': 'Invalid user when deserializing.'
+            })
+            # return None  # User email did not match payload
         return user
 
-
-class Permission(Model):
-    __tablename__ = "permissions"
-    __table_args__ = (
-        Index("site_user_idx", "site_id", "user_id", unique=True),
-    )
-
-    id = Column(Integer, primary_key=True)
-    site_id = Column(Integer, ForeignKey("sites.id", ondelete="CASCADE"), nullable=False)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-
-    permissions_flag = Column(Integer, default=0, nullable=False)
-
-    @property
-    def permissions(self):
-        perms = []
-        flag = PermissionsFlag(self.permissions_flag)
-        for word in PermissionsFlag.words:
-            if flag.has(word):
-                perms.append(word)
-        return perms
-
-    @permissions.setter
-    def permissions(self, value):
-        flag = PermissionsFlag()
-        for word in value:
-            flag.set(word)
-        self.permissions_flag = flag.dump()
-
-    def to_dict(self):
-        return {
-            # Not including primary key here since all operations
-            # will be on the composite key of site_id and user_id.
-            "site_id": self.site_id,
-            "user_id": self.user_id,
-            "permissions": self.permissions,
-        }
-
-
-class Site(Model):
-    """ A namespace for subnets, ipaddresses, attributes. """
-
-    __tablename__ = "sites"
-
-    id = Column(Integer, primary_key=True)
-    name = Column(String(length=255), unique=True, nullable=False)
-    description = Column(Text, default="", nullable=False)
-
-    # All generic resources are expected to have a site_id attribute.
-    site_id = synonym("id")
-
-
-    def after_create(self, user_id):
-        Permission.create(
-            self.session, user_id, site_id=self.id, user_id=user_id,
-            permissions=["admin"]
-        )
-
-    def devices(self, attribute_name=None, attribute_value=None):
-        """ Helper method for grabbing Networks.
-
-            Args:
-                attribute_name: Filter to networks that contain this attribute name
-                attribute_value: Filter to networks that contain this attribute value
-        """
-
-        if attribute_value is not None and attribute_name is None:
-            raise ValueError("attribute_value requires attribute_name to be set.")
-
-        query = self.session.query(Device)
-
-        if attribute_name is not None:
-            query = query.outerjoin(Device.attr_idx).filter(
-                DeviceAttributeIndex.name == attribute_name
-            )
-            if attribute_value is not None:
-                query = query.filter(DeviceAttributeIndex.value == attribute_value)
-
-        query = query.filter(Device.site_id==self.id)
-
-        return query
-
-    def networks(self, include_networks=True, include_ips=False, root=False,
-                 subnets_of=None, supernets_of=None,
-                 attribute_name=None, attribute_value=None):
-        """ Helper method for grabbing Networks.
-
-            Args:
-                include_networks: Whether the response should include non-ip
-                                  address networks
-                include_ips: Whether the response should include ip addresses
-                root: Only return networks at the root.
-                subnets_of: Only return subnets of the given CIDR
-                supernets_of: Only return supernets of the given CIDR
-                attribute_name: Filter to networks that contain this attribute name
-                attribute_value: Filter to networks that contain this attribute value
-        """
-
-        if not any([include_networks, include_ips]):
-            return self.session.query(Network).filter(false())
-
-        if attribute_value is not None and attribute_name is None:
-            raise ValueError("attribute_value requires attribute_name to be set.")
-
-        if all([subnets_of, supernets_of]):
-            raise ValueError("subnets_of and supernets_of are mutually exclusive.")
-
-        query = self.session.query(Network)
-
-        if attribute_name is not None:
-            query = query.outerjoin(Network.attr_idx).filter(
-                NetworkAttributeIndex.name == attribute_name
-            )
-            if attribute_value is not None:
-                query = query.filter(NetworkAttributeIndex.value == attribute_value)
-
-        query = query.filter(Network.site_id==self.id)
-
-        if not all([include_networks, include_ips]):
-            if include_networks:
-                query = query.filter(Network.is_ip == False)
-            if include_ips:
-                query = query.filter(Network.is_ip == True)
-
-        if root:
-            query = query.filter(Network.parent_id == None)
-
-        if subnets_of is not None:
-            subnets_of = ipaddress.ip_network(unicode(subnets_of))
-            query = query.filter(
-                Network.ip_version == str(subnets_of.version),
-                Network.prefix_length > subnets_of.prefixlen,
-                Network.network_address >= subnets_of.network_address.packed,
-                Network.broadcast_address <= subnets_of.broadcast_address.packed
-            )
-
-        if supernets_of is not None:
-            supernets_of = ipaddress.ip_network(unicode(supernets_of))
-            query = query.filter(
-                Network.ip_version == str(supernets_of.version),
-                Network.prefix_length < supernets_of.prefixlen,
-                Network.network_address <= supernets_of.network_address.packed,
-                Network.broadcast_address >= supernets_of.broadcast_address.packed
-            )
-
-        return query
-
-
-    @validates("name")
-    def validate_name(self, key, value):
-        if not value:
-            raise exc.ValidationError("Name is a required field.")
+    def clean_email(self, value):
+        validator = EmailValidator()
+        try:
+            validator(value)
+        except DjangoValidationError as err:
+            raise exc.ValidationError({
+                'email': err.message
+            })
         return value
 
+    def clean_fields(self, exclude=None):
+        self.email = self.clean_email(self.email)
 
-    def to_dict(self):
-        return {
-            "id": self.id,
-            "name": self.name,
-            "description": self.description,
-        }
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super(User, self).save(*args, **kwargs)
 
+    def to_dict(self, with_permissions=False, with_secret_key=False):
+        out = [
+            ('id', self.id),
+            ('email', self.email),
+        ]
 
-class AttributeIndexMixin(object):
-    """ Shared columns for AttributeIndex tables. """
-    id = Column(Integer, primary_key=True)
+        if with_secret_key:
+            out.append(('secret_key', self.secret_key))
 
-    name = Column(String(length=64), nullable=False, index=True)
-    value = Column(String(length=255), nullable=False, index=True)
+        if with_permissions:
+            out.append(('permissions', self.get_permissions()))
 
-    @declared_attr
-    def attribute_id(self):
-        return Column(Integer, ForeignKey("attributes.id"), nullable=False)
-
-    @declared_attr
-    def attribute(self):
-        return relationship("Attribute")
+        return dict(out)
 
 
-class NetworkAttributeIndex(AttributeIndexMixin, Model):
-    """ An Inverted Index for looking up Networks by their attributes."""
+class ResourceSetTheoryQuerySet(models.QuerySet):
+    """
+    Set theory QuerySet for Resource objects to add ``.set_query()`` method.
 
-    __tablename__ = "network_attribute_index"
+    For example::
 
-    resource_id = Column(Integer, ForeignKey("networks.id"), nullable=False)
-    resource = relationship("Network", backref="attr_idx")
+        >>> qs = Network.objects.filter(network_address=u'10.0.0.0')
+        >>> qs.set_query('owner=jathan +metro=lax')
+    """
+    def set_query(self, query, site_pk=None):
+        objects = self
+        if site_pk is not None:
+            objects = objects.filter(site=site_pk)
+
+        try:
+            attributes = parse_set_query(query)
+        except (ValueError, TypeError):
+            attributes = []
+
+        resource_name = self.model.__name__
+
+        # Iterate a/v pairs and combine query results using MySQL-compatible
+        # set operations w/ the ORM
+        log.debug('QUERY [start]: objects = %r', objects)
+        for action, name, value in attributes:
+            attr = Attribute.objects.get(name=name, resource_name=resource_name)
+            next_set = Q(
+                attributes=Value.objects.filter(
+                    attribute_id=attr.id, value=value
+                ).values_list('id', flat=True)
+            )
+
+            # This is the MySQL-compatible manual implementation of set theory,
+            # baby!
+            if action == 'union':
+                log.debug('SQL UNION')
+                objects = (
+                    objects | self.filter(next_set)
+                )
+            elif action == 'difference':
+                log.debug('SQL DIFFERENCE')
+                objects = objects.exclude(next_set)
+            elif action == 'intersection':
+                log.debug('SQL INTERSECTION')
+                objects = objects.filter(next_set)
+            else:
+                raise exc.BadRequest('BAD SET QUERY: %r' % (action,))
+            log.debug('QUERY [iter]: objects = %r', objects)
+
+        # Gotta call .distinct() or we might get dupes.
+        return objects.distinct()
 
 
-class DeviceAttributeIndex(AttributeIndexMixin, Model):
-    """ An Inverted Index for looking up Devices by their attributes."""
+class ResourceManager(models.Manager):
+    """
+    Manager for Resource objects that adds a ``.set_query()`` method.
 
-    __tablename__ = "device_attribute_index"
+    For example::
 
-    resource_id = Column(Integer, ForeignKey("devices.id"), nullable=False)
-    resource = relationship("Device", backref="attr_idx")
+        >>> Network.objects.set_query('owner=jathan +metro=lax'}
+        [<Device: foo-bar1>]
+    """
+    def get_queryset(self, *args, **kwargs):
+        return ResourceSetTheoryQuerySet(self.model, using=self._db)
+
+    def set_query(self, query, site_pk=None):
+        return self.get_queryset().set_query(query, site_pk)
 
 
-class AttributeModelMixin(object):
-    """ Shared columns and methods for resources that support attributes. """
+class Resource(PolymorphicModel):
+    """Base for heirarchial Resource objects that may have attributes."""
+    parent = models.ForeignKey(
+        'self', blank=True, null=True, related_name='children', default=None,
+        on_delete=models.PROTECT
+    )
+    _attributes = JSONField(null=False, blank=True)
 
-    # Attributes is a Serialized LOB field. Lookups of these attributes
-    # is done against an Inverted Index table
-    _attributes = Column("attributes", Text)
+    def __init__(self, *args, **kwargs):
+        self._set_attributes = kwargs.pop('attributes', None)
+        super(Resource, self).__init__(*args, **kwargs)
+
+    # Implement .objects.set_query()
+    objects = ResourceManager()
+
+    @property
+    def _resource_name(self):
+        return self._meta.model_name.title()
 
     def _purge_attribute_index(self):
-        index_table = self._index_class.__table__
-        self.session.execute(
-            index_table.delete().where(index_table.c.resource_id == self.id)
-        )
+        self.attributes.all().delete()
 
     def get_attributes(self):
-        if self._attributes is None:
-            return {}
-        return json.loads(self._attributes)
+        """Return the JSON-encoded attributes as a dict."""
+        return self._attributes
 
     def set_attributes(self, attributes, valid_attributes=None):
+        """Validate and store the attributes dict as a JSON-encoded string."""
+        log.debug('Resource.set_attributes() attributes = %r',
+                  attributes)
         if not isinstance(attributes, dict):
-            raise exc.ValidationError("Expected dictionary but received {}".format(
-                type(attributes)
-            ))
+            raise exc.ValidationError(
+                'Expected dictionary but received {}'.format(type(attributes))
+            )
 
         if valid_attributes is None:
-            valid_attributes = Attribute.all_by_name(self.session, self._resource_name)
+            valid_attributes = Attribute.all_by_name(self._resource_name)
+        log.debug('Resource.set_attributes() valid_attributes = %r',
+                  valid_attributes)
 
         missing_attributes = {
-            attribute.name
-            for attribute in valid_attributes.itervalues()
+            attribute.name for attribute in valid_attributes.itervalues()
             if attribute.required and attribute.name not in attributes
         }
+        log.debug('Resource.set_attributes() missing_attributes = %r',
+                  missing_attributes)
 
         if missing_attributes:
-            raise exc.ValidationError("Missing required attributes: {}".format(
-                ", ".join(missing_attributes)
-            ))
+            names = ', '.join(missing_attributes)
+            raise exc.ValidationError(
+                'Missing required attributes: {}'.format(names)
+            )
 
         inserts = []
         for name, value in attributes.iteritems():
             if name not in valid_attributes:
-                raise exc.ValidationError("Attribute name ({}) does not exist.".format(
-                    name
-                ))
+                raise exc.ValidationError(
+                    'Attribute name ({}) does not exist.'.format(name)
+                )
 
             if not isinstance(name, basestring):
-                raise exc.ValidationError("Attribute names must be a string type")
+                raise exc.ValidationError(
+                    'Attribute names must be a string type.'
+                )
 
             attribute = valid_attributes[name]
             inserts.extend(attribute.validate_value(value))
 
+        self._purge_attribute_index()
         for insert in inserts:
-            insert["resource_id"] = self.id
+            Value.objects.create(
+                resource=self, attribute_id=insert['attribute_id'],
+                value=insert['value']
+            )
 
-        self._purge_attribute_index()
-        if inserts:
-            index_table = self._index_class.__table__
-            self.session.execute(index_table.insert(), inserts)
+        self.clean_attributes()
 
-        self._attributes = json.dumps(attributes)
+    def clean_attributes(self):
+        """Make sure that attributes are saved as JSON."""
+        attrs = {}
+        for a in self.attributes.all():
+            if a.attribute.multi:
+                if a.name not in attrs:
+                    attrs[a.name] = []
+                attrs[a.name].append(a.value)
+            else:
+                attrs[a.name] = a.value
+        self._attributes = attrs
+        return attrs
 
-    def update(self, user_id, **kwargs):
-        session = self.session
-        try:
-            for key, value in kwargs.iteritems():
-                if key == "attributes":
-                    self.set_attributes(value)
-                else:
-                    setattr(self, key, value)
-            session.flush()
-            Change.create(session, user_id, "Update", self)
-            session.commit()
-        except Exception:
-            session.rollback()
-            raise
+    def clean_fields(self, exclude=None):
+        self._attributes = self.clean_attributes()
+
+    def save(self, *args, **kwargs):
+        is_new = self.id is None  # Check if this is a new object.
+        # self.full_clean()
+        super(Resource, self).save(*args, **kwargs)
+
+        # This is so that we can set the attributes on create/update, but if
+        # the object is new, make sure that it doesn't persist if attributes
+        # fail.
+        if self._set_attributes is not None:
+            try:
+                # And set the attributes (if any)
+                self.set_attributes(self._set_attributes)
+            except exc.ValidationError:
+                # If attributes fail validation, and I'm a new object, delete
+                # myself and re-raise the error.
+                if is_new:
+                    self.delete()
+                raise
 
 
-class Device(AttributeModelMixin, Model):
-    """ Represents a network device. """
-
-    # Class attributes used by Mixin
-    _index_class = DeviceAttributeIndex
-    _resource_name = "Device"
-
-    __tablename__ = "devices"
-    __table_args__ = (
-        Index(
-            "hostname_idx",
-            "site_id", "hostname",
-            unique=True
-        ),
+class Device(Resource):
+    """Represents a network device."""
+    hostname = models.CharField(max_length=255, null=False, db_index=True)
+    site = models.ForeignKey(
+        Site, db_index=True, related_name='devices', on_delete=models.PROTECT
     )
 
-    id = Column(Integer, primary_key=True)
-    site_id = Column(Integer, ForeignKey("sites.id"), nullable=False, index=True)
-    hostname = Column(String(255), nullable=False, index=True)
+    def __unicode__(self):
+        return u'%s' % self.hostname
 
-    @classmethod
-    def create(cls, session, user_id, site_id, hostname, attributes=None, **kwargs):
+    class Meta:
+        unique_together = ('site', 'hostname')
+        index_together = unique_together
 
-        # TODO(gary): Decent duplication between Device and  Network create method.
-        #             Clean this up at some point.
-        commit = kwargs.pop("commit", True)
-        if attributes is None:
-            attributes = {}
-
-        try:
-            obj = cls(site_id=site_id, hostname=hostname)
-            obj.add(session)
-            # Need to get a primary key for the new network to update subnets.
-            session.flush()
-            # Attributes have to be added after the initial flush since we need the
-            # id to setup the inverted index. This will mean we have to send another
-            # update later. This could be improved by separating the index step but
-            # probably isn't worth it.
-            obj.set_attributes(attributes)
-            Change.create(session, user_id, "Create", obj)
-
-            if commit:
-                session.commit()
-
-        except Exception:
-            session.rollback()
-            raise
-
-        return obj
-
-    @validates("hostname")
-    def validate_hostname(self, key, value):
+    def clean_hostname(self, value):
         if not value:
-            raise exc.ValidationError("hostname must be non-zero length string.")
+            raise exc.ValidationError({
+                'hostname': 'Hostname must be non-zero length string.'
+            })
         return value
 
-    def before_delete(self):
-        self._purge_attribute_index()
+    def clean_fields(self, exclude=None):
+        self.hostname = self.clean_hostname(self.hostname)
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super(Device, self).save(*args, **kwargs)
 
     def to_dict(self):
         return {
-            "id": self.id,
-            "site_id": self.site_id,
-            "hostname": self.hostname,
-            "attributes": self.get_attributes(),
+            'id': self.id,
+            'site_id': self.site_id,
+            'hostname': self.hostname,
+            'attributes': self.get_attributes(),
         }
 
 
-class Network(AttributeModelMixin, Model):
-    """ Represents a subnet or ipaddress. """
+class Network(Resource):
+    """Represents a subnet or ip address."""
+    IP_VERSION_CHOICES = [(c, c) for c in IP_VERSIONS]
 
-    # Class attributes used by Mixin
-    _index_class = NetworkAttributeIndex
-    _resource_name = "Network"
-
-    __tablename__ = "networks"
-    __table_args__ = (
-        Index(
-            "cidr_idx",
-            "site_id", "ip_version", "network_address", "prefix_length",
-            unique=True
-        ),
+    network_address = fields.BinaryIPAddressField(
+        max_length=16, null=False, db_index=True
+    )
+    broadcast_address = fields.BinaryIPAddressField(
+        max_length=16, null=False, db_index=True
+    )
+    prefix_length = models.IntegerField(null=False, db_index=True)
+    ip_version = models.CharField(
+        max_length=1, null=False, db_index=True,
+        choices=IP_VERSION_CHOICES
+    )
+    is_ip = models.BooleanField(null=False, default=False, db_index=True)
+    site = models.ForeignKey(
+        Site, db_index=True, related_name='networks', on_delete=models.PROTECT
     )
 
-    id = Column(Integer, primary_key=True)
-    site_id = Column(Integer, ForeignKey("sites.id"), nullable=False, index=True)
+    def __init__(self, *args, **kwargs):
+        self._cidr = kwargs.pop('cidr', None)
+        super(Network, self).__init__(*args, **kwargs)
 
-    ip_version = Column(String(1), nullable=False, index=True)
+    def __unicode__(self):
+        return self.cidr
 
-    # Root networks will be NULL while other networks will point to
-    # their supernet.
-    parent_id = Column(Integer, ForeignKey("networks.id"), nullable=True)
+    class Meta:
+        unique_together = (
+            'site', 'ip_version', 'network_address', 'prefix_length'
+        )
+        index_together = unique_together
 
-    network_address = Column(VARBINARY(16), nullable=False, index=True)
-    # While derivable from network/prefix this is useful as it enables
-    # easy querys of the nested set variety.
-    broadcast_address = Column(VARBINARY(16), nullable=False, index=True)
+    def supernets(self, direct=False, discover_mode=False, for_update=False):
+        query = Network.objects.all()
 
-    prefix_length = Column(Integer, nullable=False, index=True)
-
-    # Simple boolean
-    is_ip = Column(Boolean, nullable=False, default=False, index=True)
-
-    @validates("ip_version")
-    def validate_ip_version(self, key, value):
-        if value not in IP_VERSIONS:
-            raise exc.ValidationError("Invalid IP Version.")
-        return value
-
-    def to_dict(self):
-        network_address = ipaddress.ip_address(self.network_address)
-
-        return {
-            "id": self.id,
-            "parent_id": self.parent_id,
-            "site_id": self.site_id,
-            "is_ip": self.is_ip,
-            "ip_version": self.ip_version,
-            "network_address": network_address.exploded,
-            "prefix_length": self.prefix_length,
-            "attributes": self.get_attributes(),
-        }
-
-    def before_delete(self):
-        self._purge_attribute_index()
-
-    def supernets(self, session, direct=False, discover_mode=False, for_update=False):
-        """ Get networks that are a supernet of a network.
-
-            Args:
-                direct: Only return direct supernet.
-                discover_mode: Prevent new networks from bailing for missing parent_id
-                for_update: Lock these rows because they're selected for updating.
-
-        """
-
-        if self.parent_id is None and not discover_mode:
-            return self.session.query(Network).filter(false())
+        if self.parent is None and not discover_mode:
+            return query.none()
 
         if discover_mode and direct:
-            raise ValueError("direct is incompatible with discover_mode")
+            raise exc.ValidationError(
+                'Direct is incompatible with discover_mode.'
+            )
 
-        query = session.query(Network)
         if for_update:
-            query = query.with_for_update()
+            query = query.select_for_update()
 
         if direct:
-            return query.filter(Network.id == self.parent_id)
+            return query.filter(id=self.parent.id)
 
         return query.filter(
-            Network.is_ip == False,
-            Network.ip_version == self.ip_version,
-            Network.prefix_length < self.prefix_length,
-            Network.network_address <= self.network_address,
-            Network.broadcast_address >= self.broadcast_address
+            site=self.site,
+            is_ip=False,
+            ip_version=self.ip_version,
+            prefix_length__lt=self.prefix_length,
+            network_address__lte=self.network_address,
+            broadcast_address__gte=self.broadcast_address
         )
 
-    def subnets(self, session, include_networks=True, include_ips=False,
-                direct=False, for_update=False):
-        """ Get networks that are subnets of a network.
-
-            Args:
-                include_networks: Whether the response should include non-ip address networks
-                include_ips: Whether the response should include ip addresses
-                direct: Only return direct subnets.
-                for_update: Lock these rows because they're selected for updating.
-        """
+    def subnets(self, include_networks=True, include_ips=False, direct=False,
+                for_update=False):
+        query = Network.objects.all()
 
         if not any([include_networks, include_ips]) or self.is_ip:
-            return self.session.query(Network).filter(false())
+            return query.none()
 
-        query = session.query(Network)
         if for_update:
-            query = query.with_for_update()
+            query = query.select_for_update()
 
         if not all([include_networks, include_ips]):
             if include_networks:
-                query = query.filter(Network.is_ip == False)
+                query = query.filter(is_ip=False)
             if include_ips:
-                query = query.filter(Network.is_ip == True)
+                query = query.filter(is_ip=True)
 
         if direct:
-            return query.filter(Network.parent_id == self.id)
+            return query.filter(parent__id=self.id)
 
         return query.filter(
-            Network.site_id == self.site_id,
-            Network.ip_version == self.ip_version,
-            Network.prefix_length > self.prefix_length,
-            Network.network_address >= self.network_address,
-            Network.broadcast_address <= self.broadcast_address
+            site=self.site,
+            ip_version=self.ip_version,
+            prefix_length__gt=self.prefix_length,
+            network_address__gte=self.network_address,
+            broadcast_address__lte=self.broadcast_address
         )
 
     @property
     def cidr(self):
-        return u"{}/{}".format(
-            ipaddress.ip_address(self.network_address).exploded,
-            self.prefix_length
-        )
+        return u'%s/%s' % (self.network_address, self.prefix_length)
+
     @property
     def ip_network(self):
         return ipaddress.ip_network(self.cidr)
 
-    def __repr__(self):
-        return "Network<{}>".format(self.cidr)
-
-    def reparent_subnets(self, session):
-        query = session.query(Network).with_for_update().filter(
-            Network.parent_id == self.parent_id,
-            Network.id != self.id,  # Don't include yourself...
-            Network.prefix_length > self.prefix_length,
-            Network.ip_version == self.ip_version,
-            Network.network_address >= self.network_address,
-            Network.broadcast_address <= self.broadcast_address
+    def reparent_subnets(self):
+        """
+        Determine list of child nodes and set the parent to self.
+        """
+        query = Network.objects.select_for_update().filter(
+            ~models.Q(id=self.id),  # Don't include yourself...
+            parent_id=self.parent_id,
+            prefix_length__gt=self.prefix_length,
+            ip_version=self.ip_version,
+            network_address__gte=self.network_address,
+            broadcast_address__lte=self.broadcast_address
         )
 
-        query.update({Network.parent_id: self.id})
+        query.update(parent=self)
 
-    @classmethod
-    def create(cls, session, user_id, site_id, cidr, attributes=None, **kwargs):
-        commit = kwargs.pop("commit", True)
-        if attributes is None:
-            attributes = {}
+    def clean_fields(self, exclude=None):
+        """This will enforce correct values on fields."""
+        cidr = self._cidr
+        if cidr is None:
+            if self.network_address and self.prefix_length:
+                cidr = u'%s/%s' % (self.network_address, self.prefix_length)
+
         if not cidr:
             msg = "Invalid CIDR: {}. Must be IPv4/IPv6 notation.".format(cidr)
             raise exc.ValidationError(msg)
 
+        # Determine network properties
         network = cidr
         if isinstance(cidr, unicode):
-            network = ipaddress.ip_network(cidr)
+            try:
+                network = ipaddress.ip_network(cidr)
+            except ValueError as err:
+                raise exc.ValidationError({
+                    'cidr': err.message
+                })
 
-        is_ip = False
         if network.network_address == network.broadcast_address:
-            is_ip = True
+            self.is_ip = True
 
-        kwargs = {
-            "site_id": site_id,
-            "ip_version": str(network.version),
-            "network_address": network.network_address.packed,
-            "broadcast_address": network.broadcast_address.packed,
-            "prefix_length": network.prefixlen,
-            "is_ip": is_ip,
+        self.ip_version = str(network.version)
+        self.network_address = unicode(network.network_address)
+        self.broadcast_address = unicode(network.broadcast_address)
+        self.prefix_length = network.prefixlen
+
+    def save(self, *args, **kwargs):
+        """This is stuff we want to happen upon save."""
+        self.full_clean()  # First validate fields are correct
+
+        for_update = kwargs.pop('for_update', False)
+
+        # Calculate our supernets and determine if we require a parent.
+        supernets = self.supernets(discover_mode=True, for_update=for_update)
+        if supernets:
+            parent = max(supernets, key=attrgetter('prefix_length'))
+            self.parent = parent
+
+        if self.parent is None and self.is_ip:
+            raise exc.ValidationError('IP Address needs base network.')
+
+        # Save, so we get an ID, and register our parent.
+        super(Network, self).save(*args, **kwargs)
+
+        # If we're not an IP, determine our subnets and reparent them.
+        if not self.is_ip:
+            self.reparent_subnets()
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'parent_id': self.parent_id,
+            'site_id': self.site_id,
+            'is_ip': self.is_ip,
+            'ip_version': self.ip_version,
+            'network_address': self.network_address,
+            'prefix_length': self.prefix_length,
+            'attributes': self.get_attributes(),
         }
 
-        try:
-            obj = cls(**kwargs)
-            obj.add(session)
-            # Need to get a primary key for the new network to update subnets.
-            session.flush()
-            # Attributes have to be added after the initial flush since we need the
-            # id to setup the inverted index. This will mean we have to send another
-            # update later. This could be improved by separating the index step but
-            # probably isn't worth it.
-            obj.set_attributes(attributes)
 
-            supernets = obj.supernets(session, discover_mode=True, for_update=True).all()
-            if supernets:
-                parent = max(supernets, key=attrgetter("prefix_length"))
-                obj.parent_id = parent.id
+def validate_name(value):
+    if not value:
+        raise exc.ValidationError("Name is a required field.")
 
-            if obj.parent_id is None and is_ip:
-                raise exc.ValidationError("IP Address needs base network.")
+    if not constants.ATTRIBUTE_NAME.match(value):
+        raise exc.ValidationError("Invalid name.")
 
-            if not is_ip:
-                obj.reparent_subnets(session)
+    return value or False
 
-            session.flush()
-            Change.create(session, user_id, "Create", obj)
 
-            if commit:
-                session.commit()
-        except Exception:
-            session.rollback()
-            raise
-
-        return obj
-
-class Attribute(Model):
-
-    __tablename__ = "attributes"
-    __table_args__ = (
-        Index(
-            "name_idx",
-            "site_id", "resource_name", "name",
-            unique=True
-        ),
-    )
-
-    id = Column(Integer, primary_key=True)
-
-    site_id = Column(Integer, ForeignKey("sites.id"), nullable=False)
-
-    resource_name = Column(String(20), nullable=False, index=True)
-
+class Attribute(models.Model):
+    """Represents a flexible attribute for Resource objects."""
     # This is purposely not unique as there is a compound index with site_id.
-    name = Column(String(length=64), nullable=False)
-    description = Column(Text, default="", nullable=False)
+    name = models.CharField(max_length=64, null=False, db_index=True)
+    description = models.CharField(max_length=255, default='', null=False)
 
     # The resource must contain a key and value
-    required = Column(Boolean, default=False, nullable=False)
+    required = models.BooleanField(default=False, null=False)
 
-    # In UIs this attribute will be displayed by default.
-    # required implies display.
-    display = Column(Boolean, default=False, nullable=False)
+    # In UIs this attribute will be displayed by default. Required implies
+    # display.
+    display = models.BooleanField(default=False, null=False)
 
     # Attribute values are expected as lists of strings.
-    multi = Column(Boolean, default=False, nullable=False)
+    multi = models.BooleanField(default=False, null=False)
 
-    _constraints = Column("constraints", Text, nullable=True)
+    constraints = JSONField(null=False, blank=True)
 
-    @validates("name")
-    def validate_name(self, key, value):
-        if not value:
-            raise exc.ValidationError("Name is a required field.")
+    site = models.ForeignKey(
+        Site, db_index=True, related_name='attributes',
+        on_delete=models.PROTECT
+    )
 
-        if not constants.ATTRIBUTE_NAME.match(value):
-            raise exc.ValidationError("Invalid name.")
+    RESOURCE_CHOICES = [(c, c) for c in ATTRIBUTE_RESOURCES]
 
-        return value or False
+    resource_name = models.CharField(
+        'Resource Name', max_length=20, null=False, db_index=True,
+        choices=RESOURCE_CHOICES
+    )
 
-    @validates("display")
-    def validate_display(self, key, value):
-        if self.required:
-            return True
-        return value
+    def __unicode__(self):
+        return u'%s %s' % (self.resource_name, self.name)
 
-    @validates("resource_name")
-    def validate_resource_name(self, key, value):
-        if value not in VALID_ATTRIBUTE_RESOURCES:
-            raise exc.ValidationError("Invalid resource name.")
-        return value
+    class Meta:
+        unique_together = ('site', 'resource_name', 'name')
+        index_together = unique_together
 
     @classmethod
-    def all_by_name(cls, session, resource_name=None):
-        query = session.query(cls)
-        if resource_name is not None:
-            query = query.filter_by(resource_name=resource_name)
+    def all_by_name(cls, resource_name=None):
+        if resource_name is None:
+            raise SyntaxError('You must provided a resource_name.')
+
+        query = cls.objects.filter(resource_name=resource_name)
 
         return {
             attribute.name: attribute
             for attribute in query.all()
         }
 
-    @property
-    def constraints(self):
-        constraints = {}
-        if self._constraints is not None:
-            constraints = json.loads(self._constraints)
-
-        return {
-            "allow_empty": constraints.get("allow_empty", False),
-            "pattern": constraints.get("pattern", ""),
-            "valid_values": constraints.get("valid_values", []),
-        }
-
-    @constraints.setter
-    def constraints(self, value):
+    def clean_constraints(self, value):
+        """Enforce formatting of constraints."""
         if not isinstance(value, dict):
-            raise exc.ValidationError("Expected dictionary but received {}".format(
-                type(value)
-            ))
+            raise exc.ValidationError({
+                'constraints': 'Expected dictionary but received {}.'.format(
+                    type(value))
+                })
 
         constraints = {
-            "allow_empty": value.get("allow_empty", False),
-            "pattern": value.get("pattern", ""),
-            "valid_values": value.get("valid_values", []),
+            'allow_empty': value.get('allow_empty', False),
+            'pattern': value.get('pattern', ''),
+            'valid_values': value.get('valid_values', []),
         }
 
-        if not isinstance(constraints["allow_empty"], bool):
-            raise exc.ValidationError("allow_empty expected type bool.")
+        if not isinstance(constraints['allow_empty'], bool):
+            raise exc.ValidationError({
+                'constraints': 'allow_empty expected type bool.'
+            })
 
-        if not isinstance(constraints["pattern"], basestring):
-            raise exc.ValidationError("pattern expected type string.")
+        if not isinstance(constraints['pattern'], basestring):
+            raise exc.ValidationError({
+                'constraints': 'pattern expected type string.'
+            })
 
-        if not isinstance(constraints["valid_values"], list):
-            raise exc.ValidationError("valid_values expected type list")
+        if not isinstance(constraints['valid_values'], list):
+            raise exc.ValidationError({
+                'constraints': 'valid_values expected type list.'
+            })
 
-        self._constraints = json.dumps(constraints)
+        return constraints
+
+    def clean_display(self, value):
+        if self.required:
+            return True
+        return value
+
+    def clean_resource_name(self, value):
+        if value not in VALID_ATTRIBUTE_RESOURCES:
+            raise exc.ValidationError({
+                'resource_name': 'Invalid resource name: %r.' % value
+            })
+        return value
+
+    def clean_name(self, value):
+        if not value:
+            raise exc.ValidationError({
+                'name': 'This field is required.'
+            })
+
+        if not constants.ATTRIBUTE_NAME.match(value):
+            raise exc.ValidationError({
+                'name': 'Invalid name.'
+            })
+
+        return value or False
+
+    def clean_fields(self, exclude=None):
+        self.constraints = self.clean_constraints(self.constraints)
+        self.display = self.clean_display(self.display)
+        self.resource_name = self.clean_resource_name(self.resource_name)
+        self.name = self.clean_name(self.name)
 
     def _validate_single_value(self, value, constraints=None):
         if not isinstance(value, basestring):
-            raise exc.ValidationError("Attribute values must be a string type")
+            raise exc.ValidationError({
+                'value': 'Attribute values must be a string type'
+            })
 
         if constraints is None:
             constraints = self.constraints
 
-        allow_empty = constraints.get("allow_empty", False)
+        allow_empty = constraints.get('allow_empty', False)
         if not allow_empty and not value:
-            raise exc.ValidationError(
-                "Attribute {} doesn't allow empty values".format(self.name)
-            )
+            raise exc.ValidationError({
+                'constraints': "Attribute {} doesn't allow empty values"
+                .format(self.name)
+            })
 
-        pattern = constraints.get("pattern")
+        pattern = constraints.get('pattern')
         if pattern and not re.match(pattern, value):
-            raise exc.ValidationError(
-                "Attribute value {} for {} didn't match pattern: {}"
+            raise exc.ValidationError({
+                'pattern': "Attribute value {} for {} didn't match pattern: {}"
                 .format(value, self.name, pattern)
-            )
+            })
 
-        valid_values = set(constraints.get("valid_values", []))
+        valid_values = set(constraints.get('valid_values', []))
         if valid_values and value not in valid_values:
             raise exc.ValidationError(
-                "Attribute value {} for {} not a valid value: {}"
-                .format(value, self.name, ", ".join(valid_values))
+                'Attribute value {} for {} not a valid value: {}'
+                .format(value, self.name, ', '.join(valid_values))
             )
 
         return {
-            "attribute_id": self.id,
-            "name": self.name,
-            "value": value,
+            'attribute_id': self.id,
+            'value': value,
         }
 
     def validate_value(self, value):
         if self.multi:
             if not isinstance(value, list):
-                raise exc.ValidationError("Attribute values must be a list type")
+                raise exc.ValidationError({
+                    'multi': 'Attribute values must be a list type'
+                })
         else:
             value = [value]
 
@@ -1033,76 +756,153 @@ class Attribute(Model):
 
         return inserts
 
+    def save(self, *args, **kwargs):
+        """Always enforce constraints."""
+        self.full_clean()
+        super(Attribute, self).save(*args, **kwargs)
+
     def to_dict(self):
         return {
-            "id": self.id,
-            "site_id": self.site_id,
-            "description": self.description,
-            "name": self.name,
-            "resource_name": self.resource_name,
-            "required": self.required,
-            "display": self.display,
-            "multi": self.multi,
-            "constraints": self.constraints,
+            'id': self.id,
+            'site_id': self.site_id,
+            'description': self.description,
+            'name': self.name,
+            'resource_name': self.resource_name,
+            'required': self.required,
+            'display': self.display,
+            'multi': self.multi,
+            'constraints': self.constraints,
         }
 
 
-class Change(Model):
-    """ Record of all changes in NSoT."""
+class Value(models.Model):
+    """Represents a value for an attribute attached to a Resource."""
+    attribute = models.ForeignKey(
+        Attribute, related_name='values', db_index=True,
+        on_delete=models.PROTECT
+    )
+    value = models.CharField(
+        max_length=255, null=False, blank=True,
+        db_index=True
+    )
+    resource = models.ForeignKey(
+        'Resource', related_name='attributes', db_index=True,
+        blank=True
+    )
 
-    __tablename__ = "changes"
+    def __unicode__(self):
+        return u'%r %s=%s' % (self.resource, self.name, self.value)
 
-    id = Column(Integer, primary_key=True)
+    class Meta:
+        unique_together = ('attribute', 'value', 'resource')
+        index_together = unique_together
 
-    site_id = Column(Integer, ForeignKey("sites.id", ondelete="CASCADE"), nullable=False, index=True)
-    site = relationship(Site, lazy="joined", backref=backref("changes", cascade="all,delete-orphan"))
+    @property
+    def name(self):
+        return self.attribute.name
 
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
-    user = relationship(User, lazy="joined", backref="changes")
+    @property
+    def resource_name(self):
+        return self.attribute.resource_name
 
-    change_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    def clean_fields(self, exclude=None):
+        log.debug('cleaning %s', self.name)
+        # Make sure that the resource's type matches the resource name
+        if self.resource_name != self.resource._resource_name:
+            raise exc.ValidationError({
+                'attribute': 'Invalid attribute type for this resource.'
+            })
 
-    event = Column(String(10), nullable=False)
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super(Value, self).save(*args, **kwargs)
 
-    resource_name = Column(String(20), nullable=False, index=True)
-    resource_id = Column(Integer, nullable=False)
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'value': self.value,
+            'attribute': self.attribute.to_dict(),
+            'resource_name': self.resource_name,
+            'resource': self.resource.to_dict(),
+        }
 
-    _resource = Column("resource", Text, nullable=False)
 
-    @validates("event")
-    def validate_event(self, key, value):
-        if value not in CHANGE_EVENTS:
-            raise exc.ValidationError("Invalid Change Event.")
-        return value
+class Change(models.Model):
+    """Record of all changes in NSoT."""
+    EVENT_CHOICES = [(c, c) for c in CHANGE_EVENTS]
+    RESOURCE_CHOICES = [(c, c) for c in VALID_CHANGE_RESOURCES]
 
-    @validates("resource_name")
-    def validate_resource_name(self, key, value):
-        if value not in VALID_CHANGE_RESOURCES:
-            raise exc.ValidationError("Invalid resource name.")
-        return value
+    site = models.ForeignKey(Site, db_index=True, related_name='changes')
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, related_name='changes', db_index=True
+    )
+    change_at = models.DateTimeField(auto_now_add=True, null=False)
+    event = models.CharField(
+        max_length=10, null=False, choices=EVENT_CHOICES,
+    )
+    resource_id = models.IntegerField('Resource ID', null=False)
+    resource_name = models.CharField(
+        'Resource Type', max_length=20, null=False, db_index=True,
+        choices=RESOURCE_CHOICES
+    )
+    _resource = JSONField('Resource', null=False, blank=True)
+
+    def __init__(self, *args, **kwargs):
+        self._obj = kwargs.pop('obj', None)
+        super(Change, self).__init__(*args, **kwargs)
+
+    class Meta:
+        get_latest_by = 'change_at'
+
+    def __unicode__(self):
+        return u'%s %s(%s)' % (self.event, self.resource_name,
+                               self.resource_id)
 
     @property
     def resource(self):
-        return json.loads(self._resource)
+        return self._resource
 
-    @resource.setter
-    def resource(self, value):
-        self._resource = json.dumps(value)
+    def get_change_at(self):
+        return timegm(self.change_at.timetuple())
+    get_change_at.short_description = 'Change At'
 
     @classmethod
-    def create(cls, session, user_id, event, resource):
+    def get_serializer_for_resource(cls, resource_name):
+        from .api import serializers
+        serializer_class = resource_name + 'Serializer'
+        return getattr(serializers, serializer_class)
 
-        kwargs = {
-            "site_id": resource.site_id,
-            "user_id": user_id,
-            "event": event,
-            "resource_name": resource.model_name,
-            "resource_id": resource.id,
-            "resource": resource.to_dict(),
-        }
+    def clean_event(self, value):
+        if value not in CHANGE_EVENTS:
+            raise exc.ValidationError('Invalid change event: %r.' % value)
+        return value
 
-        obj = cls(**kwargs).add(session)
-        return obj
+    def clean_resource_name(self, value):
+        if value not in VALID_CHANGE_RESOURCES:
+            raise exc.ValidationError('Invalid resource name: %r.' % value)
+        return value
+
+    def clean_fields(self, exclude=None):
+        """This will populate the change fields from the incoming object."""
+        obj = self._obj
+        if obj is None:
+            return None
+
+        self.event = self.clean_event(self.event)
+        self.resource_name = self.clean_resource_name(obj.__class__.__name__)
+        self.resource_id = obj.id
+
+        # Site doesn't have an id to itself, so if obj is a Site, use it.
+        self.site = obj if isinstance(obj, Site) else obj.site
+
+        serializer_class = self.get_serializer_for_resource(self.resource_name)
+        serializer = serializer_class(obj)
+        self._resource = serializer.data
+
+    def save(self, *args, **kwargs):
+        self.full_clean()  # First validate fields are correct
+        super(Change, self).save(*args, **kwargs)
 
     def to_dict(self):
         resource = None
@@ -1110,37 +910,12 @@ class Change(Model):
             resource = self.resource
 
         return {
-            "id": self.id,
-            "site": self.site.to_dict(),
-            "user": self.user.to_dict(),
-            "change_at": timegm(self.change_at.timetuple()),
-            "event": self.event,
-            "resource_name": self.resource_name,
-            "resource_id": self.resource_id,
-            "resource": resource,
+            'id': self.id,
+            'site': self.site.to_dict(),
+            'user': self.user.to_dict(),
+            'change_at': timegm(self.change_at.timetuple()),
+            'event': self.event,
+            'resource_name': self.resource_name,
+            'resource_id': self.resource_id,
+            'resource': resource,
         }
-
-
-class Counter(Model):
-
-    __tablename__ = "counters"
-
-    id = Column(Integer, primary_key=True)
-    name = Column(String(length=64), unique=True, nullable=False)
-    count = Column(Integer, nullable=False, default=0)
-    last_modified = Column(DateTime, default=datetime.utcnow, nullable=False)
-
-    @classmethod
-    def incr(cls, session, name, count=1):
-        counter = session.query(cls).filter_by(name=name).scalar()
-        if counter is None:
-            counter = cls(name=name, count=count).add(session)
-            session.flush()
-            return counter
-        counter.count = cls.count + count
-        session.flush()
-        return counter
-
-    @classmethod
-    def decr(cls, session, name, count=1):
-        return cls.incr(session, name, -count)
