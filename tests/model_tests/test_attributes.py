@@ -93,6 +93,7 @@ def test_deletion(session, site, admin):
     network.delete(admin.id)
     attribute.delete(admin.id)
 
+
 def test_required(session, site, admin):
     attribute_1 = models.Attribute.create(
         session, admin.id,
@@ -183,6 +184,13 @@ def test_constraints(session, site, admin):
         resource_name="Network", site_id=site.id, name="valid",
         constraints={"valid_values": ["foo", "bar", "baz"]}
     )
+
+    # Test that ValidationError is raised when constraints are not a dict
+    with pytest.raises(exc.ValidationError):
+        models.Attribute.create(
+            session, admin.id, resource_name='Network', site_id='site.id',
+            name='invalid', constraints=['foo', 'bar', 'baz']
+        )
 
     network = models.Network.create(session, admin.id, site.id, cidr=u"10.0.0.0/8")
 
