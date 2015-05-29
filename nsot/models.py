@@ -962,7 +962,7 @@ class Attribute(Model):
     def constraints(self, value):
         if not isinstance(value, dict):
             raise exc.ValidationError("Expected dictionary but received {}".format(
-                type(attributes)
+                type(value)
             ))
 
         constraints = {
