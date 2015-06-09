@@ -185,10 +185,15 @@
             attributes: []
         };
 
+        $scope.filters = {
+            include_ips: nsot.qpBool($routeParams, "include_ips", true),
+            include_networks: nsot.qpBool($routeParams, "include_networks", true),
+            root_only: nsot.qpBool($routeParams, "root_only", false)
+        }
+
         var params = _.extend(pagerParams(), {
             siteId: siteId,
-            include_ips: true
-        });
+        }, $scope.filters);
 
         $q.all([
             User.get({id: 0}).$promise,

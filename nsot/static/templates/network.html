@@ -14,6 +14,30 @@
         >Delete Network</button>
     </heading-bar>
 
+    <div class="row"><div class="col-sm-12"><div class="adv-buttons">
+        <button class="btn btn-default"
+                ng-click="filters.root_only = !filters.root_only"
+                ng-class="{active: filters.root_only}"
+        >Root Only</button>
+        <div class="btn-group" role="group">
+            <button class="btn btn-default"
+                    ng-click="filters.include_networks = !filters.include_networks"
+                    ng-class="{active: filters.include_networks}"
+            >Networks</button>
+            <button class="btn btn-default"
+                    ng-click="filters.include_ips = !filters.include_ips"
+                    ng-class="{active: filters.include_ips}"
+            >IPs</button>
+        </div>
+
+        <form style="display: inline;" method="get" action="">
+            <input type="hidden" name="root_only" ng-value="filters.root_only">
+            <input type="hidden" name="include_ips" ng-value="filters.include_ips">
+            <input type="hidden" name="include_networks" ng-value="filters.include_networks">
+            <input type="submit" class="btn btn-primary" value="Update Filters">
+        </form>
+    </div></div></div>
+
     <div class="row">
         <div class="col-sm-4">
             <panel>
@@ -30,6 +54,9 @@
             </panel>
         </div>
         <div class="col-sm-8">
+
+
+
             <panel>
                 <panel-heading>
                     Subnetworks
