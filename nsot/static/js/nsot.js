@@ -2,6 +2,18 @@
     "use strict";
 
     var nsot = window.nsot = nsot || {};
+    var TRUTHY = ["true", "yes", "on", "1", ""];
+
+    nsot.qpBool = function(object, path, defaultValue) {
+        var val = _.get(object, path, defaultValue).toString().toLowerCase();
+        for (var idx = 0; idx < TRUTHY.length; idx++) {
+            var elem = TRUTHY[idx];
+            if (val === elem) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     nsot.Pager = function(offset, limit, total, $location) {
         this.offset = offset;

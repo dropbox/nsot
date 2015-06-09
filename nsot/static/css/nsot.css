@@ -4,7 +4,7 @@ body {
     *
     * http://subtlepatterns.com/halftone/
     */
-    background-image:url('/static/images/halftone/halftone.png');
+    background-image: url('/static/images/halftone/halftone.png');
     /* Force scrollbar so collapsed divs don't jerk
         * the page around when they grow larger than
         * the page.
@@ -18,8 +18,8 @@ body {
 }
 
 .form-subheading {
-    position:relative;
-    overflow:hidden;
+    position: relative;
+    overflow: hidden;
 }
 
 .form-subheading:after {
@@ -164,10 +164,14 @@ body {
     border-top: 1px solid #a0a0a0;
 }
 
-.header .buttons {
+.header .buttons, .adv-buttons {
     display: inline-block;
     vertical-align: middle;
     float: right;
+}
+
+.adv-buttons {
+    margin-bottom: 20px;
 }
 
 .header h3 small {

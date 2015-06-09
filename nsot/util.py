@@ -14,7 +14,7 @@ from .version import __version__
 log = logging.getLogger(__name__)
 
 _TRUTHY = set([
-    "true", "yes", "1", ""
+    "true", "yes", "on", "1", ""
 ])
 
 

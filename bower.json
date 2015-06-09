@@ -14,19 +14,19 @@
         "tests"
     ],
     "dependencies": {
-        "angular": "~1.3.11",
-        "angular-route": "~1.3.11",
-        "angular-resource": "~1.3.11",
-        "bootstrap": "~3.3.2",
-        "font-awesome": "~4.3.0",
-        "lodash": "~3.0.1",
-        "ng-tags-input": "~2.1.1",
-        "moment": "~2.9.0",
-        "jquery": "2.1.3"
+        "angular": "1.3.15",
+        "angular-route": "1.3.15",
+        "angular-resource": "1.3.15",
+        "bootstrap": "3.3.2",
+        "font-awesome": "4.3.0",
+        "lodash": "3.7.0",
+        "ng-tags-input": "2.3.0",
+        "moment": "2.10.2",
+        "jquery": "2.1.4"
     },
     "install": {
-        "base":  "nsot/static/vendor",
-        "path" : {
+        "base": "nsot/static/vendor",
+        "path": {
             "js": "{name}/js",
             "map": "{name}/js",
             "css": "{name}/css",
