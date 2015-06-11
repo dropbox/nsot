@@ -232,8 +232,13 @@ def test_deletion(tornado_server):
     client = Client(tornado_server)
 
     client.create("/sites", name="Test Site")
+    client.create(
+        "/sites/1/attributes", resource_name="Device", name="attr1"
+    )  # 1
 
-    client.create("/sites/1/devices", hostname="device1")  # 1
+    # Create one Device with an attribute, so that we can confirm it is safely
+    # deleted.
+    client.create("/sites/1/devices", hostname="device1", attributes={'attr1': 'foo'})  # 1
     client.create("/sites/1/devices", hostname="device2")  # 2
 
     assert_deleted(client.delete("/sites/1/devices/1"))

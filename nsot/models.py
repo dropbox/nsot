@@ -663,6 +663,9 @@ class Device(AttributeModelMixin, Model):
             raise exc.ValidationError("hostname must be non-zero length string.")
         return value
 
+    def before_delete(self):
+        self._purge_attribute_index()
+
     def to_dict(self):
         return {
             "id": self.id,
