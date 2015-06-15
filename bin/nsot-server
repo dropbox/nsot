@@ -51,6 +51,10 @@ def main(argv):
     if log_level < 0:
         sa_log.setLevel(logging.INFO)
 
+    if settings.debug and settings.num_processes > 1:
+        logging.fatal("Debug mode does not support multiple processes.")
+        sys.exit(1)
+
     tornado_settings = {
         "static_path": os.path.join(os.path.dirname(nsot.__file__), "static"),
         "debug": settings.debug,
@@ -92,7 +96,7 @@ def main(argv):
 
     server = tornado.httpserver.HTTPServer(application)
     server.bind(port, address=settings.bind_address)
-    server.start()
+    server.start(settings.num_processes)
     try:
         tornado.ioloop.IOLoop.instance().start()
     except KeyboardInterrupt:
