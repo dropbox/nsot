@@ -1,74 +1,79 @@
+# -*- coding: utf-8 -*-
+from __future__ import unicode_literals
+
 import pytest
-from sqlalchemy.exc import IntegrityError
+# Allow everything in there to access the DB
+pytestmark = pytest.mark.django_db
 
-from nsot import exc
-from nsot import models
+from django.db import IntegrityError
+from django.db.models import ProtectedError
+from django.core.exceptions import ValidationError as DjangoValidationError
+import logging
 
-from .fixtures import session, user
+from nsot import exc, models
+
+from .fixtures import user, transactional_db
 
 
-def test_site_creation(session, user):
-    models.Site.create(
-        session, user.id,
-        name="Test Site",
-        description="This is a Test Site."
+log = logging.getLogger(__name__)
+
+
+def test_site_creation():
+    site = models.Site.objects.create(
+        name='Test Site',
+        description='This is a Test Site.'
     )
-    session.commit()
+    sites = models.Site.objects.all()
 
-    sites = session.query(models.Site).all()
-    assert len(sites) == 1
-    assert sites[0].id == 1
-    assert sites[0].name == "Test Site"
-    assert sites[0].description == "This is a Test Site."
+    assert sites.count() == 1
+    assert sites[0].id == site.id
+    assert sites[0].name == site.name
+    assert sites[0].description == site.description
 
 
-def test_site_conflict(session, user):
-    models.Site.create(
-        session, user.id,
-        name="Test Site",
-        description="This is a Test Site."
+def test_site_conflict(transactional_db):
+    models.Site.objects.create(
+        name='Test Site',
+        description='This is a Test Site.'
     )
 
-    with pytest.raises(IntegrityError):
-        models.Site.create(
-            session, user.id,
-            name="Test Site",
-            description="This is a Test Site."
+    with pytest.raises(DjangoValidationError):
+        models.Site.objects.create(
+            name='Test Site',
+            description='This is a Test Site.'
         )
 
-    models.Site.create(
-        session, user.id,
-        name="Test Site 2",
-        description="This is a Test Site."
+    models.Site.objects.create(
+        name='Test Site 2',
+        description='This is a Test Site.'
     )
 
 
-def test_site_validation(session, user):
+def test_site_validation(transactional_db):
     with pytest.raises(exc.ValidationError):
-        models.Site.create(
-            session, user.id,
+        models.Site.objects.create(
             name=None,
-            description="This is a Test Site."
+            description='This is a Test Site.'
         )
 
     with pytest.raises(exc.ValidationError):
-        models.Site.create(
-            session, user.id,
-            name="",
-            description="This is a Test Site."
+        models.Site.objects.create(
+            name='',
+            description='This is a Test Site.'
         )
 
-    site = models.Site.create(
-        session, user.id,
-        name="Test Site",
-        description="This is a Test Site."
+    site = models.Site.objects.create(
+        name='Test Site',
+        description='This is a Test Site.'
     )
 
     with pytest.raises(exc.ValidationError):
-        site.update(user.id, name="")
+        site.name = ''
+        site.save()
 
     with pytest.raises(exc.ValidationError):
-        site.update(user.id, name=None)
+        site.name = None
+        site.save()
 
-    site.update(user.id, name="Test Site New")
-    session.commit()
+    site.name = 'Test Site New'
+    site.save()

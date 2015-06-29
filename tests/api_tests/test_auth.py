@@ -1,88 +1,140 @@
-import json
+# -*- coding: utf-8 -*-
+from __future__ import unicode_literals
+
 import pytest
+
+# Allow everything in there to access the DB
+pytestmark = pytest.mark.django_db
+
+import copy
+from django.core.urlresolvers import reverse
+import json
+import logging
+from rest_framework import status
 import requests
 
-from .fixtures import tornado_server, tornado_app, user, session, auth_token
+
+from .fixtures import live_server, client, user, site
 from .util import (
-    assert_error, assert_success,
+    assert_created, assert_error, assert_success, assert_deleted, load_json,
+    Client, load
 )
 
 
-
-def test_no_user(tornado_server):
-    assert_error(requests.get(
-        "http://localhost:{}/api/sites".format(tornado_server.port)
-    ), 401)
+log = logging.getLogger(__name__)
 
 
-def test_valid_user(tornado_server):
-    assert_success(requests.get(
-        "http://localhost:{}/api/sites".format(tornado_server.port),
-        headers={"X-NSoT-Email": "gary@localhost"}
-    ), {"sites": [], "limit": None, "offset": 0, "total": 0})
+def test_no_user(live_server, site):
+    site_uri = site.list_uri()
+    url = '{}{}'.format(live_server.url, site_uri)
+
+    assert_error(requests.get(url), status.HTTP_401_UNAUTHORIZED)
 
 
-def test_invalid_user(tornado_server):
-    assert_error(requests.get(
-        "http://localhost:{}/api/sites".format(tornado_server.port),
-        headers={"X-NSoT-Email": "gary"}
-    ), 400)
+def test_valid_user(live_server):
+    url = '{}/api/sites/'.format(live_server.url)
+    headers = {'X-NSoT-Email': 'gary@localhost'}
 
-
-def test_get_auth_token_valid(tornado_server, user):
-    """Test that an auth_token can be generated."""
-    payload = {"email": user.email, "secret_key": user.secret_key}
-    data = json.dumps(payload)
-    r = requests.post(
-        "http://localhost:{}/api/authenticate".format(tornado_server.port),
-        headers={"Content-Type": "application/json"},
-        data=data,
+    assert_success(
+        requests.get(url, headers=headers),
+        {'sites': [], 'limit': None, 'offset': 0, 'total': 0}
     )
-    # Since assert_success is checking the payload, we're retreiving and
-    # comparing it first.
-    response_data = r.json()['data']
-    assert_success(r, response_data)
 
 
-def test_get_auth_token_invalid(tornado_server, user):
-    """Test that an auth_token fails w/ a bad secret key."""
-    payload = {"email": user.email, "secret_key": "bogus"}
+def test_invalid_user(live_server):
+    url = '{}/api/sites/'.format(live_server.url)
+    headers = {'X-NSoT-Email': 'gary'}
+
+    assert_error(
+        requests.get(url, headers=headers),
+        status.HTTP_400_BAD_REQUEST
+    )
+
+
+def test_get_auth_token_valid(live_server, user):
+    """Test that an auth_token can be generated."""
+    auth_uri = reverse('authenticate')
+    url = '{}{}'.format(live_server.url, auth_uri)
+
+    headers={'Content-Type': 'application/json'}
+    payload = {'email': user.email, 'secret_key': user.secret_key}
     data = json.dumps(payload)
-    assert_error(requests.post(
-        "http://localhost:{}/api/authenticate".format(tornado_server.port),
-        headers={"Content-Type": "application/json"},
-        data=data,
-    ), 401)
+
+    resp = requests.post(url, headers=headers, data=data)
+
+    assert_success(resp, resp.json()['data'])
 
 
-def test_verify_auth_token_valid(tornado_server, user, auth_token):
-    """Test that an auth_token is valid."""
-    assert_success(requests.post(
-        "http://localhost:{}/api/verify_token".format(tornado_server.port),
-        headers={
-            "Content-Type": "application/json",
-            "Authorization": "AuthToken {}:{}".format(user.email, auth_token)
-        },
-    ), True)
+def test_get_auth_token_invalid(live_server, user):
+    """Test that an auth_token fails w/ a bad secret key."""
+    auth_uri = reverse('authenticate')
+    url = '{}{}'.format(live_server.url, auth_uri)
+
+    headers={'Content-Type': 'application/json'}
+    payload = {'email': user.email, 'secret_key': 'bogus'}
+    data = json.dumps(payload)
+
+    assert_error(
+        requests.post(url, headers=headers, data=data),
+        status.HTTP_401_UNAUTHORIZED
+    )
 
 
-def test_verify_auth_token_invalid(tornado_server, user):
+def test_verify_auth_token_invalid(live_server, user):
     """Test that an auth_token is NOT valid."""
-    assert_error(requests.post(
-        "http://localhost:{}/api/verify_token".format(tornado_server.port),
-        headers={
-            "Content-Type": "application/json",
-            "Authorization": "AuthToken {}:{}".format(user.email, 'bogus')
-        },
-    ), 401)
+    verify_url = '{}{}'.format(live_server.url, reverse('verify_token'))
+
+    headers = {
+        'Content-Type': 'application/json',
+        'Authorization': 'AuthToken {}:{}'.format(user.email, 'bogus')
+    }
+
+    assert_error(
+        requests.post(verify_url, headers=headers),
+        status.HTTP_400_BAD_REQUEST
+    )
 
 
-def test_valid_auth_token(tornado_server, user, auth_token):
+def test_verify_auth_token_valid(live_server, site, user):
+    """Test that an auth_token is valid."""
+    auth_url = '{}{}'.format(live_server.url, reverse('authenticate'))
+    verify_url = '{}{}'.format(live_server.url, reverse('verify_token'))
+
+    headers = {'Content-Type': 'application/json'}
+    payload = {'email': user.email, 'secret_key': user.secret_key}
+    data = json.dumps(payload)
+
+    auth_resp = requests.post(auth_url, headers=headers, data=data)
+    auth_token = auth_resp.json()['data']['auth_token']
+
+    headers.update({
+        'Authorization': 'AuthToken {}:{}'.format(user.email, auth_token)
+    })
+
+    assert_success(requests.post(verify_url, headers=headers), True)
+
+
+def test_valid_auth_token(live_server, user):
     """Test that a GET can be performed to a resource using auth_token."""
-    assert_success(requests.get(
-        "http://localhost:{}/api/sites".format(tornado_server.port),
-        headers={
-            "Content-Type": "application/json",
-            "Authorization": "AuthToken {}:{}".format(user.email, auth_token)
-        },
-    ), {"sites": [], "limit": None, "offset": 0, "total": 0})
+    auth_url = '{}{}'.format(live_server.url, reverse('authenticate'))
+    site_url = '{}{}'.format(live_server.url, reverse('site-list'))
+
+    headers = {'Content-Type': 'application/json'}
+    payload = {'email': user.email, 'secret_key': user.secret_key}
+    data = json.dumps(payload)
+
+    auth_resp = requests.post(auth_url, headers=headers, data=data)
+    auth_token = auth_resp.json()['data']['auth_token']
+
+    headers.update({
+        'Authorization': 'AuthToken {}:{}'.format(user.email, auth_token)
+    })
+
+    # Allow the user to login to the API
+    user.is_staff = True
+    user.save()
+
+    assert_success(
+        requests.get(site_url, headers=headers),
+        {'sites': [], 'limit': None, 'offset': 0, 'total': 0}
+    )

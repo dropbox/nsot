@@ -1,58 +1,83 @@
-import json
-import pytest
-import requests
+# -*- coding: utf-8 -*-
+from __future__ import unicode_literals
 
-from .fixtures import tornado_server, tornado_app, user, session, auth_token
+import pytest
+
+# Allow everything in there to access the DB
+pytestmark = pytest.mark.django_db
+
+import copy
+from django.core.urlresolvers import reverse
+import json
+import logging
+from rest_framework import status
+
+
+from .fixtures import live_server, client, user, site
 from .util import (
-    assert_error, assert_success, Client
+    assert_created, assert_error, assert_success, assert_deleted, load_json,
+    Client, load
 )
 
-def test_user_with_secret_key(tornado_server):
-    user1_client = Client(tornado_server, "user1")
-    user2_client = Client(tornado_server, "user2")
+
+log = logging.getLogger(__name__)
+
+
+def test_user_with_secret_key(live_server):
+    user1_client = Client(live_server, 'user1')
+    user2_client = Client(live_server, 'user2')
+
+    # URI for user 0
+    user_uri = reverse('user-detail', args=(0,))
 
     # Small requests to make user accounts in order.
-    user1_client.get("/users/0")
-    user2_client.get("/users/0")
+    user1_resp = user1_client.get(user_uri)
+    user1 = user1_resp.json()['data']['user']
+    user1_uri = reverse('user-detail', args=(user1['id'],))
 
+    user2_resp = user2_client.get(user_uri)
+    user2 = user2_resp.json()['data']['user']
+    user2_uri = reverse('user-detail', args=(user2['id'],))
+
+    # User should be able to get user 0 (self)
     assert_success(
-        user1_client.get("/users/0"),
-        {"user": {"email": "user1@localhost", "id": 1, "permissions": {}}}
+        user1_client.get(user_uri),
+        {'user': user1}
     )
 
-    response = user1_client.get("/users/0?with_secret_key")
-    assert_success(
-        response,
-        {"user": {
-            "email": "user1@localhost",
-            "id": 1,
-            "secret_key": response.json()["data"]["user"]["secret_key"],
-            "permissions": {}}
-        }
-    )
+    # And see their own secret key as user 0
+    response = user1_client.get(user_uri + '?with_secret_key')
+    expected = copy.deepcopy(user1)
+    expected['secret_key'] = response.json()['data']['user']['secret_key']
+    assert_success(response, {'user': expected})
 
-    response = user1_client.get("/users/1?with_secret_key")
-    assert_success(
-        response,
-        {"user": {
-            "email": "user1@localhost",
-            "id": 1,
-            "secret_key": response.json()["data"]["user"]["secret_key"],
-            "permissions": {}}
-        }
-    )
+    # And their own secret key by their user id 
+    response = user1_client.get(user1_uri + '?with_secret_key')
+    assert_success(response, {'user': expected})
 
-    response = user1_client.get("/users/2?with_secret_key")
-    assert_error(response, 403)
+    # But not user 2's secret_key.
+    response = user1_client.get(user2_uri + '?with_secret_key')
+    assert_error(response, status.HTTP_403_FORBIDDEN)
 
 
-def test_user_rotate_secret_key(tornado_server):
-    user1_client = Client(tornado_server, "user1")
-    user2_client = Client(tornado_server, "user2")
+def test_user_rotate_secret_key(live_server):
+    user1_client = Client(live_server, 'user1')
+    user2_client = Client(live_server, 'user2')
+
+    # URI for user 0
+    user_uri = reverse('user-detail', args=(0,))
 
     # Small requests to make user accounts in order.
-    user1_client.get("/users/0")
-    user2_client.get("/users/0")
+    user1_resp = user1_client.get(user_uri)
+    user1 = user1_resp.json()['data']['user']
+    user1_key_uri = reverse('user-rotate-secret-key', args=(user1['id'],))
 
-    assert_success(user1_client.post("/users/1/rotate_secret_key"))
-    assert_error(user1_client.post("/users/2/rotate_secret_key"), 403)
+    user2_resp = user2_client.get(user_uri)
+    user2 = user2_resp.json()['data']['user']
+    user2_key_uri = reverse('user-rotate-secret-key', args=(user2['id'],))
+
+    # User1 should be able to rotate their own secret_key
+    assert_success(user1_client.post(user1_key_uri))
+
+    # But not user 2's secret_key
+    assert_error(user1_client.post(user2_key_uri), status.HTTP_403_FORBIDDEN)

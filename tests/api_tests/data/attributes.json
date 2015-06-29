@@ -1,56 +1,54 @@
-{
-    "attributes": [
-        {
-            "resource_name": "Device",
-            "name": "cluster",
-            "constraints": {
-                "allow_empty": true
-            },
-            "description": "Device cluster."
-        },
-        {
-            "resource_name": "Device",
-            "name": "foo",
-            "description": "Foo for Devices."
-        },
-        {
-            "resource_name": "Device",
-            "name": "owner",
-            "description": "Device owner."
-        },
-        {
-            "resource_name": "Network",
-            "name": "cluster",
-            "constraints": {
-                "allow_empty": true
-            },
-            "description": "Network cluster."
-        },
-        {
-            "resource_name": "Network",
-            "name": "foo",
-            "description": "Foo for Networks."
-        },
-        {
-            "resource_name": "Network",
-            "name": "owner",
-            "description": "Network owner."
-        },
-        {
-            "resource_name": "Network",
-            "name": "hostname",
-            "description": "Address hostname."
-        },
-        {
-            "resource_name": "Network",
-            "name": "vlan",
-            "constraints": {
-                "valid_values": [
-                    "300",
-                    "400"
-                ]
-            },
-            "description": "Network VLAN."
-        }
-    ]
-}
+[
+    {
+        "constraints": {
+            "allow_empty": true
+        }, 
+        "description": "Device cluster.", 
+        "name": "cluster", 
+        "resource_name": "Device"
+    }, 
+    {
+        "description": "Foo for Devices.", 
+        "name": "foo", 
+        "resource_name": "Device"
+    }, 
+    {
+        "description": "Device owner.", 
+        "name": "owner", 
+        "resource_name": "Device"
+    }, 
+    {
+        "constraints": {
+            "allow_empty": true
+        }, 
+        "description": "Network cluster.", 
+        "name": "cluster", 
+        "resource_name": "Network"
+    }, 
+    {
+        "description": "Foo for Networks.", 
+        "name": "foo", 
+        "resource_name": "Network"
+    }, 
+    {
+        "description": "Network owner.", 
+        "name": "owner", 
+        "resource_name": "Network"
+    }, 
+    {
+        "description": "Address hostname.", 
+        "name": "hostname", 
+        "resource_name": "Network"
+    }, 
+    {
+        "constraints": {
+            "valid_values": [
+                "300", 
+                "400"
+            ]
+        }, 
+        "description": "Network VLAN.", 
+        "name": "vlan", 
+        "resource_name": "Network"
+    }
+]

@@ -19,8 +19,14 @@
     .config(function($httpProvider) {
         _.assign($httpProvider.defaults, {
             "xsrfCookieName": "_xsrf",
-            "xsrfHeaderName": "X-XSRFToken"
+            // Django expects a different CSRF header name than the default.
+            // This will become configurable in Django 1.9.
+            "xsrfHeaderName": "X-CSRFToken"
         });
+    })
+    // Tell Angular not to strip trailing slashes from URLs.
+    .config(function($resourceProvider) {
+        $resourceProvider.defaults.stripTrailingSlashes = false;
     })
     .config(function($routeProvider) {
         $routeProvider
@@ -86,7 +92,6 @@
     app.run(["$rootScope", function($rootScope){
         $rootScope.NSOT_VERSION = window.NSOT_VERSION;
     }]);
-
 
 
 })();

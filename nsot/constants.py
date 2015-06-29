@@ -1,3 +1,7 @@
+"""
+Constants used for the API.
+"""
+
 import re
 
 

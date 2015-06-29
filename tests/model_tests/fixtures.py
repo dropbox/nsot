@@ -1,45 +1,32 @@
 import pytest
+from pytest_django.fixtures import  django_user_model, transactional_db
+import logging
 
 from nsot import models
 
 
-@pytest.fixture
-def session(request, tmpdir):
-    db_path = tmpdir.join("nsot.sqlite")
-    db_engine = models.get_db_engine("sqlite:///%s" % db_path)
-
-    models.Model.metadata.drop_all(db_engine)
-    models.Model.metadata.create_all(db_engine)
-    models.Session.configure(bind=db_engine)
-    session = models.Session()
-
-    def fin():
-        session.close()
-    request.addfinalizer(fin)
-
-    return session
+log = logging.getLogger(__name__)
 
 
 @pytest.fixture
-def user(session):
-    user = models.User(email="gary@localhost").add(session)
-    session.commit()
+def user(django_user_model):
+    """Create and return a non-admin user."""
+    user = django_user_model.objects.create(email='user@localhost')
     return user
 
 
 @pytest.fixture
-def admin(session):
-    user = models.User(email="admin@localhost").add(session)
-    session.commit()
-    return user
-
-
-@pytest.fixture
-def site(session, admin):
-    site = models.Site.create(
-        session, admin.id,
-        name="Test Site",
-        description="This is a Test Site."
+def admin_user(django_user_model):
+    """Create and return an admin user."""
+    user = django_user_model.objects.create(
+        email='admin@localhost', is_superuser=True, is_staff=True
     )
-    session.commit()
+    return user
+
+
+@pytest.fixture
+def site():
+    site = models.Site.objects.create(
+        name='Test Site', description='This is a Test Site.'
+    )
     return site

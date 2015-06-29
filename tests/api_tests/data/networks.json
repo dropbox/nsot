@@ -1,55 +1,53 @@
-{
-    "networks": [
-        {
-            "attributes": {
-                "cluster": "", 
-                "foo": "baz", 
-                "owner": "jathan"
-            }, 
-            "cidr": "192.168.0.0/16"
+[
+    {
+        "attributes": {
+            "cluster": "", 
+            "foo": "baz", 
+            "owner": "jathan"
         }, 
-        {
-            "attributes": {
-                "cluster": "lax", 
-                "foo": "bar", 
-                "owner": "gary"
-            }, 
-            "cidr": "10.0.0.0/8"
+        "cidr": "192.168.0.0/16"
+    }, 
+    {
+        "attributes": {
+            "cluster": "lax", 
+            "foo": "bar", 
+            "owner": "gary"
         }, 
-        {
-            "attributes": {
-                "cluster": "lax", 
-                "foo": "baz", 
-                "owner": "gary"
-            }, 
-            "cidr": "172.16.0.0/12"
+        "cidr": "10.0.0.0/8"
+    }, 
+    {
+        "attributes": {
+            "cluster": "lax", 
+            "foo": "baz", 
+            "owner": "gary"
         }, 
-        {
-            "attributes": {
-                "cluster": "sjc", 
-                "foo": "bar", 
-                "owner": "jathan"
-            }, 
-            "cidr": "169.254.0.0/16"
-        },
-        {
-            "attributes": {
-                "vlan": "300",
-                "hostname": "foo-bar1"
-            },
-            "cidr": "192.168.0.1/32"
-        },
-        {
-            "attributes": {
-                "hostname": "foo-bar1"
-            },
-            "cidr": "192.168.0.0/24"
-        },
-        {
-            "attributes": {
-                "hostname": "foo-bar1"
-            },
-            "cidr": "192.168.0.0/25"
-        }
-    ]
-}
+        "cidr": "172.16.0.0/12"
+    }, 
+    {
+        "attributes": {
+            "cluster": "sjc", 
+            "foo": "bar", 
+            "owner": "jathan"
+        }, 
+        "cidr": "169.254.0.0/16"
+    }, 
+    {
+        "attributes": {
+            "hostname": "foo-bar1", 
+            "vlan": "300"
+        }, 
+        "cidr": "192.168.0.1/32"
+    }, 
+    {
+        "attributes": {
+            "hostname": "foo-bar1"
+        }, 
+        "cidr": "192.168.0.0/24"
+    }, 
+    {
+        "attributes": {
+            "hostname": "foo-bar1"
+        }, 
+        "cidr": "192.168.0.0/25"
+    }
+]

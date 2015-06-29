@@ -1,11 +1,14 @@
+from django.core.urlresolvers import reverse
+from hashlib import sha1
 import json
 import os
+from rest_framework import status
 import requests
-import urllib
-import urlparse
+from urlparse import urlparse
 
 
 def _deep_sort(obj):
+    """Sort the items in an object so comparisons succeed."""
     if isinstance(obj, dict):
         return {
             key: _deep_sort(value)
@@ -17,48 +20,64 @@ def _deep_sort(obj):
 
 
 def assert_error(response, code):
+    """Assert a response resulted in an error."""
     output = response.json()
-    assert output["status"] == "error"
-    assert output["error"]["code"] == code
+    assert output['status'] == 'error'
+    assert output['error']['code'] == code
 
 
 def assert_success(response, data=None, ignore_order=True):
+    """Assert a response resulted in an success."""
     output = response.json()
-    assert response.status_code == 200
-    assert output["status"] == "ok"
+    assert response.status_code == status.HTTP_200_OK
+    assert output['status'] == 'ok'
+
     if data is not None:
-        print 'OUTPUT DATA = %r' % (output['data'],)
-        print 'QUERY DATA = %r' % (data,)
+        print 'OUTPUT_DATA = %r' % (output['data'],)
+        print 'QUERY_DATA = %r' % (data,)
         if ignore_order:
-            assert _deep_sort(output["data"]) == _deep_sort(data)
+            assert _deep_sort(output['data']) == _deep_sort(data)
         else:
-            assert output["data"] == data
+            assert output['data'] == data
 
 
 def assert_created(response, location, data=None):
+    """Assert 201 CREATED."""
     output = response.json()
-    assert response.status_code == 201
-    assert response.headers.get("Location") == location
-    assert output["status"] == "ok"
+    assert response.status_code == status.HTTP_201_CREATED
+
+    resp_location = response.headers.get('Location')
+    if resp_location is not None:
+        url = urlparse(resp_location)
+        resp_location = url.path
+
+    assert resp_location == location
+    assert output['status'] == 'ok'
+
     if data is not None:
-        assert output["data"] == data
+        assert output['data'] == data
 
 
 def assert_deleted(response):
-    output = response.json()
-    assert response.status_code == 200
-    assert output["status"] == "ok"
+    assert response.status_code == status.HTTP_204_NO_CONTENT
+
+    # TODO(jathan): If we want the deleted object to be returned, then this
+    # test will have to be updated.
+    # output = response.json()
+    # assert output["status"] == "ok"
 
 
 class Client(object):
-    def __init__(self, tornado_server, user="user"):
-        self.tornado_server = tornado_server
+    def __init__(self, live_server, user="admin"):
+        self.live_server = live_server
         self.user = "{}@localhost".format(user)
+        self.session = requests.Session()
 
     @property
     def base_url(self):
-        return "http://localhost:{}/api".format(self.tornado_server.port)
+        return self.live_server.url
 
+    # def request(self, method, url, user="admin", **kwargs):
     def request(self, method, url, user="admin", **kwargs):
 
         headers = {
@@ -68,10 +87,20 @@ class Client(object):
         if method.lower() in ("put", "post"):
             headers["Content-type"] = "application/json"
 
-        return requests.request(
+        from betamax import Betamax
+        cassette = sha1(url).hexdigest()  # SHA1 the URI!
+        with Betamax(self.session).use_cassette(cassette):
+            return self.session.request(
+                method, self.base_url + url,
+                headers=headers, **kwargs
+            )
+
+        '''
+        return self.session.request(
             method, self.base_url + url,
             headers=headers, **kwargs
         )
+        '''
 
     def get(self, url, **kwargs):
         return self.request("GET", url, **kwargs)
@@ -90,6 +119,9 @@ class Client(object):
 
     def update(self, url, **kwargs):
         return self.put(url, data=json.dumps(kwargs))
+
+    def retrieve(self, url, **kwargs):
+        return self.get(url, params=kwargs)
 
 
 def load_json(relpath):
@@ -110,46 +142,83 @@ def load_json(relpath):
         return json.load(f)
 
 
-def run_set_queries(resource_name, client, device_queries):
+def load(relpath):
+    our_path = os.path.dirname(os.path.abspath(__file__))
+    data_dir = os.path.join(our_path, 'data')
+    filepath = os.path.join(data_dir, relpath)
+    with open(filepath, 'rb') as f:
+        return f.read()
+
+
+def filter_devices(devices, wanted):
     """
-    Run set queries on the specified resource.
+    Return a list of desired Device objects.
 
-    The directory structure is expected to match the resource path. So
-    "devices/query" would map to both the data directory for JSON response
-    files, and the API URL of "/api/sites/1/devices/query".
+    :param devices:
+        list of Device dicts
 
-    The ``device_queries is expected to be a list of 2-tuples of (query,
-    filename) where query is a set query and filename is a file containing the
-    expected response JSON. Example::
-
-        [
-            ('foo=bar', 'test1.json'),
-            ('bar=baz', 'test2.json'),
-        ]
-
-    :param resource_name:
-        The resource for which to run query tests
-
-    :param client:
-        A ``Client`` instance
-
-    :param devices_queries:
-        A list of 2-tuples of (query, filename)
+    :param wanted:
+        list of cidrs you want
     """
-    base_path = '/sites/1'
-    path = os.path.join(resource_name, 'query')
-    base_uri = os.path.join(base_path, path)
-    uri = base_uri + '?query='  # '/sites/1/devices/query?query='
+    return [d for d in devices if d['hostname'] in wanted]
 
-    # Walk the query and filename, construct a URL w/ the query, load up the
-    # file, call the URL w/ the client, and compare the return data to the
-    # loaded data.
-    for query, filename in device_queries:
-        qs = urllib.quote_plus(query)  # 'foo=bar' => 'foo%3Dbar'
-        url = uri + qs  # => /sites/1/devices/query?query=foo%3Dbar
-        filepath = os.path.join(path, filename)  # devices/query/query1.json
-        output = load_json(filepath)
-        assert_success(
-            client.get(url),
-            output['data']
-        )
+
+def filter_networks(networks, wanted):
+    """
+    Return a list of desired Network objects.
+
+    :param networks:
+        list of Network dicts
+
+    :param wanted:
+        list of cidrs you want
+    """
+    return [
+        n for n in networks if '%s/%s' % (n['network_address'],
+        n['prefix_length']) in wanted
+    ]
+
+
+class TestSite(object):
+    def __init__(self, data):
+        self._data = data
+        self.__dict__.update(**data)
+
+    def list_uri(self, name=None, site_id=None):
+        """Return a list URL like /api/sites/ or /api/sites/1/devices/"""
+        args = []
+        if name is None:
+            name = 'site'
+
+        if site_id is None:
+            site_id = self.id
+
+        if site_id and name != 'site':
+            args.append(site_id)
+
+        return reverse(name + '-list', args=args)
+
+    def detail_uri(self, name=None, site_id=None, id=None):
+        """Return a detail URL like /api/sites/1/ or /api/sites/1/devices/1/"""
+        if name is None:
+            name = 'site'
+
+        if site_id is None:
+            site_id = self.id
+        args = [site_id]
+
+        if id is not None:
+            args.append(id)
+
+        return reverse(name + '-detail', args=args)
+
+    def query_uri(self, name, site_id=None):
+        """Return a query URL like /api/sites/1/devices/query/"""
+        if site_id is None:
+            site_id = self.id
+        args = [site_id]
+
+        return reverse(name + '-query', args=args)
+
+    def __repr__(self):
+        return '<TestSite: %s (%s)>' % (self.name, self.id)

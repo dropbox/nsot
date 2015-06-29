@@ -1,67 +1,80 @@
+# -*- coding: utf-8 -*-
+from __future__ import unicode_literals
+
 import pytest
+# Allow everything in there to access the DB
+pytestmark = pytest.mark.django_db
 
-from nsot import exc
-from nsot import models
+from django.db import IntegrityError
+from django.db.models import ProtectedError
+from django.core.exceptions import ValidationError as DjangoValidationError
+import logging
 
-from .fixtures import session, site, user, admin
+from nsot import exc, models
+
+from .fixtures import admin_user, user, site, transactional_db
 
 
-def test_device_attributes(session, admin, site):
-    models.Attribute.create(
-        session, admin.id, site_id=site.id,
-        resource_name="Device", name="owner"
+def test_device_attributes(site):
+    models.Attribute.objects.create(
+        site=site,
+        resource_name='Device', name='owner'
     )
 
-    device = models.Device.create(session, admin.id, site.id, "foobarhost", {
-        "owner": "gary"
-    })
+    device = models.Device.objects.create(
+        site=site, hostname='foobarhost', attributes={'owner': 'gary'}
+    )
 
-    assert device.get_attributes() == {"owner": "gary"}
+    assert device.get_attributes() == {'owner': 'gary'}
 
     # Verify property successfully zeros out attributes
-    device.update(admin.id, attributes={})
+    device.set_attributes({})
     assert device.get_attributes() == {}
 
     with pytest.raises(exc.ValidationError):
-        device.update(admin.id, attributes=None)
+        device.set_attributes(None)
 
     with pytest.raises(exc.ValidationError):
-        device.update(admin.id, attributes={0: "value"})
+        device.set_attributes({0: 'value'})
 
     with pytest.raises(exc.ValidationError):
-        device.update(admin.id, attributes={"key": 0})
+        device.set_attributes({'key': 0})
 
     with pytest.raises(exc.ValidationError):
-        device.update(admin.id, attributes={"made_up": "value"})
+        device.set_attributes({'made_up': 'value'})
 
 
-def test_retrieve_device(session, admin, site):
-    models.Attribute.create(
-        session, admin.id, site_id=site.id,
-        resource_name="Device", name="test"
+def test_retrieve_device(site):
+    models.Attribute.objects.create(
+        site=site,
+        resource_name='Device', name='test'
     )
 
-    device1 = models.Device.create(
-        session, admin.id, site.id, hostname="device1",
-        attributes={"test": "foo"}
+    device1 = models.Device.objects.create(
+        site=site, hostname='device1',
+        attributes={'test': 'foo'}
     )
-    device2 = models.Device.create(
-        session, admin.id, site.id, hostname="device2",
-        attributes={"test": "bar"}
+    device2 = models.Device.objects.create(
+        site=site, hostname='device2',
+        attributes={'test': 'bar'}
     )
-    device3 = models.Device.create(
-        session, admin.id, site.id, hostname="device3"
+    device3 = models.Device.objects.create(
+        site=site, hostname='device3'
     )
 
-    assert sorted(site.devices()) == sorted([device1, device2, device3])
+    assert list(site.devices.all()) == [device1, device2, device3]
 
     with pytest.raises(ValueError):
-        assert site.devices(attribute_value="foo")
+        assert site.devices.filter(attributes__name=None, attributes__value='foo')
 
-    assert sorted(site.devices(
-        attribute_name="test"
-    )) == sorted([device1, device2])
+    assert list(
+        site.devices.filter(
+            attributes__attribute__name='test'
+        ).order_by('id')
+    ) == [device1, device2]
 
-    assert sorted(site.devices(
-        attribute_name="test", attribute_value="foo"
-    )) == sorted([device1])
+    assert list(
+        site.devices.filter(
+            attributes__attribute__name='test', attributes__value='foo'
+        )
+    ) == [device1]

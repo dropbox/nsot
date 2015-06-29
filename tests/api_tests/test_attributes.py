@@ -1,170 +1,146 @@
-import json
-import pytest
-import requests
+# -*- coding: utf-8 -*-
+from __future__ import unicode_literals
 
-from .fixtures import tornado_server, tornado_app
+import pytest
+
+# Allow everything in there to access the DB
+pytestmark = pytest.mark.django_db
+
+import copy
+from django.core.urlresolvers import reverse
+import json
+import logging
+from rest_framework import status
+
+
+from .fixtures import live_server, client, user, site
 from .util import (
-    assert_error, assert_success, assert_created, assert_deleted, Client
+    assert_created, assert_error, assert_success, assert_deleted, load_json,
+    Client, load
 )
 
 
-def test_creation(tornado_server):
-    client = Client(tornado_server)
+log = logging.getLogger(__name__)
 
-    client.create("/sites", name="Test Site")  # 1
+
+def test_creation(client, site):
+
+    attr_uri = site.list_uri('attribute')
 
     # Test invalid attribute name
     assert_error(
         client.create(
-            "/sites/1/attributes",
-            resource_name="Network", name="invalid attr1"
+            attr_uri,
+            resource_name='Network', name='invalid attr1'
         ),
-        400
+        status.HTTP_400_BAD_REQUEST
     )
 
-    # Successfully create an attribute
-    assert_created(
-        client.create(
-            "/sites/1/attributes",
-            resource_name="Network", name="attr1"
-        ),
-        "/api/sites/1/attributes/1"
-    )
+    # Successfully create an Attribute
+    attr_resp = client.create(attr_uri, resource_name='Network', name='attr1')
+    attr = attr_resp.json()['data']['attribute']
+    attr_obj_uri = site.detail_uri('attribute', id=attr['id'])
+    assert_created(attr_resp, attr_obj_uri)
 
     # Successfully get all Network Attributes
-    assert_success(
-        client.get("/sites/1/attributes"),
-        {
-            "attributes": [
-                {
-                    "id": 1, "name": "attr1", "description": "",
-                    "required": False, "resource_name": "Network",
-                    "site_id": 1, "display": False, "multi": False,
-                    "constraints": {
-                        "allow_empty": False,
-                        "pattern": "",
-                        "valid_values": []
-                    }
-                },
-            ],
-            "limit": None,
-            "offset": 0,
-            "total": 1,
-        }
+    expected = attr_resp.json()['data']
+    expected['attributes'] = [expected.pop('attribute')]
+    expected.update({'limit': None, 'offset': 0, 'total': 1})
 
-    )
+    assert_success(client.get(attr_uri), expected)
 
     # Successfully get a single Network Attribute
-    assert_success(
-        client.get("/sites/1/attributes/1"),
-        {"attribute": {
-            "id": 1, "name": "attr1", "description": "", "resource_name": "Network",
-            "required": False, "site_id": 1, "display": False, "multi": False,
-            "constraints": {
-                "allow_empty": False,
-                "pattern": "",
-                "valid_values": []
-            }
-        }}
-
-    )
+    assert_success(client.get(attr_obj_uri), attr_resp.json()['data'])
 
 
-def test_collection_creation(tornado_server):
-    client = Client(tornado_server)
+def test_collection_creation(client, site):
 
-    client.create("/sites", name="Test Site")  # 1
+    attr_uri = site.list_uri('attribute')
 
     # Successfully create a collection of Attributes
     collection = [
-        {"name": "attr1", "resource_name": "Network"},
-        {"name": "attr2", "resource_name": "Network"},
-        {"name": "attr3", "resource_name": "Network"},
+        {'name': 'attr1', 'resource_name': 'Network'},
+        {'name': 'attr2', 'resource_name': 'Network'},
+        {'name': 'attr3', 'resource_name': 'Network'},
     ]
-    collection_response = client.create(
-        "/sites/1/attributes",
-        attributes=collection
+    collection_response = client.post(
+        attr_uri,
+        data=json.dumps(collection)
     )
     assert_created(collection_response, None)
 
     # Successfully get all created Attributes
     output = collection_response.json()
-    output['data'].update({"limit": None, "offset": 0})
+    output['data'].update({
+        'limit': None, 'offset': 0, 'total': len(collection)
+    })
 
     assert_success(
-        client.get("/sites/1/attributes"),
+        client.get(attr_uri),
         output['data'],
     )
 
 
-def test_update(tornado_server):
-    client = Client(tornado_server)
+def test_update(client, site):
 
-    client.create("/sites", name="Test Site")  # 1
-    client.create(
-        "/sites/1/attributes",
-        resource_name="Network", name="attr1"
-    )  # 1
+    attr_uri = site.list_uri('attribute')
 
-    assert_success(
-        client.update("/sites/1/attributes/1", description="Attribute 1"),
-        {"attribute": {
-            "id": 1, "name": "attr1", "description": "Attribute 1",
-            "required": False, "site_id": 1, "resource_name": "Network",
-            "display": False, "multi": False,
-            "constraints": {
-                "allow_empty": False,
-                "pattern": "",
-                "valid_values": []
-            }
-        }}
-    )
+    attr_resp = client.create(attr_uri, resource_name='Network', name='attr1')
+    attr = attr_resp.json()['data']['attribute']
+    attr_obj_uri = site.detail_uri('attribute', id=attr['id'])
+
+    # Update the description
+    params = {'description': 'Attribute 1'}
+    attr1 = copy.deepcopy(attr)
+    attr1.update(params)
 
     assert_success(
-        client.update("/sites/1/attributes/1", required=True),
-        {"attribute": {
-            "id": 1, "name": "attr1", "description": "",
-            "required": True, "site_id": 1, "resource_name": "Network",
-            "display": True, "multi": False,
-            "constraints": {
-                "allow_empty": False,
-                "pattern": "",
-                "valid_values": []
-            }
-        }}
+        client.update(attr_obj_uri, **params),
+        {'attribute': attr1}
     )
+
+    # Update the required flag; which should also set display=True
+    params = {'required': True}
+    attr2 = copy.deepcopy(attr1)
+    attr2.update(params)
+    attr2['display'] = True
 
     assert_success(
-        client.update("/sites/1/attributes/1"),
-        {"attribute": {
-            "id": 1, "name": "attr1", "description": "",
-            "required": False, "site_id": 1, "resource_name": "Network",
-            "display": False, "multi": False,
-            "constraints": {
-                "allow_empty": False,
-                "pattern": "",
-                "valid_values": []
-            }
-        }}
+        client.update(attr_obj_uri, **params),
+        {'attribute': attr2}
+    )
+
+    # Reset the object back to it's initial state!
+    assert_success(
+        client.update(attr_obj_uri, **attr),
+        {'attribute': attr}
     )
 
 
-def test_deletion(tornado_server):
-    client = Client(tornado_server)
+def test_deletion(client, site):
 
-    client.create("/sites", name="Test Site")
-    client.create(
-        "/sites/1/attributes",
-        resource_name="Network", name="attr1"
+    attr_uri = site.list_uri('attribute')
+    net_uri = site.list_uri('network')
+
+    attr_resp = client.create(attr_uri, resource_name='Network', name='attr1')
+    attr = attr_resp.json()['data']['attribute']
+    attr_obj_uri = site.detail_uri('attribute', id=attr['id'])
+
+    # Create a Network with an attribute
+    net_resp = client.create(
+        net_uri, cidr='10.0.0.0/24', attributes={'attr1': 'foo'}
     )
-    client.create("/sites/1/networks",
-        cidr="10.0.0.0/24", attributes={"attr1": "foo"}
-    )
+    net = net_resp.json()['data']['network']
+    net_obj_uri = site.detail_uri('network', id=net['id'])
 
     # Don't allow delete when there's an attached network
-    assert_error(client.delete("/sites/1/attributes/1"), 409)
+    assert_error(
+        client.delete(attr_obj_uri),
+        status.HTTP_409_CONFLICT
+    )
 
-    client.delete("/sites/1/networks/1")
+    # Now delete the Network
+    client.delete(net_obj_uri)
 
-    assert_deleted(client.delete("/sites/1/attributes/1"))
-
+    # And safely delete the Attribute
+    assert_deleted(client.delete(attr_obj_uri))

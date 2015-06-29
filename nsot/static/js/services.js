@@ -52,7 +52,7 @@
 
     app.factory("Site", ["$resource", "$http", function($resource, $http){
         return $resource(
-            "/api/sites/:id",
+            "/api/sites/:id/",
             { id: "@id" },
             buildActions($http, "site", "sites")
         );
@@ -60,7 +60,7 @@
 
     app.factory("User", ["$resource", "$http", function($resource, $http){
         var User = $resource(
-            "/api/users/:id",
+            "/api/users/:id/",
             { id: "@id" },
             buildActions($http, "user", "users")
         );
@@ -69,7 +69,7 @@
             var userId = this.id;
             return $http({
                 method: "POST",
-                url: "/api/users/" + userId + "/rotate_secret_key",
+                url: "/api/users/" + userId + "/rotate_secret_key/",
                 data: {},
                 transformResponse: appendTransform(
                     $http.defaults.transformResponse, function(response) {
@@ -93,7 +93,7 @@
 
     app.factory("Change", ["$resource", "$http", function($resource, $http){
         return $resource(
-            "/api/sites/:siteId/changes/:id",
+            "/api/sites/:siteId/changes/:id/",
             { siteId: "@siteId", id: "@id" },
             buildActions($http, "change", "changes")
         );
@@ -101,7 +101,7 @@
 
     app.factory("Attribute", ["$resource", "$http", function($resource, $http){
         var Attribute = $resource(
-            "/api/sites/:siteId/attributes/:id",
+            "/api/sites/:siteId/attributes/:id/",
             { siteId: "@siteId", id: "@id" },
             buildActions($http, "attribute", "attributes")
         );
@@ -151,7 +151,7 @@
 
     app.factory("Network", ["$resource", "$http", function($resource, $http){
         var Network = $resource(
-            "/api/sites/:siteId/networks/:id",
+            "/api/sites/:siteId/networks/:id/",
             { siteId: "@siteId", id: "@id" },
             buildActions($http, "network", "networks")
         );
@@ -202,7 +202,7 @@
 
     app.factory("Device", ["$resource", "$http", function($resource, $http){
         var Device = $resource(
-            "/api/sites/:siteId/devices/:id",
+            "/api/sites/:siteId/devices/:id/",
             { siteId: "@siteId", id: "@id" },
             buildActions($http, "device", "devices")
         );
