@@ -72,9 +72,6 @@ nsot-server upgrade
 # Run the development reverse proxy
 nsot-server user_proxy
 
-# Deploy the static files
-nsot-server collectstatic
-
 # Run the frontend server
 nsot-server start
 
