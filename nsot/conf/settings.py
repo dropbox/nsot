@@ -5,8 +5,8 @@ Django settings for nsot project using Django 1.8.
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
 
-# Path where the code is found.
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# Path where the code is found. (aka project root)
+BASE_DIR = os.path.normpath(os.path.join(os.path.dirname(__file__), os.pardir))
 
 # Path where the config file is found.
 CONF_ROOT = os.path.abspath(os.path.dirname(__file__))
@@ -15,6 +15,7 @@ CONF_ROOT = os.path.abspath(os.path.dirname(__file__))
 # with DEBUG turned on.
 # Default: False
 DEBUG = False
+
 #################
 # Core Settings #
 #################
@@ -36,7 +37,6 @@ INSTALLED_APPS = (
     'custom_user',
     'nsot',
 )
-
 
 # The model to use to represent a User.
 AUTH_USER_MODEL = 'nsot.User'
@@ -70,7 +70,6 @@ ROOT_URLCONF = 'nsot.conf.urls'
 # The full Python path of the WSGI application object that Django's built-in
 # servers (e.g. runserver) will use.
 WSGI_APPLICATION = 'nsot.wsgi.application'
-
 
 # When set to True, if the request URL does not match any of the patterns in the
 # URLconf and it doesn't end in a slash, an HTTP redirect is issued to the same
@@ -227,8 +226,8 @@ STATICFILES_DIRS = (
 
 # The absolute path to the directory where collectstatic will collect static
 # files for deployment.
-# Deafult: 'staticfiles'
-STATIC_ROOT = 'staticfiles'
+# Default: $BASE_DIR/static'
+STATIC_ROOT = os.path.realpath(os.path.join(BASE_DIR, 'static'))
 
 ###########
 # Swagger #
@@ -259,12 +258,6 @@ LOGGING = {
         },
     },
     'handlers': {
-        'file': {
-            'level': 'DEBUG',
-            'class': 'logging.FileHandler',
-            'filename': 'nsot.log',
-            'formatter': 'verbose'
-        },
         'console':{
             'level': 'DEBUG',
             'class': 'logging.StreamHandler',
