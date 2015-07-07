@@ -521,6 +521,7 @@ class AuthTokenLoginView(APIView):
                     ('data', data),
                 ])
             )
+        raise exc.Unauthorized(serializer.errors)
 
 
 class AuthTokenVerifyView(APIView):

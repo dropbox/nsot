@@ -328,6 +328,8 @@ class Resource(PolymorphicModel):
             attribute = valid_attributes[name]
             inserts.extend(attribute.validate_value(value))
 
+        # Purge all of our previously existing attribute values and recreate
+        # them anew. This isn't exactly efficient.
         self._purge_attribute_index()
         for insert in inserts:
             Value.objects.create(

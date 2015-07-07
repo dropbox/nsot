@@ -80,6 +80,18 @@ def test_get_auth_token_invalid(live_server, user):
     )
 
 
+def test_get_auth_token_missing(live_server, user):
+    """Test that missing payload results in a 401."""
+    auth_uri = reverse('authenticate')
+    url = '{}{}'.format(live_server.url, auth_uri)
+    headers={'Content-Type': 'application/json'}
+
+    assert_error(
+        requests.post(url, headers=headers, data=''),
+        status.HTTP_401_UNAUTHORIZED
+    )
+
+
 def test_verify_auth_token_invalid(live_server, user):
     """Test that an auth_token is NOT valid."""
     verify_url = '{}{}'.format(live_server.url, reverse('verify_token'))
