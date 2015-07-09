@@ -29,9 +29,8 @@ routers, switches, console servers, pdus, servers, etc.
 
 Devices also support arbitrary attributes similar to Networks.
 
-
 Attributes
-------------------
+----------
 
 Attributes are arbitrary key/value pairs that can be assigned to
 various resources. If an attribute is required then additions/updates
@@ -43,16 +42,13 @@ Permissions
 
 Permissions, like other resources, are specific to Sites. There are no
 permissions that cross over sites. All resources are readable regardless
-of permissions. There are currently three types of permissions a User
+of permissions. There is currently only one type of permissions a User
 can have in order to make modifications:
 
     * admin
         - Ability to Update/Delete Site
         - Ability to grant permissions within a site
         - All subsequent permissions
-    * networks
-        - Ability to Add/Update/Delete Networks
-        - Ability to Add/Update/Delete Attributes for Networks.
 
 Site creation is open to all users. Upon creating a Site you become
 an admin of that Site with full permissions.
