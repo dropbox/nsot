@@ -7,7 +7,8 @@ from custom_user.models import AbstractEmailUser
 from django.db import models
 from django.db.models.query_utils import Q
 from django.conf import settings
-from django.core.exceptions import ValidationError as DjangoValidationError
+from django.core.exceptions import (ValidationError as DjangoValidationError,
+                                    ObjectDoesNotExist)
 from django.core.validators import EmailValidator
 from django_extensions.db.fields.json import JSONField
 import ipaddress
@@ -200,10 +201,10 @@ class ResourceSetTheoryQuerySet(models.QuerySet):
         >>> qs = Network.objects.filter(network_address=u'10.0.0.0')
         >>> qs.set_query('owner=jathan +metro=lax')
     """
-    def set_query(self, query, site_pk=None):
+    def set_query(self, query, site_id=None):
         objects = self
-        if site_pk is not None:
-            objects = objects.filter(site=site_pk)
+        if site_id is not None:
+            objects = objects.filter(site=site_id)
 
         try:
             attributes = parse_set_query(query)
@@ -216,7 +217,15 @@ class ResourceSetTheoryQuerySet(models.QuerySet):
         # set operations w/ the ORM
         log.debug('QUERY [start]: objects = %r', objects)
         for action, name, value in attributes:
-            attr = Attribute.objects.get(name=name, resource_name=resource_name)
+            params = dict(
+                name=name, resource_name=resource_name
+            )
+            # Only include site_id if it's set
+            if site_id is not None:
+                params['site_id'] = site_id
+            attr = Attribute.objects.get(
+                **params
+            )
             next_set = Q(
                 attributes=Value.objects.filter(
                     attribute_id=attr.id, value=value
@@ -256,8 +265,12 @@ class ResourceManager(models.Manager):
     def get_queryset(self, *args, **kwargs):
         return ResourceSetTheoryQuerySet(self.model, using=self._db)
 
-    def set_query(self, query, site_pk=None):
-        return self.get_queryset().set_query(query, site_pk)
+    def set_query(self, query, site_id=None):
+        try:
+            return self.get_queryset().set_query(query, site_id)
+        # If no matching objects are found, return an empty queryset.
+        except ObjectDoesNotExist:
+            return self.get_queryset().none()
 
 
 class Resource(PolymorphicModel):
@@ -296,7 +309,9 @@ class Resource(PolymorphicModel):
             )
 
         if valid_attributes is None:
-            valid_attributes = Attribute.all_by_name(self._resource_name)
+            valid_attributes = Attribute.all_by_name(
+                self._resource_name, self.site
+            )
         log.debug('Resource.set_attributes() valid_attributes = %r',
                   valid_attributes)
 
@@ -626,18 +641,22 @@ class Attribute(models.Model):
     )
 
     def __unicode__(self):
-        return u'%s %s' % (self.resource_name, self.name)
+        return u'%s %s (site_id: %s)' % (
+            self.resource_name, self.name, self.site_id
+        )
 
     class Meta:
         unique_together = ('site', 'resource_name', 'name')
         index_together = unique_together
 
     @classmethod
-    def all_by_name(cls, resource_name=None):
+    def all_by_name(cls, resource_name=None, site=None):
         if resource_name is None:
             raise SyntaxError('You must provided a resource_name.')
+        if site is None:
+            raise SyntaxError('You must provided a site.')
 
-        query = cls.objects.filter(resource_name=resource_name)
+        query = cls.objects.filter(resource_name=resource_name, site=site)
 
         return {
             attribute.name: attribute

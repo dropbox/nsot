@@ -7,7 +7,8 @@ pytestmark = pytest.mark.django_db
 
 from django.db import IntegrityError
 from django.db.models import ProtectedError
-from django.core.exceptions import ValidationError as DjangoValidationError
+from django.core.exceptions import (ValidationError as DjangoValidationError,
+                                    MultipleObjectsReturned)
 import logging
 
 from nsot import exc, models
@@ -200,3 +201,33 @@ def test_constraints(site):
         network.set_attributes({'valid': 'hello'})
 
     network.set_attributes({'valid': 'foo'})
+
+
+def test_set_query(site):
+    site2 = models.Site.objects.create(name='Site 2')
+    owner1 = models.Attribute.objects.create(
+        name='owner', site=site, resource_name='Device'
+    )
+    owner2 = models.Attribute.objects.create(
+        name='owner', site=site2, resource_name='Device'
+    )
+
+    device1 = models.Device.objects.create(
+        hostname='foo-bar1', attributes={'owner': 'jathan'}, site=site
+    )
+    device1.save()
+
+
+    # Since we have two attributes named 'owner' in 2 different sites, this
+    # should raise an error. (Fix #66)
+    with pytest.raises(MultipleObjectsReturned):
+        models.Device.objects.set_query('owner=jathan')
+
+    # Now include the site_id
+    devices = models.Device.objects.set_query('owner=jathan', site_id=site.id)
+    assert list(devices) == [device1]
+
+    # Make sure that a bogus set query doesn't raise an error and instead
+    # returns an empty queryset. (Fix #67)
+    empty = models.Device.objects.set_query('role=[ab, bb, cb]')
+    assert list(empty) == []
