@@ -243,7 +243,7 @@ class ResourceViewSet(NsotViewSet, bulk_mixins.BulkCreateModelMixin):
         """Perform a set query."""
         query = request.query_params.get('query', '')
 
-        objects = self.queryset.set_query(query, site_pk=site_pk)
+        objects = self.queryset.set_query(query, site_id=site_pk)
         return self.list(request, queryset=objects, *args, **kwargs)
 
 
