@@ -34,7 +34,7 @@ def assert_success(response, data=None, ignore_order=True):
 
     if data is not None:
         print 'OUTPUT_DATA = %r' % (output['data'],)
-        print 'QUERY_DATA = %r' % (data,)
+        print 'EXPECTED_DATA = %r' % (data,)
         if ignore_order:
             assert _deep_sort(output['data']) == _deep_sort(data)
         else:

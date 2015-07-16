@@ -296,3 +296,101 @@ def test_deletion(site, client):
 
     # And safely delete the parent Network
     assert_deleted(client.delete(net1_obj_uri))
+
+
+def test_mptt_detail_routes(site, client):
+    net_uri = site.list_uri('network')
+
+    client.create(net_uri, cidr='10.0.0.0/8')
+    client.create(net_uri, cidr='10.16.0.0/12')
+    client.create(net_uri, cidr='10.16.0.0/14')
+    client.create(net_uri, cidr='10.16.2.0/25')
+    client.create(net_uri, cidr='10.16.2.1/32')
+    client.create(net_uri, cidr='10.16.2.2/32')
+
+    net_8_resp = client.retrieve(net_uri, cidr='10.0.0.0/8')
+    net_8 = net_8_resp.json()['data']['networks'][0]
+    net_8_obj_uri = site.detail_uri('network', id=net_8['id'])
+
+    net_12_resp = client.retrieve(net_uri, cidr='10.16.0.0/12')
+    net_12 = net_12_resp.json()['data']['networks'][0]
+    net_12_obj_uri = site.detail_uri('network', id=net_12['id'])
+
+    net_14_resp = client.retrieve(net_uri, cidr='10.16.0.0/14')
+    net_14 = net_14_resp.json()['data']['networks'][0]
+    net_14_obj_uri = site.detail_uri('network', id=net_14['id'])
+
+    net_25_resp = client.retrieve(net_uri, cidr='10.16.2.0/25')
+    net_25 = net_25_resp.json()['data']['networks'][0]
+    net_25_obj_uri = site.detail_uri('network', id=net_25['id'])
+
+    ip1_resp = client.retrieve(net_uri, cidr='10.16.2.1/32', include_ips=True)
+    ip1 = ip1_resp.json()['data']['networks'][0]
+    ip1_obj_uri = site.detail_uri('network', id=ip1['id'])
+
+    ip2_resp = client.retrieve(net_uri, cidr='10.16.2.2/32', include_ips=True)
+    ip2 = ip2_resp.json()['data']['networks'][0]
+    ip2_obj_uri = site.detail_uri('network', id=ip2['id'])
+
+    # ancestors
+    expected = {
+        'total': 3,
+        'limit': None,
+        'offset': 0,
+        'networks': [net_8, net_12, net_14]
+    }
+    uri = reverse('network-ancestors', args=(site.id, net_25['id']))
+    assert_success(client.retrieve(uri), expected)
+
+    expected['networks'] = [net_14, net_12, net_8]
+    assert_success(client.retrieve(uri, ascending=True), expected)
+
+    # children
+    uri = reverse('network-children', args=(site.id, net_25['id']))
+    wanted = [ip1, ip2]
+    expected['networks'] = wanted
+    expected['total'] = len(wanted)
+    assert_success(client.retrieve(uri), expected)
+
+    uri = reverse('network-children', args=(site.id, net_12['id']))
+    wanted = [net_14]
+    expected['networks'] = wanted
+    expected['total'] = len(wanted)
+    assert_success(client.retrieve(uri), expected)
+
+    # descendents
+    uri = reverse('network-descendents', args=(site.id, net_8['id']))
+    wanted = [net_12, net_14, net_25, ip1, ip2]
+    expected['networks'] = wanted
+    expected['total'] = len(wanted)
+    assert_success(client.retrieve(uri), expected)
+
+    uri = reverse('network-descendents', args=(site.id, net_14['id']))
+    wanted = [net_25, ip1, ip2]
+    expected['networks'] = wanted
+    expected['total'] = len(wanted)
+    assert_success(client.retrieve(uri), expected)
+
+    uri = reverse('network-descendents', args=(site.id, ip2['id']))
+    expected['networks'] = []
+    expected['total'] = 0
+    assert_success(client.retrieve(uri), expected)
+
+    # root
+    uri = reverse('network-root', args=(site.id, ip1['id']))
+    assert_success(client.retrieve(uri), {'network': net_8})
+
+    uri = reverse('network-root', args=(site.id, net_8['id']))
+    assert_error(client.retrieve(uri), status.HTTP_404_NOT_FOUND)
+
+    # siblings
+    uri = reverse('network-siblings', args=(site.id, ip1['id']))
+    wanted = [ip2]
+    expected['networks'] = wanted
+    expected['total'] = len(wanted)
+    assert_success(client.retrieve(uri), expected)
+
+    wanted = [ip1, ip2]
+    expected['networks'] = wanted
+    expected['total'] = len(wanted)
+    assert_success(client.retrieve(uri, include_self=True), expected)

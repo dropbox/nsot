@@ -513,6 +513,55 @@ class Network(Resource):
             broadcast_address__lte=self.broadcast_address
         )
 
+    def is_child_node(self):
+        """
+        Returns whether I am a child node.
+        """
+        return self.parent is not None
+
+    def is_leaf_node(self):
+        """
+        Returns whether I am leaf node (no children).
+        """
+        return not self.children.exists()
+
+    def is_root_node(self):
+        """
+        Returns whether I am a root node (no parent).
+        """
+        return self.parent is None
+
+    def get_ancestors(self, ascending=False):
+        """Return my ancestors."""
+        query = self.supernets().order_by('network_address', 'prefix_length')
+        if ascending:
+            query = query.reverse()
+        return query
+
+    def get_children(self):
+        """Return my immediate children."""
+        return self.subnets(include_ips=True, direct=True)
+
+    def get_descendents(self):
+        """Return all of my children!"""
+        return self.subnets(include_ips=True)
+
+    def get_root(self):
+        """
+        Returns the root node (the parent of all of my ancestors).
+        """
+        ancestors = self.get_ancestors()
+        return ancestors.first()
+
+    def get_siblings(self, include_self=False):
+        """
+        Return my siblings. Root nodes are siblings to other root nodes.
+        """
+        query = Network.objects.filter(parent=self.parent, site=self.site)
+        if not include_self:
+            query = query.exclude(id=self.id)
+        return query
+
     @property
     def cidr(self):
         return u'%s/%s' % (self.network_address, self.prefix_length)

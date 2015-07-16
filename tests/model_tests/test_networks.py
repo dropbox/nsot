@@ -171,3 +171,60 @@ def test_retrieve_networks(site):
             attributes__attribute__name='test', attributes__value='foo'
         )
     ) == [net_8]
+
+
+def test_mptt_methods(site):
+    """Test anscenstor/children/descendents/root model methods."""
+    net_8 = models.Network.objects.create(site=site, cidr=u'10.0.0.0/8')
+    net_12 = models.Network.objects.create(site=site, cidr=u'10.16.0.0/12')
+    net_14 = models.Network.objects.create(site=site, cidr=u'10.16.0.0/14')
+    net_25 = models.Network.objects.create(site=site, cidr=u'10.16.2.0/25')
+    ip1 = models.Network.objects.create(site=site, cidr=u'10.16.2.1/32')
+    ip2 = models.Network.objects.create(site=site, cidr=u'10.16.2.2/32')
+
+    for obj in (net_8, net_12, net_14, net_25, ip1, ip2):
+        obj.refresh_from_db()
+
+    # is_child_node()
+    assert ip1.is_child_node()
+    assert net_25.is_child_node()
+    assert not net_8.is_child_node()
+
+    # is_leaf_node()
+    assert ip1.is_leaf_node()
+    assert not net_25.is_leaf_node()
+
+    # is_root_node()
+    assert net_8.is_root_node()
+    assert not net_25.is_root_node()
+
+    # get_ancestors()
+    assert list(net_25.get_ancestors()) == [net_8, net_12, net_14]
+    assert list(net_25.get_ancestors(ascending=True)) == [net_14, net_12, net_8]
+
+    # get_children()
+    assert list(net_25.get_children()) == [ip1, ip2]
+    assert list(net_12.get_children()) == [net_14]
+
+    # get_descendents()
+    assert list(net_8.get_descendents()) == [net_12, net_14, net_25, ip1, ip2]
+    assert list(net_14.get_descendents()) == [net_25, ip1, ip2]
+    assert list(ip2.get_descendents()) == []
+
+    # get_root()
+    assert ip1.get_root() == net_8
+    assert net_8.get_root() is None
+
+    # get_siblings()
+    assert list(ip1.get_siblings()) == [ip2]
+    assert list(ip1.get_siblings(include_self=True)) == [ip1, ip2]
+
+    net_192_1 = models.Network.objects.create(site=site, cidr=u'192.168.1.0/24')
+    net_192_2 = models.Network.objects.create(site=site, cidr=u'192.168.2.0/24')
+
+    for obj in (net_8, net_192_1, net_192_2):
+        obj.refresh_from_db()
+
+    assert list(net_8.get_siblings()) == [net_192_1, net_192_2]
+    assert list(net_192_1.get_siblings()) == [net_8, net_192_2]
+    assert list(net_192_2.get_siblings(include_self=True)) == [net_8, net_192_1, net_192_2]
