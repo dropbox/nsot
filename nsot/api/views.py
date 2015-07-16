@@ -382,9 +382,8 @@ class NetworkViewSet(ResourceViewSet):
 
         return networks
 
-    @detail_route(methods=['get'])
-    def subnets(self, request, pk=None, site_pk=None, *args, **kwargs):
-        """Return subnets."""
+    def get_network(self, pk, site_pk):
+        """Return a Network object based on pk or site_pk."""
         if site_pk is not None:
             query = self.queryset.filter(pk=pk, site=site_pk)
         else:
@@ -393,6 +392,13 @@ class NetworkViewSet(ResourceViewSet):
 
         if not network:
             self.not_found(pk, site_pk)
+
+        return network
+
+    @detail_route(methods=['get'])
+    def subnets(self, request, pk=None, site_pk=None, *args, **kwargs):
+        """Return subnets of this Network."""
+        network = self.get_network(pk, site_pk)
 
         params = request.query_params
         include_networks = qpbool(params.get('include_networks', True))
@@ -408,15 +414,8 @@ class NetworkViewSet(ResourceViewSet):
 
     @detail_route(methods=['get'])
     def supernets(self, request, pk=None, site_pk=None, *args, **kwargs):
-        """Return supernets."""
-        if site_pk is not None:
-            query = self.queryset.filter(pk=pk, site=site_pk)
-        else:
-            query = self.queryset.filter(pk=pk)
-        network = query.first()
-
-        if not network:
-            self.not_found(pk, site_pk)
+        """Return supernets of this Network."""
+        network = self.get_network(pk, site_pk)
 
         params = request.query_params
         direct = qpbool(params.get('direct', False))
@@ -424,6 +423,55 @@ class NetworkViewSet(ResourceViewSet):
         networks = network.supernets(direct=direct)
 
         return self.list(request, queryset=networks, *args, **kwargs)
+
+    @detail_route(methods=['get'])
+    def ancestors(self, request, pk=None, site_pk=None, *args, **kwargs):
+        """Return ancestors of this Network."""
+        network = self.get_network(pk, site_pk)
+        ascending = qpbool(request.query_params.get('ascending', False))
+        ancestors = network.get_ancestors(ascending=ascending)
+
+        return self.list(request, queryset=ancestors, *args, **kwargs)
+
+    @detail_route(methods=['get'])
+    def children(self, request, pk=None, site_pk=None, *args, **kwargs):
+        """Return the immediate children of this Network."""
+        network = self.get_network(pk, site_pk)
+        children = network.get_children()
+
+        return self.list(request, queryset=children, *args, **kwargs)
+
+    @detail_route(methods=['get'])
+    def descendents(self, request, pk=None, site_pk=None, *args, **kwargs):
+        """Return descendents of this Network."""
+        network = self.get_network(pk, site_pk)
+        descendents = network.get_descendents()
+
+        return self.list(request, queryset=descendents, *args, **kwargs)
+
+    @detail_route(methods=['get'])
+    def root(self, request, pk=None, site_pk=None, *args, **kwargs):
+        """Return the parent of all ancestors for this Network."""
+        network = self.get_network(pk, site_pk)
+        root = network.get_root()
+        if root is not None:
+            pk = root.id
+        else:
+            pk = None
+
+        return self.retrieve(request, pk, site_pk, *args, **kwargs)
+
+    @detail_route(methods=['get'])
+    def siblings(self, request, pk=None, site_pk=None, *args, **kwargs):
+        """
+        Return Networks with the same parent. Root nodes are
+        siblings to other root nodes.
+        """
+        network = self.get_network(pk, site_pk)
+        include_self = qpbool(request.query_params.get('include_self', False))
+        descendents = network.get_siblings(include_self=include_self)
+
+        return self.list(request, queryset=descendents, *args, **kwargs)
 
 
 class SiteViewSet(NsotViewSet):
