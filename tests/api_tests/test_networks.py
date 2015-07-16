@@ -299,6 +299,7 @@ def test_deletion(site, client):
 
 
 def test_mptt_detail_routes(site, client):
+    """Test detail routes for ancestor/children/descendents/root methods."""
     net_uri = site.list_uri('network')
 
     client.create(net_uri, cidr='10.0.0.0/8')
@@ -376,6 +377,10 @@ def test_mptt_detail_routes(site, client):
     expected['total'] = 0
     assert_success(client.retrieve(uri), expected)
 
+    # parent
+    uri = reverse('network-parent', args=(site.id, ip2['id']))
+    assert_success(client.retrieve(uri), {'network': net_25})
+
     # root
     uri = reverse('network-root', args=(site.id, ip1['id']))
     assert_success(client.retrieve(uri), {'network': net_8})
@@ -394,3 +399,79 @@ def test_mptt_detail_routes(site, client):
     expected['networks'] = wanted
     expected['total'] = len(wanted)
     assert_success(client.retrieve(uri, include_self=True), expected)
+
+def test_get_next_detail_routes(site, client):
+    """Test the detail routes for getting next available networks/addresses."""
+    net_uri = site.list_uri('network')
+
+    client.create(net_uri, cidr='10.16.2.0/25')
+    client.create(net_uri, cidr='10.16.2.8/29')
+    client.create(net_uri, cidr='10.16.2.1/32')
+    client.create(net_uri, cidr='10.16.2.2/32')
+    client.create(net_uri, cidr='10.16.2.17/32')
+
+    net_25_resp = client.retrieve(net_uri, cidr='10.16.2.0/25')
+    net_25 = net_25_resp.json()['data']['networks'][0]
+    net_25_obj_uri = site.detail_uri('network', id=net_25['id'])
+
+    net_29_resp = client.retrieve(net_uri, cidr='10.16.2.8/29')
+    net_29 = net_29_resp.json()['data']['networks'][0]
+    net_29_obj_uri = site.detail_uri('network', id=net_29['id'])
+
+    ip1_resp = client.retrieve(net_uri, cidr='10.16.2.1/32', include_ips=True)
+    ip1 = ip1_resp.json()['data']['networks'][0]
+    ip1_obj_uri = site.detail_uri('network', id=ip1['id'])
+
+    ip2_resp = client.retrieve(net_uri, cidr='10.16.2.2/32', include_ips=True)
+    ip2 = ip2_resp.json()['data']['networks'][0]
+    ip2_obj_uri = site.detail_uri('network', id=ip2['id'])
+
+    ip3_resp = client.retrieve(net_uri, cidr='10.16.2.2/32', include_ips=True)
+    ip3 = ip3_resp.json()['data']['networks'][0]
+    ip3_obj_uri = site.detail_uri('network', id=ip3['id'])
+
+    #
+    # next_network
+    #
+    uri = reverse('network-next-network', args=(site.id, net_25['id']))
+
+    # A single /28
+    expected = {'networks': [u'10.16.2.16/28']}
+    assert_success(client.retrieve(uri, prefix_length=28), expected)
+
+    # 4x /27
+    networks = [u'10.16.2.0/27', u'10.16.2.32/27', u'10.16.2.64/27', u'10.16.2.96/27']
+    assert_success(
+        client.retrieve(uri, prefix_length=27, num=4),
+        {'networks': networks}
+    )
+
+    # Missing/invalid prefix_length
+    assert_error(client.retrieve(uri), status.HTTP_400_BAD_REQUEST)
+    assert_error(client.retrieve(uri, prefix_length='ralph'), status.HTTP_400_BAD_REQUEST)
+    assert_error(client.retrieve(uri, prefix_length=14), status.HTTP_400_BAD_REQUEST)
+    assert_error(client.retrieve(uri, prefix_length=65), status.HTTP_400_BAD_REQUEST)
+
+    # Invalid num
+    assert_error(
+        client.retrieve(uri, prefix_length=28, num='potato'),
+        status.HTTP_400_BAD_REQUEST
+    )
+
+    #
+    # next_address
+    #
+    uri = reverse('network-next-address', args=(site.id, net_25['id']))
+
+    # A single /32
+    assert_success(client.retrieve(uri), {'addresses': [u'10.16.2.18/32']})
+
+    # 3x /32
+    addresses = [u'10.16.2.18/32', u'10.16.2.19/32', u'10.16.2.20/32']
+    assert_success(client.retrieve(uri, num=3), {'addresses': addresses})
+
+    # Invalid num is all we can really test for.
+    assert_error(
+        client.retrieve(uri, num='potato'),
+        status.HTTP_400_BAD_REQUEST
+    )

@@ -80,12 +80,12 @@ nsot-server start
 #### Working with migrations
 
 If you make any changes to the models you'll want to generate a new migration.
-We use alembic for migrations underneath but for general schema changes is
-should be sufficient to just run
+We use Django's built-in support for migrations underneath, so for general
+schema changes is should be sufficient to just run:
 
 ```bash
 
-nsot-server makemigrations api
+nsot-server makemigrations
 
 ```
 
