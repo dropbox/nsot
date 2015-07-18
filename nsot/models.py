@@ -46,7 +46,6 @@ VALID_ATTRIBUTE_RESOURCES = set([
 ATTRIBUTE_RESOURCES = ('Network', 'Device')
 
 
-
 class Site(models.Model):
     """A namespace for attribtues, devices, and networks."""
     name = models.CharField(max_length=255, unique=True)
@@ -513,6 +512,110 @@ class Network(Resource):
             broadcast_address__lte=self.broadcast_address
         )
 
+    def get_next_network(self, prefix_length, num=None, as_objects=True):
+        """
+        Return a list of the next available networks.
+
+        If no networks are available, an empty list will be returned.
+
+        :param prefix_length:
+            The prefix length of networks
+
+        :param num:
+            The number of networks desired
+
+        :param as_objects:
+            Whether to return IPNetwork objects or strings
+        """
+        try:
+            prefix_length = int(prefix_length)
+        except (TypeError, ValueError) as err:
+            raise exc.ValidationError({'prefix_length': err.message})
+
+        if prefix_length < self.prefix_length:
+            raise exc.ValidationError({
+                'prefix_length': 'New prefix must be longer than %r' %
+                self.prefix_length
+            })
+
+        # Default to 1.
+        if num is None or num < 1:
+            num = 1
+
+        try:
+            num = int(num)
+        except ValueError as err:
+            raise exc.ValidationError({'num': err.message})
+
+        cidr = self.ip_network
+        subnets = cidr.subnets(new_prefix=prefix_length)
+        children = self.get_children()
+
+        wanted = []
+        children_seen = []
+        while len(wanted) < num:
+            try:
+                next_subnet = next(subnets)
+            except ValueError as err:
+                raise exc.ValidationError({'prefix_length': err.message})
+            except StopIteration:
+                break
+
+            # We can't allocate ourself.
+            if next_subnet == cidr:
+                continue
+
+            # Never return 1st/last addresses if prefix is for an address
+            if (next_subnet.prefixlen in (32, 128) and
+                    (next_subnet.network_address == cidr.network_address or
+                        next_subnet.broadcast_address ==
+                        cidr.broadcast_address)):
+                    continue
+
+            # Iterate the children and if we make it to the end, we've found a
+            # keeper!
+            for child in children:
+                # Network is already wanted; skip it!
+                if next_subnet in wanted:
+                    break
+
+                # This child has already been seen; skip it!
+                if child.ip_network in children_seen:
+                    continue
+
+                # This network is already in use/allocated; skip it!
+                if child.ip_network.overlaps(next_subnet):
+                    children_seen.append(child.ip_network)
+                    continue
+                else:
+                    break
+
+            # We want this one; keep it!!
+            else:
+                if next_subnet not in children_seen:
+                    wanted.append(next_subnet)
+
+        return wanted if as_objects else [unicode(w) for w in wanted]
+
+    def get_next_address(self, num=None, as_objects=True):
+        """
+        Return a list of the next available addresses.
+
+        If no addresses are available, an empty list will be returned.
+
+        :param num:
+            The number of addresses desired
+
+        :param as_objects:
+            Whether to return IPNetwork objects or strings
+        """
+        prefix_map = {'4': 32, '6': 128}  # Map ip_version => prefix_length
+        prefix_length = prefix_map.get(self.ip_version)
+
+        return self.get_next_network(
+            prefix_length=prefix_length, num=num, as_objects=as_objects
+        )
+
     def is_child_node(self):
         """
         Returns whether I am a child node.
@@ -540,11 +643,15 @@ class Network(Resource):
 
     def get_children(self):
         """Return my immediate children."""
-        return self.subnets(include_ips=True, direct=True)
+        return self.subnets(include_ips=True, direct=True).order_by(
+            'network_address', 'prefix_length'
+        )
 
     def get_descendents(self):
         """Return all of my children!"""
-        return self.subnets(include_ips=True)
+        return self.subnets(include_ips=True).order_by(
+            'network_address', 'prefix_length'
+        )
 
     def get_root(self):
         """
@@ -557,9 +664,12 @@ class Network(Resource):
         """
         Return my siblings. Root nodes are siblings to other root nodes.
         """
-        query = Network.objects.filter(parent=self.parent, site=self.site)
+        query = Network.objects.filter(
+            parent=self.parent, site=self.site
+        ).order_by('network_address', 'prefix_length')
         if not include_self:
             query = query.exclude(id=self.id)
+
         return query
 
     @property

@@ -8,6 +8,7 @@ pytestmark = pytest.mark.django_db
 from django.db import IntegrityError
 from django.db.models import ProtectedError
 from django.core.exceptions import ValidationError as DjangoValidationError
+import ipaddress
 import logging
 
 from nsot import exc, models
@@ -174,7 +175,7 @@ def test_retrieve_networks(site):
 
 
 def test_mptt_methods(site):
-    """Test anscenstor/children/descendents/root model methods."""
+    """Test ancestor/children/descendents/root model methods."""
     net_8 = models.Network.objects.create(site=site, cidr=u'10.0.0.0/8')
     net_12 = models.Network.objects.create(site=site, cidr=u'10.16.0.0/12')
     net_14 = models.Network.objects.create(site=site, cidr=u'10.16.0.0/14')
@@ -228,3 +229,69 @@ def test_mptt_methods(site):
     assert list(net_8.get_siblings()) == [net_192_1, net_192_2]
     assert list(net_192_1.get_siblings()) == [net_8, net_192_2]
     assert list(net_192_2.get_siblings(include_self=True)) == [net_8, net_192_1, net_192_2]
+
+
+def test_get_next_methods(site):
+    """Test the methods for getting next available networks/addresses."""
+    net_25 = models.Network.objects.create(site=site, cidr=u'10.16.2.0/25')
+    net_29 = models.Network.objects.create(site=site, cidr=u'10.16.2.8/29')
+    ip1 = models.Network.objects.create(site=site, cidr=u'10.16.2.1/32')
+    ip2 = models.Network.objects.create(site=site, cidr=u'10.16.2.2/32')
+    ip3 = models.Network.objects.create(site=site, cidr=u'10.16.2.17/32')
+
+    for obj in (net_25, net_29, ip1, ip2, ip3):
+        obj.refresh_from_db()
+
+    #
+    # get_next_network()
+    #
+
+    # A single /28
+    assert net_25.get_next_network(28) == [ipaddress.ip_network(u'10.16.2.16/28')]
+
+    # 4x /27
+    slash27 = [u'10.16.2.0/27', u'10.16.2.32/27', u'10.16.2.64/27', u'10.16.2.96/27']
+    expected = [ipaddress.ip_network(n) for n in slash27]
+    assert net_25.get_next_network(27, num=4) == expected
+
+    # as_objects=False
+    assert net_25.get_next_network(27, num=4, as_objects=False) == slash27
+
+    # 5x /27 will still only return 4
+    assert net_25.get_next_network(27, num=5) == expected
+
+    # If we try to get a /25 and we are a /25, we get nothing!
+    assert net_25.get_next_network(25) == []
+
+    # Invalid prefix
+    with pytest.raises(exc.ValidationError):
+        net_25.get_next_network(42)
+
+    # Prefix out of bounds
+    with pytest.raises(exc.ValidationError):
+        net_25.get_next_network(24)
+
+    # Invalid num
+    with pytest.raises(exc.ValidationError):
+        net_25.get_next_network(28, num='infinity')
+
+    #
+    # get_next_address()
+    #
+
+    # A single /32
+    assert net_25.get_next_address() == [ipaddress.ip_network(u'10.16.2.18/32')]
+
+    # 3x /32
+    slash32 = [u'10.16.2.18/32', u'10.16.2.19/32', u'10.16.2.20/32']
+    objects = [ipaddress.ip_network(s) for s in slash32]
+    assert net_25.get_next_address(num=3) == objects
+
+    # Make sure that 1st/last address is never allocated.
+    bad = (u'10.16.2.8/32', u'10.16.2.15/32')
+    addresses = net_29.get_next_address(num=8)
+    for bad_addr in [ipaddress.ip_network(b) for b in bad]:
+        assert bad_addr not in addresses
+
+    # as_objects=False
+    assert net_25.get_next_address(num=3, as_objects=False) == slash32

@@ -52,11 +52,11 @@ class BaseNsotViewSet(viewsets.ReadOnlyModelViewSet):
 
     def success(self, data, result_key=None, status=200, headers=None):
         if result_key is None:
-            result_key = self.result_key
-
-        # If there are multiple objects, use the plural result_key
-        if isinstance(data, list):
-            result_key = self.result_key_plural
+            # If there are multiple objects, use the plural result_key
+            if isinstance(data, list):
+                result_key = self.result_key_plural
+            else:
+                result_key = self.result_key
 
         return Response(
             OrderedDict([
@@ -425,6 +425,31 @@ class NetworkViewSet(ResourceViewSet):
         return self.list(request, queryset=networks, *args, **kwargs)
 
     @detail_route(methods=['get'])
+    def next_network(self, request, pk=None, site_pk=None, *args, **kwargs):
+        """Return next available networks from this Network."""
+        network = self.get_network(pk, site_pk)
+
+        params = request.query_params
+        prefix_length = params.get('prefix_length')
+        num = params.get('num')
+
+        networks = network.get_next_network(
+            prefix_length, num, as_objects=False
+        )
+
+        return self.success(networks, result_key='networks')
+
+    @detail_route(methods=['get'])
+    def next_address(self, request, pk=None, site_pk=None, *args, **kwargs):
+        """Return next available IPs from this Network."""
+        network = self.get_network(pk, site_pk)
+
+        num = request.query_params.get('num')
+        addresses = network.get_next_address(num, as_objects=False)
+
+        return self.success(addresses, result_key='addresses')
+
+    @detail_route(methods=['get'])
     def ancestors(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return ancestors of this Network."""
         network = self.get_network(pk, site_pk)
@@ -448,6 +473,18 @@ class NetworkViewSet(ResourceViewSet):
         descendents = network.get_descendents()
 
         return self.list(request, queryset=descendents, *args, **kwargs)
+
+    @detail_route(methods=['get'])
+    def parent(self, request, pk=None, site_pk=None, *args, **kwargs):
+        """Return the parent of this Network."""
+        network = self.get_network(pk, site_pk)
+        parent = network.parent
+        if parent is not None:
+            pk = network.parent_id
+        else:
+            pk = None
+
+        return self.retrieve(request, pk, site_pk, *args, **kwargs)
 
     @detail_route(methods=['get'])
     def root(self, request, pk=None, site_pk=None, *args, **kwargs):
