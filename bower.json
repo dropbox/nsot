@@ -24,50 +24,58 @@
         "moment": "2.10.2",
         "jquery": "2.1.4"
     },
-    "install": {
-        "base": "nsot/static/vendor",
-        "path": {
-            "js": "{name}/js",
-            "map": "{name}/js",
-            "css": "{name}/css",
-            "otf": "{name}/fonts",
-            "eot": "{name}/fonts",
-            "svg": "{name}/fonts",
-            "ttf": "{name}/fonts",
-            "woff": "{name}/fonts",
-            "woff2": "{name}/fonts"
-        },
-        "sources": {
-            "moment": "_bc/moment/min/moment.min.js",
-            "ng-tags-input": [
-                "_bc/ng-tags-input/ng-tags-input.min.*",
-                "_bc/ng-tags-input/ng-tags-input.*.min.*"
-            ],
-            "lodash": "_bc/lodash/lodash.min.js",
-            "font-awesome": [
-                "_bc/font-awesome/css/font-awesome.min.css",
-                "_bc/font-awesome/fonts/*"
-            ],
-            "angular-resource": [
-                "_bc/angular-resource/angular-resource.min.js",
-                "_bc/angular-resource/angular-resource.min.js.map"
-            ],
-            "angular-route": [
-                "_bc/angular-route/angular-route.min.js",
-                "_bc/angular-route/angular-route.min.js.map"
-            ],
-            "angular": [
-                "_bc/angular/angular.min.js",
-                "_bc/angular/angular.min.js.map"
-            ],
-            "bootstrap": [
-                "_bc/bootstrap/dist/css/bootstrap.min.css",
-                "_bc/bootstrap/dist/js/bootstrap.min.js"
-            ],
-            "jquery": [
-                "_bc/jquery/dist/jquery.min.js",
-                "_bc/jquery/dist/jquery.min.map"
-            ]
-        }
+    "overrides": {
+            "moment": {
+                "main": [
+                    "min/moment.min.js"
+                ]
+            },
+            "ng-tags-input": {
+                "main": [
+                    "ng-tags-input.min.*",
+                    "ng-tags-input.*.min.*"
+                ]
+            },
+            "lodash": {
+                "main": [
+                    "lodash.min.js"
+                ]
+            },
+            "font-awesome": {
+                "main" : [
+                    "css/font-awesome.min.css",
+                    "fonts/*"
+                ]
+            },
+            "angular-resource": {
+                "main": [
+                    "angular-resource.min.js",
+                    "angular-resource.min.js.map"
+                ]
+            },
+            "angular-route": {
+                "main": [
+                    "angular-route.min.js",
+                    "angular-route.min.js.map"
+                ]
+            },
+            "angular": {
+                "main": [
+                    "angular.min.js",
+                    "angular.min.js.map"
+                ]
+            },
+            "bootstrap": {
+                "main": [
+                    "dist/css/bootstrap.min.css",
+                    "dist/js/bootstrap.min.js"
+                ]
+            },
+            "jquery": {
+                "main": [
+                    "dist/jquery.min.js",
+                    "dist/jquery.min.map"
+                ]
+            }
     }
 }

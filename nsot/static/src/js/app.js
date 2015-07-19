@@ -1,7 +1,8 @@
 (function() {
     "use strict";
 
-    var app = angular.module("nsotApp", ["ngRoute", "ngResource", "ngTagsInput"]);
+    var templateCache = angular.module("nsotTemplates", []);
+    var app = angular.module("nsotApp", ["nsotTemplates", "ngRoute", "ngResource", "ngTagsInput"]);
 
     app.config(function($interpolateProvider){
         $interpolateProvider.startSymbol("[[");
@@ -31,15 +32,15 @@
     .config(function($routeProvider) {
         $routeProvider
         .when("/", {
-            templateUrl: "/static/templates/index.html",
+            templateUrl: "index.html",
             controller: "IndexController"
         })
         .when("/users", {
-            templateUrl: "/static/templates/users.html",
+            templateUrl: "users.html",
             controller: "UsersController"
         })
         .when("/users/:userId", {
-            templateUrl: "/static/templates/user.html",
+            templateUrl: "user.html",
             controller: "UserController"
         })
         .when("/profile", {
@@ -47,51 +48,51 @@
             controller: "ProfileController"
         })
         .when("/sites", {
-            templateUrl: "/static/templates/sites.html",
+            templateUrl: "sites.html",
             controller: "SitesController"
         })
         .when("/sites/:siteId", {
-            templateUrl: "/static/templates/site.html",
+            templateUrl: "site.html",
             controller: "SiteController"
         })
         .when("/sites/:siteId/networks", {
-            templateUrl: "/static/templates/networks.html",
+            templateUrl: "networks.html",
             controller: "NetworksController"
         })
         .when("/sites/:siteId/networks/:networkId", {
-            templateUrl: "/static/templates/network.html",
+            templateUrl: "network.html",
             controller: "NetworkController"
         })
         .when("/sites/:siteId/devices", {
-            templateUrl: "/static/templates/devices.html",
+            templateUrl: "devices.html",
             controller: "DevicesController"
         })
         .when("/sites/:siteId/devices/:deviceId", {
-            templateUrl: "/static/templates/device.html",
+            templateUrl: "device.html",
             controller: "DeviceController"
         })
         .when("/sites/:siteId/attributes", {
-            templateUrl: "/static/templates/attributes.html",
+            templateUrl: "attributes.html",
             controller: "AttributesController"
         })
         .when("/sites/:siteId/attributes/:attributeId", {
-            templateUrl: "/static/templates/attribute.html",
+            templateUrl: "attribute.html",
             controller: "AttributeController"
         })
         .when("/sites/:siteId/changes", {
-            templateUrl: "/static/templates/changes.html",
+            templateUrl: "changes.html",
             controller: "ChangesController"
         })
         .when("/sites/:siteId/changes/:changeId", {
-            templateUrl: "/static/templates/change.html",
+            templateUrl: "change.html",
             controller: "ChangeController"
         })
         .otherwise({redirectTo: "/"});
     });
 
-    app.run(["$rootScope", function($rootScope){
+    app.run(function($rootScope){
         $rootScope.NSOT_VERSION = window.NSOT_VERSION;
-    }]);
+    });
 
 
 })();

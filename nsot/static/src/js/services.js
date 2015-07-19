@@ -50,15 +50,15 @@
         };
     }
 
-    app.factory("Site", ["$resource", "$http", function($resource, $http){
+    app.factory("Site", function($resource, $http){
         return $resource(
             "/api/sites/:id/",
             { id: "@id" },
             buildActions($http, "site", "sites")
         );
-    }]);
+    });
 
-    app.factory("User", ["$resource", "$http", function($resource, $http){
+    app.factory("User", function($resource, $http){
         var User = $resource(
             "/api/users/:id/",
             { id: "@id" },
@@ -89,17 +89,17 @@
         };
 
         return User;
-    }]);
+    });
 
-    app.factory("Change", ["$resource", "$http", function($resource, $http){
+    app.factory("Change", function($resource, $http){
         return $resource(
             "/api/sites/:siteId/changes/:id/",
             { siteId: "@siteId", id: "@id" },
             buildActions($http, "change", "changes")
         );
-    }]);
+    });
 
-    app.factory("Attribute", ["$resource", "$http", function($resource, $http){
+    app.factory("Attribute", function($resource, $http){
         var Attribute = $resource(
             "/api/sites/:siteId/attributes/:id/",
             { siteId: "@siteId", id: "@id" },
@@ -147,9 +147,9 @@
         };
 
         return Attribute;
-    }]);
+    });
 
-    app.factory("Network", ["$resource", "$http", function($resource, $http){
+    app.factory("Network", function($resource, $http){
         var Network = $resource(
             "/api/sites/:siteId/networks/:id/",
             { siteId: "@siteId", id: "@id" },
@@ -198,9 +198,9 @@
         };
 
         return Network;
-    }]);
+    });
 
-    app.factory("Device", ["$resource", "$http", function($resource, $http){
+    app.factory("Device", function($resource, $http){
         var Device = $resource(
             "/api/sites/:siteId/devices/:id/",
             { siteId: "@siteId", id: "@id" },
@@ -249,9 +249,9 @@
         };
 
         return Device;
-    }]);
+    });
 
-    app.factory("pagerParams", ["$location", function($location){
+    app.factory("pagerParams", function($location){
 
         var defaults = {
             limit: 10,
@@ -263,10 +263,9 @@
             return _.extend(params, $location.search());
         };
 
-    }]);
+    });
 
-
-    app.factory("Paginator", ["$location", function($location){
+    app.factory("Paginator", function($location){
         return function(obj) {
 
             this.pager = new nsot.Pager(
@@ -279,7 +278,7 @@
                 obj.limit, $location
             );
         };
-    }]);
+    });
 
 
 })();
