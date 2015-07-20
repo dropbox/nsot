@@ -16,18 +16,27 @@ class Command(BaseCommand):
         make_option('--debug',
             action='store_true',
             dest='debug',
+            help='Toggle debug output.',
             default=False),
-        make_option('--noupgrade',
+        make_option('--no-upgrade',
             action='store_false',
             dest='upgrade',
+            help='Do not automatically perform any database upgrades.',
+            default=True),
+        make_option('--no-collectstatic',
+            action='store_false',
+            dest='collectstatic',
+            help='Do not automatically collect static files into STATIC_ROOT.',
             default=True),
         make_option('--workers', '-w',
             dest='workers',
             type=int,
+            help='The number of gunicorn worker processes for handling requests.',
             default=None),
         make_option('--worker-class', '-k',
             dest='worker_class',
             type=str,
+            help='The type of gunicorn workers to use.',
             default=None),
         make_option('--noinput',
             action='store_true',
@@ -37,7 +46,8 @@ class Command(BaseCommand):
         ),
     )
 
-    def handle(self, service_name='http', address=None, upgrade=True, **options):
+    def handle(self, service_name='http', address=None, upgrade=True,
+               collectstatic=True, **options):
         from nsot.services import http
 
         if address:
@@ -59,6 +69,11 @@ class Command(BaseCommand):
             print("Performing upgrade before service startup...")
             call_command('upgrade', verbosity=0, noinput=options.get('noinput'))
 
+        if collectstatic:
+            # Ensure we collect static before starting any service
+            print("Performing collectstatic before service startup...")
+            call_command('collectstatic', interactive=False, ignore=['src'])
+
         try:
             service_class = services[service_name]
         except KeyError:
@@ -74,7 +89,7 @@ class Command(BaseCommand):
 
         # Remove command line arguments to avoid optparse failures with service
         # code that calls call_command which reparses the command line, and if
-        # --noupgrade is supplied a parse error is thrown.
+        # --no-upgrade is supplied a parse error is thrown.
         sys.argv = sys.argv[:1]
 
         print('Running service: %r' % service_name)
