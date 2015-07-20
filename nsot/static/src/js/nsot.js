@@ -13,7 +13,7 @@
             }
         }
         return false;
-    }
+    };
 
     nsot.Pager = function(offset, limit, total, $location) {
         this.offset = offset;

@@ -46,7 +46,7 @@
     app.directive("loadingPanel", function(){
         return {
             restrict: "E",
-            templateUrl: "/static/templates/directives/loading-panel.html"
+            templateUrl: "directives/loading-panel.html"
         };
     });
 
@@ -79,7 +79,7 @@
                 "modalSize": "@"
             },
             transclude: true,
-            templateUrl: "/static/templates/directives/nsot-modal.html"
+            templateUrl: "directives/nsot-modal.html"
         };
     });
 
@@ -89,7 +89,7 @@
             scope: {
                 "pager": "=",
             },
-            templateUrl: "/static/templates/directives/paginator.html"
+            templateUrl: "directives/paginator.html"
         };
     });
 
@@ -99,7 +99,7 @@
             scope: {
                 "ctxtObj": "=",
             },
-            templateUrl: "/static/templates/directives/dropdown.html"
+            templateUrl: "directives/dropdown.html"
         };
     });
 

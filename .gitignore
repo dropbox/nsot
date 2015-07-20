@@ -1,8 +1,14 @@
+tests/api_tests/cassettes/*.json
+
 *.sqlite
 *.sqlite-journal
 
 # Bower Components
 _bc
+
+# Node
+/npm-debug.log
+/node_modules
 
 __pycache__
 

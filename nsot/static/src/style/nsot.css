@@ -4,7 +4,7 @@ body {
     *
     * http://subtlepatterns.com/halftone/
     */
-    background-image: url('/static/images/halftone/halftone.png');
+    background-image: url('/static/build/images/halftone/halftone.png');
     /* Force scrollbar so collapsed divs don't jerk
         * the page around when they grow larger than
         * the page.
@@ -29,6 +29,7 @@ body {
     margin-left: 5px;
     height: 2px;
     position: absolute;
+    background: rgb(81, 8, 39);
     background: rgba(81, 8, 39, 0.7);
 }
 
@@ -37,6 +38,7 @@ body {
     -webkit-user-select: none;
     -moz-user-select: none;
     -ms-user-select: none;
+    user-select: none;
 }
 
 .rm-attr-btn {
@@ -75,7 +77,7 @@ body {
 }
 
 .resource-block {
-    margin: 5px 80px 10px 0px;
+    margin: 5px 80px 10px 0;
 }
 
 .modal-open {
@@ -87,8 +89,8 @@ body {
 }
 
 .panel-default {
-    box-shadow: 1px 1px 1px 0px rgba(155, 155, 155, 1);
-    border: 0px;
+    box-shadow: 1px 1px 1px 0 rgba(155, 155, 155, 1);
+    border: 0;
 }
 
 .panel-default .panel-heading {
@@ -139,7 +141,7 @@ body {
     border-right: 1px solid #a0a0a0;
     padding-right: 15px;
     padding-bottom: 10px;
-    margin: 0px;
+    margin: 0;
     margin-right: 10px;
     margin-bottom: 20px;
     text-shadow: 1px 1px 4px #A2A2A2;
@@ -151,7 +153,7 @@ body {
     float: left;
     padding-right: 10px;
     padding-bottom: 10px;
-    margin: 0px;
+    margin: 0;
     margin-right: 10px;
     margin-bottom: 18px;
     font-size: xx-large;
@@ -202,13 +204,13 @@ body {
     -moz-border-radius-bottomright: 5px;
     border-bottom-left-radius: 5px;
     border-bottom-right-radius: 5px;
-    box-shadow: 3px 3px 6px 0px rgba(155, 155, 155, 1);
+    box-shadow: 3px 3px 6px 0 rgba(155, 155, 155, 1);
 }
 
 #footer {
     position: fixed;
-    left: 0px;
-    bottom: 0px;
+    left: 0;
+    bottom: 0;
     height: 20px;
     width: 100%;
     background: #333;
@@ -223,11 +225,11 @@ body {
 }
 
 .navbar-right {
-    margin-right: 0px;
+    margin-right: 0;
 }
 
 .navbar {
-    margin-bottom: 0px;
+    margin-bottom: 0;
 }
 
 .navbar-default {

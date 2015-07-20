@@ -1,9 +1,9 @@
 include LICENSE
-include runtests
 include pytest.ini
-include README
 include README.md
 include requirements.txt
 include requirements-dev.txt
-recursive-include config *
+
 recursive-include tests *
+recursive-exclude tests *.pyc
+recursive-exclude tests/api_tests/cassettes *.json

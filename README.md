@@ -31,6 +31,9 @@ The latest documentation will always be available at http://nsot.readthedocs.org
 
 ### Development
 
+Note: You'll need to have a reasonably recent version of [npm](https://github.com/npm/npm) to build
+frontend dependencies. Minimum Version tested is `1.3.24`
+
 I suggest setting up your test environment in a virtual environment. If you use
 virtualenvwrapper you can just do
 
@@ -70,7 +73,7 @@ nsot-server init
 nsot-server upgrade
 
 # Run the development reverse proxy
-nsot-server user_proxy
+nsot-server user_proxy $USER
 
 # Run the frontend server
 nsot-server start
@@ -115,9 +118,36 @@ This will start a server listening on a port that you can browse to and will
 be automatically reloaded when you change any rst files. One downside of this
 approach is that is doesn't refresh when docstrings are modified.
 
-#### Managing frontend dependencies
+#### Frontend development
 
-Frontend dependencies are managed through `bower`, however to ensure we always have
-a consistent build we checkin the dependencies. We make use of `bower-installer` to
-limit the depencies down to their core components to avoid checking in various
-README, src, or build artifact files.
+We use a combination of npm, bower, and gulp to do frontend development. npm is used
+to manage our build dependencies, bower to manage our web dependencies, and gulp
+for building/linting/testing/etc.
+
+`setup.py develop` will install and build all frontend components so for the most part
+you shouldn't need to care about these details though if you want to add new build
+dependencies, for example gulp-concat, you would run the followiing:
+
+```bash
+# Install gulp-concat, updating package.json with a new devDependency
+npm install gulp-concat --save-dev
+
+# Writes out npm-shrinkwrap.json, including dev dependencies, so consistent
+# build tools are used
+npm shrinkwrap --dev
+```
+
+Adding new web dependencies are done through bower
+
+```bash
+# Install lodaash, updating bower.json with the new dependency
+bower install lodash --save
+```
+
+Unfortunately bower doesn't have a shrinkwrap/freeze feature so you'll want to update
+the version string to make the version explicit for repeatable builds.
+
+We make use of bower's "main file" concept to distribute only "main" files. Most packages
+don't consider consider the minified versions of their project to be their main files so
+you'll likely also need to update the `overrides` section of bower.json with which files
+to distribute.

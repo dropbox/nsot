@@ -3,9 +3,7 @@
 
     var app = angular.module("nsotApp");
 
-    app.controller("navigationController", [
-            "$scope", "$location",
-            function($scope, $location) {
+    app.controller("navigationController", function($scope, $location) {
 
         $scope.siteId = null;
         $scope.$on('$routeChangeStart', function(next, current) {
@@ -17,11 +15,9 @@
             return path === str;
         };
 
-    }]);
+    });
 
-    app.controller("IndexController", [
-            "$location", "Site",
-            function($location, Site) {
+    app.controller("IndexController", function($location, Site) {
 
         Site.query(function(response){
             var sites = response.data;
@@ -33,22 +29,18 @@
             }
             $location.replace();
         });
-    }]);
+    });
 
-    app.controller("ProfileController", [
-            "User", "$location", "$q",
-            function(User, $location, $q) {
+    app.controller("ProfileController", function(User, $location, $q) {
         $q.all([
             User.get({id: 0}).$promise,
         ]).then(function(results){
             $location.path("/users/" + results[0].id);
         });
 
-    }]);
+    });
 
-    app.controller("SitesController", [
-            "$scope", "$q", "$location", "Site", "User",
-            function($scope, $q, $location, Site, User) {
+    app.controller("SitesController", function($scope, $q, $location, Site, User) {
 
         $scope.loading = true;
         $scope.sites = [];
@@ -73,10 +65,9 @@
                 $scope.error = data.data.error;
             });
         };
-    }]);
+    });
 
-    app.controller("SiteController", [
-            "$scope", "$route", "$location", "$q", "$routeParams", "Site", "User",
+    app.controller("SiteController",
             function($scope, $route, $location, $q, $routeParams, Site, User) {
 
         $scope.loading = true;
@@ -121,17 +112,14 @@
             });
         };
 
-    }]);
+    });
 
-    app.controller("UsersController", [
-            "$scope", "$route", "$location", "$q", "$routeParams",
+    app.controller("UsersController",
             function($scope, $route, $location, $q, $routeParams) {
         $scope.loading = true;
-    }
-    ]);
+    });
 
-    app.controller("UserController", [
-            "$scope", "$route", "$location", "$q", "$routeParams", "User",
+    app.controller("UserController",
             function($scope, $route, $location, $q, $routeParams, User) {
 
         $scope.loading = true;
@@ -162,11 +150,9 @@
             $scope.profileUser = results[1];
             $scope.isSelf = $scope.currentUser.id === $scope.profileUser.id;
         });
-    }]);
+    });
 
-    app.controller("NetworksController", [
-            "$scope", "$location", "$q", "$routeParams",
-            "User", "Network", "Attribute", "pagerParams", "Paginator",
+    app.controller("NetworksController",
             function($scope, $location, $q, $routeParams,
                      User, Network, Attribute, pagerParams, Paginator) {
 
@@ -180,7 +166,7 @@
         var siteId = $scope.siteId = $routeParams.siteId;
 
         $scope.formMode = "create";
-        $scope.formUrl = "/static/templates/includes/networks-form.html";
+        $scope.formUrl = "includes/networks-form.html";
         $scope.formData = {
             attributes: []
         };
@@ -189,7 +175,7 @@
             include_ips: nsot.qpBool($routeParams, "include_ips", true),
             include_networks: nsot.qpBool($routeParams, "include_networks", true),
             root_only: nsot.qpBool($routeParams, "root_only", false)
-        }
+        };
 
         var params = _.extend(pagerParams(), {
             siteId: siteId,
@@ -259,12 +245,9 @@
             });
         };
 
-    }
-    ]);
+    });
 
-    app.controller("NetworkController", [
-            "$scope", "$route", "$location", "$q", "$routeParams",
-            "User", "Network", "Attribute", "Change",
+    app.controller("NetworkController",
             function($scope, $route, $location, $q, $routeParams,
                      User, Network, Attribute, Change) {
 
@@ -278,7 +261,7 @@
         var siteId = $scope.siteId = $routeParams.siteId;
         var networkId = $scope.networkId = $routeParams.networkId;
         $scope.formMode = "update";
-        $scope.formUrl = "/static/templates/includes/networks-form.html";
+        $scope.formUrl = "includes/networks-form.html";
         $scope.formData = {
             attributes: []
         };
@@ -348,11 +331,9 @@
         };
 
 
-    }]);
+    });
 
-    app.controller("DevicesController", [
-            "$scope", "$location", "$q", "$routeParams",
-            "User", "Device", "Attribute", "pagerParams", "Paginator",
+    app.controller("DevicesController",
             function($scope, $location, $q, $routeParams,
                      User, Device, Attribute, pagerParams, Paginator) {
 
@@ -365,7 +346,7 @@
         $scope.admin = false;
         var siteId = $scope.siteId = $routeParams.siteId;
 
-        $scope.formUrl = "/static/templates/includes/devices-form.html";
+        $scope.formUrl = "includes/devices-form.html";
         $scope.formData = {
             attributes: []
         };
@@ -438,12 +419,9 @@
             });
         };
 
-    }
-    ]);
+    });
 
-    app.controller("DeviceController", [
-            "$scope", "$route", "$location", "$q", "$routeParams",
-            "User", "Device", "Attribute", "Change",
+    app.controller("DeviceController",
             function($scope, $route, $location, $q, $routeParams,
                      User, Device, Attribute, Change) {
 
@@ -457,7 +435,7 @@
         var siteId = $scope.siteId = $routeParams.siteId;
         var deviceId = $scope.deviceId = $routeParams.deviceId;
         $scope.formMode = "update";
-        $scope.formUrl = "/static/templates/includes/devices-form.html";
+        $scope.formUrl = "includes/devices-form.html";
         $scope.formData = {
             attributes: []
         };
@@ -526,11 +504,9 @@
             });
         };
 
+    });
 
-    }]);
-    app.controller("AttributesController", [
-            "$scope", "$route", "$location", "$q", "$routeParams",
-            "User", "Attribute",
+    app.controller("AttributesController",
             function($scope, $route, $location, $q, $routeParams,
                      User, Attribute) {
 
@@ -540,7 +516,7 @@
         $scope.error = null;
         $scope.admin = false;
         $scope.formMode = "create";
-        $scope.formUrl = "/static/templates/includes/attributes-form.html";
+        $scope.formUrl = "includes/attributes-form.html";
         $scope.formData = {};
 
         var siteId = $scope.siteId = $routeParams.siteId;
@@ -571,12 +547,9 @@
             });
         };
 
-    }
-    ]);
+    });
 
-    app.controller("AttributeController", [
-            "$scope", "$route", "$location", "$q", "$routeParams",
-            "User", "Attribute",
+    app.controller("AttributeController",
             function($scope, $route, $location, $q, $routeParams,
                      User, Attribute) {
 
@@ -587,7 +560,7 @@
         $scope.updateError = null;
         $scope.deleteError = null;
         $scope.formMode = "update";
-        $scope.formUrl = "/static/templates/includes/attributes-form.html";
+        $scope.formUrl = "includes/attributes-form.html";
         $scope.formData = {};
 
         var siteId = $scope.siteId = $routeParams.siteId;
@@ -626,11 +599,9 @@
             });
         };
 
-    }]);
+    });
 
-    app.controller("ChangesController", [
-            "$scope", "$location", "$q", "$routeParams", "Change",
-            "pagerParams", "Paginator",
+    app.controller("ChangesController",
             function($scope, $location, $q, $routeParams, Change,
                      pagerParams, Paginator) {
 
@@ -654,10 +625,9 @@
             }
         });
 
-    }]);
+    });
 
-    app.controller("ChangeController", [
-            "$scope", "$location", "$q", "$routeParams", "Change",
+    app.controller("ChangeController",
             function($scope, $location, $q, $routeParams, Change) {
 
         $scope.loading = true;
@@ -678,6 +648,6 @@
             }
         });
 
-    }]);
+    });
 
 })();
