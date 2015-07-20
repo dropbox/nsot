@@ -40,7 +40,7 @@ var BUILD_DEST = './nsot/static/build/';
 var JS_SRC = SRC_ROOT + 'js/**/*.js';
 var STYLE_SRC = SRC_ROOT + 'style/**/*.css';
 var TEMPLATE_SRC = SRC_ROOT + 'templates/**/*.html';
-var IMAGE_SRC = SRC_ROOT + 'images/**/*.png';
+var IMAGE_SRC = SRC_ROOT + 'images/**';
 
 
 /**

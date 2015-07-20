@@ -20,20 +20,6 @@ with open('requirements.txt') as requirements:
     required = requirements.read().splitlines()
 
 
-package_data = {}
-def get_package_data(package, base_dir):
-    for dirpath, dirnames, filenames in os.walk(base_dir):
-        dirpath = dirpath[len(package)+1:]  # Strip package dir
-        for filename in filenames:
-            package_data.setdefault(package, []).append(os.path.join(dirpath, filename))
-        for dirname in dirnames:
-            get_package_data(package, dirname)
-
-get_package_data('nsot', 'nsot/static/build')
-get_package_data('nsot', 'nsot/templates')
-get_package_data('nsot', 'nsot/migrations')
-
-
 class PyTest(TestCommand):
     user_options = [('pytest-args=', 'a', 'Arguments to pass to py.test')]
 
@@ -61,9 +47,9 @@ class DevelopWithBuildStatic(DevelopCommand):
 
 
 class SDistWithBuildStatic(SDistCommand):
-    def make_distribution(self):
+    def run(self):
         self.run_command('build_static')
-        return SDistCommand.make_distribution(self)
+        SDistCommand.run(self)
 
 
 class BuildStatic(Command):
@@ -86,12 +72,10 @@ class BuildStatic(Command):
         check_output([os.path.join(ROOT, 'node_modules', '.bin', 'gulp'), 'build'], cwd=ROOT)
 
 
-
 kwargs = {
     'name': 'nsot',
     'version': str(__version__),
     'packages': find_packages(exclude=['tests']),
-    'package_data': package_data,
     'description': 'Network Source of Truth (IP Address Management).',
     'author': 'Gary M. Josack',
     'maintainer': 'Gary M. Josack',
