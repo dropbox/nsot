@@ -1,0 +1,94 @@
+<div class="row" ng-controller="navigationController">
+    <nav class="navbar navbar-static-top navbar-default" role="navigation">
+        <div class="navbar-header">
+            <button type="button"
+                    class="navbar-toggle collapsed"
+                    data-toggle="collapse"
+                    data-target="#nsot-navbar"
+            >
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" href="/" target="_self">Network Source of Truth</a>
+        </div>
+        <div class="collapse navbar-collapse" id="nsot-navbar">
+            <ul ng-if="siteId" class="nav navbar-nav">
+                <li ng-class="{
+                    active: isActive('/sites/[[siteId]]/networks')
+                }">
+                    <a title="Networks" ng-href="/sites/[[siteId]]/networks">
+                        Networks
+                    </a>
+                </li>
+                <li ng-class="{
+                    active: isActive('/sites/[[siteId]]/devices')
+                }">
+                    <a title="Devices" ng-href="/sites/[[siteId]]/devices">
+                        Devices
+                    </a>
+                </li>
+                <li ng-class="{
+                    active: isActive('/sites/[[siteId]]/attributes')
+                }">
+                    <a title="Attributes" ng-href="/sites/[[siteId]]/attributes">
+                        Attributes
+                    </a>
+                </li>
+                <li ng-if="siteId" ng-class="{
+                    active: isActive('/sites/[[siteId]]/changes')
+                }">
+                    <a title="Changes" ng-href="/sites/[[siteId]]/changes">
+                        Changes
+                    </a>
+                </li>
+            </ul>
+            <ul class="nav navbar-nav navbar-right">
+                <li class="dropdown">
+                    <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button">
+                        <i class="fa fa-cogs fa-lg"></i> <span class="caret"></span>
+                    </a>
+                    <ul class="dropdown-menu" role="menu">
+                        <li>
+                            <a title="Profile" href="/profile"><i class="fa fa-fw fa-user"></i> Profile</a>
+                        </li>
+                        <li class="divider"></li>
+                        <li>
+                            <a title="Sites" href="/sites"><i class="fa fa-fw fa-sitemap"></i> Sites</a>
+                        </li>
+                        <li>
+                            <a title="Users" href="/users"><i class="fa fa-fw fa-users"></i> Users</a>
+                        </li>
+                        <li class="divider"></li>
+                        <li><a
+                            title="API"
+                            target="_self"
+                            href="/api/">
+                                <i class="fa fa-fw fa-cloud"></i> API
+                        </a></li>
+                        <li><a
+                            title="API Reference"
+                            target="_self"
+                            href="/docs">
+                                <i class="fa fa-fw fa-book"></i> API Reference
+                        </a></li>
+                        <li class="divider"></li>
+                        <li><a
+                            title="Documentation"
+                            href="http://nsot.readthedocs.org/en/latest/">
+                                <i class="fa fa-fw fa-question-circle"></i> Documentation
+                        </a></li>
+                        <li><a
+                            title="Source (GitHub)"
+                            href="https://github.com/dropbox/nsot">
+                                <i class="fa fa-fw fa-github"></i> Source
+                        </a></li>
+                        <li class="divider"></li>
+                        <li><a><i class="fa fa-fw fa-paper-plane"></i> Version: {{NSOT_VERSION}}</a></li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </nav>
+</div>
