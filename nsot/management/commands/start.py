@@ -2,6 +2,7 @@ from __future__ import absolute_import, print_function
 
 import sys
 
+from django.conf import settings
 from django.core.management import call_command
 from django.core.management.base import BaseCommand, CommandError
 import logging
@@ -69,8 +70,9 @@ class Command(BaseCommand):
             print("Performing upgrade before service startup...")
             call_command('upgrade', verbosity=0, noinput=options.get('noinput'))
 
-        if collectstatic:
-            # Ensure we collect static before starting any service
+        if collectstatic and settings.SERVE_STATIC_FILES:
+            # Ensure we collect static before starting any service, but only if
+            # SERVE_STATIC_FILES=True.
             print("Performing collectstatic before service startup...")
             call_command('collectstatic', interactive=False, ignore=['src'])
 

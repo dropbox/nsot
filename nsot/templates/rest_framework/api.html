@@ -1,0 +1,22 @@
+{% extends "rest_framework/base.html" %}
+{% load staticfiles %}
+
+{% block title %}
+    NSoT | REST API
+{% endblock %}
+
+{% block bootstrap_theme %}
+    {% include "ui/media.html" %}
+{% endblock %}
+
+{% block navbar %}
+    <div class="container-fluid" ng-app="nsotApp">
+        {% include "ui/menu.html" %}
+    </div>
+{% endblock %}
+
+{% block script %}
+    {% include "ui/scripts.html" %}
+    <script src="{% static "rest_framework/js/prettify-min.js" %}"></script>
+    <script src="{% static "rest_framework/js/default.js" %}"></script>
+{% endblock %} 

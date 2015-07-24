@@ -13,17 +13,10 @@ log = logging.getLogger(__name__)
 class FeView(TemplateView):
     """
     Front-end UI view that hands-off rendering to Angular.js.
-
     Any additional context needed to be passed to the templates, should be added
-    in ``.get_context_data()``.
+    in ``nsot.ui.context_processors``
     """
     template_name = 'ui/app.html'
-
-    def get_context_data(self, **kwargs):
-        from nsot import __version__
-        context = super(FeView, self).get_context_data(**kwargs)
-        context['NSOT_VERSION'] = __version__
-        return context
 
 
 def render_error(request, status_code, template_name='ui/error.html'):
