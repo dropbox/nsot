@@ -13,11 +13,12 @@ class LoggingMiddleware(object):
 
     def process_response(self, request, response):
         self.logger.info(
-            '%s INFO %s %s %s %.2fms',
+            '%s INFO %s %s %s (%s) %.2fms',
             datetime.now(),
             response.status_code,
             request.method,
             request.get_full_path(),
+            request.META.get('REMOTE_ADDR'),
             (time() - request.timer) * 1000  # ms
         )
         return response
