@@ -2,28 +2,79 @@ from __future__ import unicode_literals
 
 import ast
 from django.contrib.auth import get_user_model
-from django.core.exceptions import ValidationError as DjangoValidationError
 from collections import OrderedDict
 import json
 import logging
 from rest_framework import fields, serializers
 
 from . import auth
-from .. import exc
-from .. import models
+from .. import exc, models
+from ..util import get_field_attr
 
 
 log = logging.getLogger(__name__)
+
+
+###############
+# Custom Fields
+###############
+class JSONDataField(fields.Field):
+    """
+    Base field used to represention attributes as JSON <-> ``field_type``.
+
+    It is an error if ``field_type`` is not defined in a subclass.
+    """
+    field_type = None
+
+    def to_representation(self, value):
+        return value
+
+    def to_internal_value(self, data):
+        log.debug('JSONDictField.to_internal_value() data = %r', data)
+        if self.field_type is None:
+            raise NotImplementedError(
+                'You must subclass JSONDataField and define field_type'
+            )
+
+        if not data:
+            data = self.field_type()
+
+        if isinstance(data, self.field_type):
+            return data
+
+        # Try it as a regular JSON object
+        try:
+            return json.loads(data)
+        except ValueError:
+            # Or try it as a Python object
+            try:
+                return ast.literal_eval(data)
+            except (SyntaxError, ValueError) as err:
+                raise exc.ValidationError(err)
+        except Exception as err:
+            raise exc.ValidationError(err)
+        return data
+
+
+class JSONDictField(JSONDataField):
+    """Field used to represention attributes as JSON <-> Dict."""
+    field_type = dict
+
+
+class JSONListField(JSONDataField):
+    """Field used to represention attributes as JSON <-> List."""
+    field_type = list
 
 
 class NsotSerializer(serializers.ModelSerializer):
     """Base serializer that logs change events."""
     def to_internal_value(self, data):
         """Inject site_pk from view's kwargs if it's not already in data."""
-        view = self.context['view']
-        kwargs = view.kwargs
+        kwargs = self.context['view'].kwargs
 
-        log.debug('NsotSerializer.to_internal_value() data [before] = %r', data)
+        log.debug(
+            'NsotSerializer.to_internal_value() data [before] = %r', data
+        )
 
         if 'site_id' not in data and 'site_pk' in kwargs:
             data['site_id'] = kwargs['site_pk']
@@ -31,6 +82,12 @@ class NsotSerializer(serializers.ModelSerializer):
         log.debug('NsotSerializer.to_internal_value() data [after] = %r', data)
 
         return super(NsotSerializer, self).to_internal_value(data)
+
+    def to_representation(self, obj):
+        """Always return the dict representation."""
+        if isinstance(obj, OrderedDict):
+            return obj
+        return obj.to_dict()
 
 
 ######
@@ -43,12 +100,12 @@ class UserSerializer(serializers.ModelSerializer):
     """
     def __init__(self, *args, **kwargs):
         # Don't pass `with_secret_key` up to the superclass
-        with_secret_key = kwargs.pop('with_secret_key', None)
+        self.with_secret_key = kwargs.pop('with_secret_key', None)
         super(UserSerializer, self).__init__(*args, **kwargs)
 
         # If we haven't passed `with_secret_key`, don't show the secret_key
         # field.
-        if with_secret_key is None:
+        if self.with_secret_key is None:
             self.fields.pop('secret_key')
 
     permissions = fields.ReadOnlyField(source='get_permissions')
@@ -57,15 +114,13 @@ class UserSerializer(serializers.ModelSerializer):
         model = get_user_model()
         fields = ('id', 'email', 'permissions', 'secret_key')
 
+
 ######
 # Site
 ######
 class SiteSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Site
-
-    def to_representation(self, obj):
-        return obj.to_dict()
 
 
 #########
@@ -76,9 +131,6 @@ class ChangeSerializer(NsotSerializer):
     class Meta:
         model = models.Change
 
-    def to_representation(self, obj):
-        return obj.to_dict()
-
 
 ###########
 # Attribute
@@ -88,47 +140,16 @@ class AttributeSerializer(NsotSerializer):
     class Meta:
         model = models.Attribute
 
-    def to_representation(self, obj):
-        return obj.to_dict()
-
-
-class JSONDictField(fields.Field):
-    """Field used to represention attributes as JSON <-> Dict."""
-    def to_representation(self, value):
-        return value
-
-    def to_internal_value(self, data):
-        log.debug('JSONDictField.to_internal_value() data = %r', data)
-        if not data:
-            data = {}
-
-        if isinstance(data, dict):
-            return data
-
-        # Try it as a regular JSON dict
-        try:
-            return json.loads(data)
-        except ValueError:
-            # Or try it as a Python dict
-            try:
-                return ast.literal_eval(data)
-            except (SyntaxError, ValueError) as err:
-                raise exc.ValidationError(err)
-        except Exception as err:
-            raise exc.ValidationError(err)
-        return data
-
 
 class AttributeCreateSerializer(AttributeSerializer):
     """Used for POST on Attributes."""
     constraints = JSONDictField(required=False)
-    description = fields.CharField(allow_blank=True, required=False)
     site_id = fields.IntegerField()
 
     class Meta:
         model = models.Attribute
-        fields = ('name', 'description', 'resource_name', 'required', 'display',
-                  'multi', 'constraints', 'site_id')
+        fields = ('name', 'description', 'resource_name', 'required',
+                  'display', 'multi', 'constraints', 'site_id')
 
 
 class AttributeUpdateSerializer(AttributeCreateSerializer):
@@ -171,11 +192,6 @@ class DeviceSerializer(NsotSerializer):
     class Meta:
         model = models.Device
 
-    def to_representation(self, obj):
-        if isinstance(obj, OrderedDict):
-            return obj
-        return obj.to_dict()
-
 
 class DeviceCreateSerializer(DeviceSerializer):
     """Used for POST on Devices."""
@@ -187,14 +203,24 @@ class DeviceCreateSerializer(DeviceSerializer):
         fields = ('hostname', 'attributes', 'site_id')
 
     def create(self, validated_data):
+
+        # Remove the related fields before we write the object
         attributes = validated_data.pop('attributes', {})
+
+        # Save the base object to the database.
         obj = super(DeviceCreateSerializer, self).create(validated_data)
+
+        # Try to populate the related fields and if there are any validation
+        # problems, delete the object and re-raise the error. If not, save the
+        # changes.
         try:
             obj.set_attributes(attributes)
         except exc.ValidationError:
             obj.delete()
             raise
-        obj.save()
+        else:
+            obj.save()
+
         return obj
 
 
@@ -205,12 +231,20 @@ class DeviceUpdateSerializer(DeviceCreateSerializer):
         fields = ('hostname', 'attributes')
 
     def update(self, instance, validated_data):
+
+        # Remove related fields before we write the object
         attributes = validated_data.pop('attributes', {})
+
+        # Save the object to the database.
         obj = super(DeviceUpdateSerializer, self).update(
             instance, validated_data
         )
+
+        # Populate the related fields and save the object, allowing any
+        # validation errors to raise before saving.
         obj.set_attributes(attributes)
         obj.save()
+
         return obj
 
 
@@ -221,9 +255,6 @@ class NetworkSerializer(NsotSerializer):
     """Used for GET, DELETE on Networks."""
     class Meta:
         model = models.Network
-
-    def to_representation(self, obj):
-        return obj.to_dict()
 
 
 class NetworkCreateSerializer(NetworkSerializer):
@@ -237,14 +268,23 @@ class NetworkCreateSerializer(NetworkSerializer):
         fields = ('cidr', 'attributes', 'site_id')
 
     def create(self, validated_data):
+
+        # Remove the related fields before we write the object
         attributes = validated_data.pop('attributes', {})
+
         obj = super(NetworkCreateSerializer, self).create(validated_data)
+
+        # Try to populate the related fields and if there are any validation
+        # problems, delete the object and re-raise the error. If not, save the
+        # changes.
         try:
             obj.set_attributes(attributes)
         except exc.ValidationError:
             obj.delete()
             raise
-        obj.save()
+        else:
+            obj.save()
+
         return obj
 
 
@@ -257,12 +297,102 @@ class NetworkUpdateSerializer(NetworkCreateSerializer):
     def update(self, instance, validated_data):
         log.debug('NetworkUpdateSerializer.update() validated_data = %r',
                   validated_data)
+
+        # Remove related fields before we write the object
         attributes = validated_data.pop('attributes', {})
+
+        # Save the object to the database.
         obj = super(NetworkUpdateSerializer, self).update(
             instance, validated_data
         )
+
+        # Populate the related fields and save the object, allowing any
+        # validation errors to raise before saving.
         obj.set_attributes(attributes)
         obj.save()
+
+        return obj
+
+
+###########
+# Interface
+###########
+class InterfaceSerializer(NsotSerializer):
+    """Used for GET, DELETE on Interfaces."""
+    class Meta:
+        model = models.Interface
+
+
+class InterfaceCreateSerializer(InterfaceSerializer):
+    """Used for POST on Interfaces."""
+    attributes = JSONDictField(required=False)
+    addresses = JSONListField(required=False)
+    mac_address = fields.CharField(
+        required=False,
+        label=get_field_attr(models.Interface, 'mac_address', 'verbose_name'),
+        help_text=get_field_attr(models.Interface, 'mac_address', 'help_text'),
+    )
+
+    class Meta:
+        model = models.Interface
+        fields = ('device', 'name', 'description', 'type', 'mac_address',
+                  'speed', 'parent', 'addresses', 'attributes')
+
+    def create(self, validated_data):
+        log.debug('InterfaceCreateSerializer.create() validated_data = %r',
+                  validated_data)
+
+        # Remove the related fields before we write the object
+        attributes = validated_data.pop('attributes', {})
+        addresses = validated_data.pop('addresses', [])
+
+        # Forcefully set the Site for this object to that of the parent Device.
+        validated_data['site'] = validated_data['device'].site
+
+        # Save the base object to the database.
+        obj = super(InterfaceCreateSerializer, self).create(validated_data)
+
+        # Try to populate the related fields and if there are any validation
+        # problems, delete the object and re-raise the error. If not, save the
+        # changes.
+        try:
+            obj.set_attributes(attributes)
+            obj.set_addresses(addresses)
+        except exc.ValidationError:
+            obj.delete()
+            raise
+        else:
+            obj.save()
+
+        return obj
+
+
+class InterfaceUpdateSerializer(InterfaceCreateSerializer):
+    "Used for PUT, PATCH on Interfaces."""
+    class Meta:
+        model = models.Interface
+        fields = ('name', 'description', 'type', 'mac_address', 'speed',
+                  'parent', 'addresses', 'attributes')
+
+    def update(self, instance, validated_data):
+        log.debug('InterfaceUpdateSerializer.update() validated_data = %r',
+                  validated_data)
+
+        # Remove related fields before we write the object
+        attributes = validated_data.pop('attributes', {})
+        addresses = validated_data.pop('addresses', [])
+
+        # Save the object to the database.
+        obj = super(InterfaceUpdateSerializer, self).update(
+            instance, validated_data
+        )
+
+        # Populate the related fields and save the object, allowing any
+        # validation errors to raise before saving.
+        obj.set_attributes(attributes)
+        obj.set_addresses(addresses, overwrite=True)
+        obj.save()
+
         return obj
 
 

@@ -257,3 +257,38 @@ def test_deletion(site, client):
 
     # Delete Device 1 w/ Attribute
     assert_deleted(client.delete(dev1_obj_uri))
+
+
+def test_detail_routes(site, client):
+    """Test detail routes for Devices."""
+    ifc_uri = site.list_uri('interface')
+    dev_uri = site.list_uri('device')
+
+    dev1_resp = client.create(dev_uri, hostname='foo-bar1')
+    dev1 = dev1_resp.json()['data']['device']
+
+    # Create Interfaces
+    dev1_eth0_resp = client.create(ifc_uri, device=dev1['id'], name='eth0')
+    dev1_eth0 = dev1_eth0_resp.json()['data']['interface']
+    dev1_eth0_uri = site.detail_uri('interface', id=dev1_eth0['id'])
+
+    dev1_eth1_resp = client.create(
+        ifc_uri, device=dev1['id'], name='eth1', parent=dev1_eth0['id']
+    )
+    dev1_eth1 = dev1_eth1_resp.json()['data']['interface']
+    dev1_eth1_uri = site.detail_uri('interface', id=dev1_eth1['id'])
+
+    # Fetch the Interface objects
+    interfaces_resp = client.get(ifc_uri)
+    interfaces_out = interfaces_resp.json()['data']
+    interfaces = interfaces_out['interfaces']
+
+    # Verify Device.interfaces
+    ifaces_uri = reverse('device-interfaces', args=(site.id, dev1['id']))
+    expected = {
+        'total': len(interfaces),
+        'limit': None,
+        'offset': 0,
+        'interfaces': interfaces,
+    }
+    assert_success(client.retrieve(ifaces_uri), expected)

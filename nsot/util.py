@@ -4,6 +4,7 @@ Project-wide utilities.
 
 import collections
 from cryptography.fernet import Fernet
+from django.core.exceptions import FieldDoesNotExist
 import logging
 from logan.runner import run_app, configure_app
 
@@ -26,6 +27,17 @@ def normalize_auth_header(header):
 def generate_secret_key():
     """Return a secret key suitable for use w/ Fernet."""
     return Fernet.generate_key()
+
+
+def get_field_attr(model, field_name, attr):
+    """Return the specified field for a model field"""
+    try:
+        field_data = model._meta.get_field_by_name(field_name)
+    except FieldDoesNotExist:
+        return ''
+    else:
+        field, model, direct, m2m = field_data
+        return getattr(field, attr, '')
 
 
 #: Namedtuple for resultant items from ``parse_set_query()``

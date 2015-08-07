@@ -158,9 +158,24 @@ def filter_devices(devices, wanted):
         list of Device dicts
 
     :param wanted:
-        list of cidrs you want
+        list of hostnames you want
     """
     return [d for d in devices if d['hostname'] in wanted]
+
+
+def filter_interfaces(interfaces, wanted):
+    """
+    Return a list of desired Interface objects.
+
+    :param interfaces:
+        list of Interface dicts
+
+    :param name:
+        # list of interface objects you want
+        list of interface ids you want
+    """
+    # return [i for i in interfaces if i['id'] in wanted]
+    return [i for i in interfaces if i in wanted]
 
 
 def filter_networks(networks, wanted):

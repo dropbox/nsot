@@ -2,8 +2,12 @@
 Django settings for nsot project using Django 1.8.
 """
 
+
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
+import macaddress
+from netaddr import eui
 import os
+import re
 
 # Path where the code is found. (aka project root)
 BASE_DIR = os.path.normpath(os.path.join(os.path.dirname(__file__), os.pardir))
@@ -139,10 +143,15 @@ TEMPLATES = [
 # Settings for Django REST Framework (DRF)
 REST_FRAMEWORK = {
     'DEFAULT_FILTER_BACKENDS': ('rest_framework.filters.DjangoFilterBackend',),
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+        'rest_framework.renderers.BrowsableAPIRenderer',
+        # 'rest_framework.renderers.AdminRenderer',
+    ],
+    'DEFAULT_PAGINATION_CLASS': 'nsot.api.pagination.CustomPagination',
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAdminUser',
     ),
-    'DEFAULT_PAGINATION_CLASS': 'nsot.api.pagination.CustomPagination',
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'nsot.api.auth.AuthTokenAuthentication',
         'nsot.api.auth.EmailHeaderAuthentication',
@@ -280,3 +289,60 @@ LOGGING = {
         },
     }
 }
+
+##############
+# Attributes #
+##############
+
+# Acceptable regex pattern for naming Attribute objects.
+ATTRIBUTE_NAME = re.compile(r"^[a-z][a-z0-9_]*$")
+
+##############
+# Interfaces #
+##############
+
+# The default format for displaying MAC addresses. This defaults to
+# ":"-separated and expanded (e.g. '00:00:00:00:00:00')
+MACADDRESS_DEFAULT_DIALECT = 'macaddress.mac_linux'
+
+# The default speed in Mbps for newly device interfaces if not otherwise
+# specified.
+INTERFACE_DEFAULT_SPEED = 1000  # In Mbps (e.g. 1Gbps)
+
+# Default MAC address ('00:00:00:00:00:00')
+INTERFACE_DEFAULT_MAC = eui.EUI(0, dialect=macaddress.default_dialect())
+
+# These are mappings to the formal integer types from SNMP IF-MIB::ifType. The
+# types listed here are the most commonly found in the wild.
+#
+# *IF YOU ARE GOING TO MODIFY THIS*: This MUST be a list of 2-tuples of (iftype,
+# name), where iftype is the unique ID for the IANA ifType SNMP MIB, and name is
+# whatever name your little heart desires, but hopefully matches the legit
+# description according to the MIB.
+#
+# Ref: https://www.iana.org/assignments/ianaiftype-mib/ianaiftype-mib
+INTERFACE_TYPE_CHOICES = (
+    (6, 'ethernet'),
+    (1, 'other'),
+    (135, 'l2vlan'),
+    (136, 'l3vlan'),
+    (161, 'lag'),
+    (24, 'loopback'),
+    (150, 'mpls'),
+    (131, 'tunnel'),
+)
+
+INTERFACE_DEFAULT_TYPE = 6  # ethernet
+
+############
+# Networks #
+############
+
+# How long is an interconnect? (aka a point-to-point link)
+NETWORK_INTERCONNECT_PREFIXLEN = 31
+
+# CIDR prefix lengths for host addresses
+HOST_PREFIXES = (32, 128)
+
+# Valid IP versions
+IP_VERSIONS = ('4', '6')

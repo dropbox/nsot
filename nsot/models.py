@@ -10,24 +10,26 @@ from django.conf import settings
 from django.core.exceptions import (ValidationError as DjangoValidationError,
                                     ObjectDoesNotExist)
 from django.core.validators import EmailValidator
-from django_extensions.db.fields.json import JSONField
 import ipaddress
 import json
 import logging
 from operator import attrgetter
-from polymorphic import PolymorphicModel
+from polymorphic import PolymorphicModel, PolymorphicManager
+from polymorphic.query import PolymorphicQuerySet
 import re
 
-from . import constants
 from . import exc
 from . import fields
+from . import validators
 from .util import generate_secret_key, parse_set_query
 
 
 log = logging.getLogger(__name__)
 
+# These are constants that becuase they are tied directly to the underlying
+# objects are explicitly NOT USER CONFIGURABLE.
 RESOURCE_BY_IDX = (
-    'Site', 'Network', 'Attribute', 'Permission', 'Device'
+    'Site', 'Network', 'Attribute', 'Permission', 'Device', 'Interface'
 )
 RESOURCE_BY_NAME = {
     obj_type: idx
@@ -35,15 +37,21 @@ RESOURCE_BY_NAME = {
 }
 
 CHANGE_EVENTS = ('Create', 'Update', 'Delete')
-IP_VERSIONS = ('4', '6')
-
 
 VALID_CHANGE_RESOURCES = set(RESOURCE_BY_IDX)
 VALID_ATTRIBUTE_RESOURCES = set([
-    'Network', 'Device',
+    'Network', 'Device', 'Interface'
 ])
 
-ATTRIBUTE_RESOURCES = ('Network', 'Device')
+# Lists of 2-tuples of (value, option) for displaying choices in certain model
+# serializer/form fields.
+CHANGE_RESOURCE_CHOICES = [(c, c) for c in VALID_CHANGE_RESOURCES]
+EVENT_CHOICES = [(c, c) for c in CHANGE_EVENTS]
+IP_VERSION_CHOICES = [(c, c) for c in settings.IP_VERSIONS]
+RESOURCE_CHOICES = [(c, c) for c in VALID_ATTRIBUTE_RESOURCES]
+
+# Unique interface type IDs.
+INTERFACE_TYPES = [t[0] for t in settings.INTERFACE_TYPE_CHOICES]
 
 
 class Site(models.Model):
@@ -55,11 +63,7 @@ class Site(models.Model):
         return self.name
 
     def clean_name(self, value):
-        if not value:
-            raise exc.ValidationError({
-                'name': 'This is a required field.'
-            })
-        return value
+        return validators.validate_name(value)
 
     def clean_fields(self, exclude=None):
         self.name = self.clean_name(self.name)
@@ -191,7 +195,7 @@ class User(AbstractEmailUser):
         return dict(out)
 
 
-class ResourceSetTheoryQuerySet(models.QuerySet):
+class ResourceSetTheoryQuerySet(PolymorphicQuerySet):
     """
     Set theory QuerySet for Resource objects to add ``.set_query()`` method.
 
@@ -252,7 +256,7 @@ class ResourceSetTheoryQuerySet(models.QuerySet):
         return objects.distinct()
 
 
-class ResourceManager(models.Manager):
+class ResourceManager(PolymorphicManager):
     """
     Manager for Resource objects that adds a ``.set_query()`` method.
 
@@ -261,8 +265,7 @@ class ResourceManager(models.Manager):
         >>> Network.objects.set_query('owner=jathan +metro=lax'}
         [<Device: foo-bar1>]
     """
-    def get_queryset(self, *args, **kwargs):
-        return ResourceSetTheoryQuerySet(self.model, using=self._db)
+    queryset_class = ResourceSetTheoryQuerySet
 
     def set_query(self, query, site_id=None):
         try:
@@ -278,7 +281,7 @@ class Resource(PolymorphicModel):
         'self', blank=True, null=True, related_name='children', default=None,
         on_delete=models.PROTECT
     )
-    _attributes = JSONField(null=False, blank=True)
+    _attributes = fields.JSONField(null=False, blank=True)
 
     def __init__(self, *args, **kwargs):
         self._set_attributes = kwargs.pop('attributes', None)
@@ -370,7 +373,7 @@ class Resource(PolymorphicModel):
         self._attributes = self.clean_attributes()
 
     def save(self, *args, **kwargs):
-        is_new = self.id is None  # Check if this is a new object.
+        self._is_new = self.id is None  # Check if this is a new object.
         # self.full_clean()
         super(Resource, self).save(*args, **kwargs)
 
@@ -384,7 +387,7 @@ class Resource(PolymorphicModel):
             except exc.ValidationError:
                 # If attributes fail validation, and I'm a new object, delete
                 # myself and re-raise the error.
-                if is_new:
+                if self._is_new:
                     self.delete()
                 raise
 
@@ -426,10 +429,20 @@ class Device(Resource):
         }
 
 
+class NetworkManager(ResourceManager):
+    """Manager for NetworkInterface objects."""
+    def get_by_address(self, cidr):
+        """Lookup a Network object by ``cidr``."""
+        cidr = validators.validate_cidr(cidr)
+        address = Network.objects.get(
+            network_address=cidr.network_address,
+            prefix_length=cidr.prefixlen
+        )
+        return address
+
+
 class Network(Resource):
     """Represents a subnet or ip address."""
-    IP_VERSION_CHOICES = [(c, c) for c in IP_VERSIONS]
-
     network_address = fields.BinaryIPAddressField(
         max_length=16, null=False, db_index=True
     )
@@ -445,6 +458,9 @@ class Network(Resource):
     site = models.ForeignKey(
         Site, db_index=True, related_name='networks', on_delete=models.PROTECT
     )
+
+    # Implements .objects.get_by_address()
+    objects = NetworkManager()
 
     def __init__(self, *args, **kwargs):
         self._cidr = kwargs.pop('cidr', None)
@@ -551,6 +567,10 @@ class Network(Resource):
         subnets = cidr.subnets(new_prefix=prefix_length)
         children = self.get_children()
 
+        # FIXME(jathan): This can potentially be very slow if the gap between
+        # parent and child networks is large, say, on the order of /8.
+        # Something to keep in mind if it comes up in practical application,
+        # especially with IPv6 networks, which is still not heavily tested.
         wanted = []
         children_seen = []
         while len(wanted) < num:
@@ -565,12 +585,15 @@ class Network(Resource):
             if next_subnet == cidr:
                 continue
 
-            # Never return 1st/last addresses if prefix is for an address
-            if (next_subnet.prefixlen in (32, 128) and
+            # Never return 1st/last addresses if prefix is for an address,
+            # unless it's an interconnect (aka point-to-point).
+            if cidr.prefixlen == settings.NETWORK_INTERCONNECT_PREFIXLEN:
+                pass
+            elif (next_subnet.prefixlen in settings.HOST_PREFIXES and
                     (next_subnet.network_address == cidr.network_address or
                         next_subnet.broadcast_address ==
                         cidr.broadcast_address)):
-                    continue
+                continue
 
             # Iterate the children and if we make it to the end, we've found a
             # keeper!
@@ -707,7 +730,13 @@ class Network(Resource):
             raise exc.ValidationError(msg)
 
         # Determine network properties
-        network = cidr
+        network = cidr  # In-case we're not a unicode string.
+
+        # Convert to unicode in case it's bytes.
+        if isinstance(cidr, basestring):
+            cidr = unicode(cidr)
+
+        # Convert a unicode string to an IPNetwork.
         if isinstance(cidr, unicode):
             try:
                 network = ipaddress.ip_network(cidr)
@@ -759,11 +788,345 @@ class Network(Resource):
         }
 
 
+class Interface(Resource):
+    """A network interface."""
+    # if_name
+    # SNMP: ifName
+    # if_description
+    # SNMP: ifDescr
+    name = models.CharField(
+        max_length=255, null=False, db_index=True,
+        help_text='The name of the interface as it appears on the device.'
+    )
+
+    # if_addr
+    # Should this instead be a 1-to-1 to a Network object /32 or /128?
+    # address = fields.BinaryIPAddressField(max_length=16, db_index=True)
+    addresses = models.ManyToManyField(
+        Network, db_index=True, related_name='addresses', through='Assignment'
+    )
+
+    # if_alias - String of interface description
+    # SNMP: ifAlias
+    description = models.CharField(
+        max_length=255, default='', blank=True, null=False
+    )
+
+    # server_id
+    device = models.ForeignKey(
+        Device, db_index=True, related_name='interfaces', null=False
+    )
+
+    # if_type - Integer of interface type id (Ethernet, LAG, etc.)
+    # SNMP: ifType
+    type = models.IntegerField(
+        'Interface Type', choices=settings.INTERFACE_TYPE_CHOICES,
+        default=settings.INTERFACE_DEFAULT_TYPE,
+        null=False, db_index=True,
+        help_text="If not provided, defaults to 'ethernet'."
+    )
+
+    # if_physical_address - Integer of hex MAC address
+    # SNMP: ifPhysAddress
+    mac_address = fields.MACAddressField(
+        'MAC Address', blank=True, db_index=True, null=True,
+        default=int(settings.INTERFACE_DEFAULT_MAC), help_text=(
+            'If not provided, defaults to %s.' %
+            settings.INTERFACE_DEFAULT_MAC
+        )
+    )
+
+    # if_speed - Should not be used. Caps at 4.3GB (2^32)
+    # SNMP: ifSpeed
+
+    # if_high_speed - Integer of Mbps of interface (e.g. 20000 for 20 Gbps)
+    # SNMP: ifHighSpeed
+    speed = models.IntegerField(
+        blank=True, db_index=True, default=settings.INTERFACE_DEFAULT_SPEED,
+        help_text=(
+            'Integer of Mbps of interface (e.g. 20000 for 20 Gbps). If not '
+            'provided, defaults to %d.' % settings.INTERFACE_DEFAULT_SPEED
+        )
+    )
+
+    # We are currently inferring the site_id from the parent Device both in the
+    # serializers for the API and in the .save() method to be doubly sure. We
+    # don't want to even care about the site_id for interfaces, but it
+    # simplifies managing them this way.
+    site = models.ForeignKey(
+        Site, db_index=True, related_name='interfaces',
+        on_delete=models.PROTECT
+    )
+
+    def __init__(self, *args, **kwargs):
+        self._set_addresses = kwargs.pop('addresses', None)
+        super(Interface, self).__init__(*args, **kwargs)
+
+    ##########################################
+    # THESE WILL BE IMPLEMENTED AS ATTRIBUTES
+    ##########################################
+
+    # Using the "indexing strategy" concept, which I think will be pluggable.
+    # if_index - Integer of SNMP interface index on device
+    # SNMP: ifIndex
+    # snmp_index
+
+    # if_parent_index
+    # snmp_parent_index
+
+    # LLDP adjacencies
+    # These should be deployed as attributes.
+    # lldp_remote_port_desc
+    # lldp_remote_system_name
+
+    def __unicode__(self):
+        return u'device=%s, name=%s' % (self.device.id, self.name)
+
+    class Meta:
+        unique_together = ('device', 'name')
+        index_together = unique_together
+
+    @property
+    def networks(self):
+        """Return all the parent Networks for my addresses."""
+        return Network.objects.filter(id=self.addresses.values_list('parent'))
+
+    def _purge_addresses(self):
+        """Delete all of my addresses (and therefore assignments)."""
+        self.addresses.all().delete()
+
+    def _purge_assignments(self):
+        """Delete all of my assignments, leaving the Network objects intact."""
+        self.assignments.all().delete()
+
+    def assign_address(self, cidr):
+        """
+        Assign an address to this interface.
+
+        Must have prefix of /32 (IPv4) or /128 (IPv6).
+
+        :param cidr:
+            IPv4/v6 CIDR host address or Network object
+        """
+        cidr = validators.validate_host_address(cidr)
+        try:
+            address = Network.objects.get_by_address(cidr)
+        except Network.DoesNotExist:
+            address = Network.objects.create(cidr=cidr, site=self.site)
+            created = True
+        else:
+            created = False
+
+        # If we've created a Network, and assignment fails, then we need to
+        # make sure that we delete that Network.
+        try:
+            return Assignment.objects.create(interface=self, address=address)
+        except exc.ValidationError:
+            # Clean up the address if we created one..
+            if created:
+                address.delete()
+            raise
+
+    def set_addresses(self, addresses, overwrite=False):
+        """
+        Explicitly assign a list of addresses to this Interface.
+
+        :param addresses:
+            A list of CIDRs
+
+        :param overwrite:
+            Whether to purge existing assignments before assigning.
+        """
+        log.debug(
+            'Interface.set_addresses() addresses = %r', addresses
+        )
+
+        if not isinstance(addresses, list):
+            raise exc.ValidationError(
+                'Expected list but received {}'.format(type(addresses))
+            )
+
+        if overwrite:
+            self._purge_assignments()
+
+        # Keep track of addresses that are already assigned so we don't try to
+        # assign them again (which would result in an error).
+        existing_addresses = self.get_addresses()
+
+        inserts = []
+        for cidr in addresses:
+            # Don't assign an address that already exists.
+            if cidr in existing_addresses:
+                continue
+
+            address = validators.validate_cidr(cidr)
+            inserts.append(str(address))
+
+        for insert in inserts:
+            self.assign_address(insert)
+
+    def get_assignments(self):
+        """Return a list of informatoin about my assigned addresses."""
+        return [a.to_dict() for a in self.assignments.all()]
+
+    def get_addresses(self):
+        """Return a list of assigned addresses."""
+        return [a.cidr for a in self.addresses.all()]
+
+    def get_networks(self):
+        """Return a list of attached Networks."""
+        return [n.cidr for n in self.networks]
+
+    def get_device_site(self):
+        """Return the Site for my Device."""
+        return Device.objects.get(id=self.device_id).site
+
+    def clean_name(self, value):
+        """Enforce name."""
+        return validators.validate_name(value)
+
+    def clean_site(self, value):
+        """Always enforce that site is set."""
+        if value is None:
+            value = self.get_device_site().id  # Use Device's site_id.
+        return value
+
+    def clean_speed(self, value):
+        """Enforce valid speed."""
+        # We don't want floats because they can be misleading, also Django's
+        # IntegerField will cast a float to an int, which loses precision.
+        # TODO (jathan): Reconsider this as a float? Maybe? We might not care
+        # about things like 1.544 (T1) anymore...
+        if isinstance(value, float):
+            raise exc.ValidationError({
+                'speed': 'Speed must be an integer.'
+            })
+
+        try:
+            value = int(value)
+        except ValueError:
+            raise exc.ValidationError({
+                'speed': 'Invalid speed: %r' % value
+            })
+        else:
+            return value
+
+    def clean_type(self, value):
+        """Enforce valid type."""
+        if value not in INTERFACE_TYPES:
+            raise exc.ValidationError({
+                'type': 'Invalid type: %r' % value
+            })
+
+        return value
+
+    def clean_mac_address(self, value):
+        try:
+            validators.validate_mac_address(value)
+        except DjangoValidationError as err:
+            raise exc.ValidationError({
+                'mac_address': err.message
+            })
+        return value
+
+    def full_clean(self, exclude=None):
+        self.site_id = self.clean_site(self.site_id)
+        self.name = self.clean_name(self.name)
+        self.type = self.clean_type(self.type)
+        self.speed = self.clean_speed(self.speed)
+        self.mac_address = self.clean_mac_address(self.mac_address)
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super(Interface, self).save(*args, **kwargs)
+
+        # This is so that we can set the addresses on create/update, but if
+        # the object is new, make sure that it doesn't persist if addresses
+        # fail.
+        if self._set_addresses is not None:
+            try:
+                # And set the attributes (if any)
+                self.set_addresses(self._set_addresses)
+            except exc.ValidationError:
+                # If addresses fail validation, and I'm a new object, delete
+                # myself and re-raise the error.
+                if self._is_new:  # This is set by Resource.save()
+                    self.delete()
+                raise
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'parent_id': self.parent_id,
+            # 'site_id': self.site_id,  # We're relying on Device's site.
+            'name': self.name,
+            'device_id': self.device_id,
+            'description': self.description,
+            'addresses': self.get_addresses(),
+            'networks': self.get_networks(),
+            'mac_address': str(self.mac_address),
+            'speed': self.speed,
+            'type': self.type,
+            'attributes': self.get_attributes(),
+        }
+
+
+class Assignment(models.Model):
+    """
+    DB object for assignment of addresses to interfaces (on devices).
+
+    This is used to enforce constraints at the relationship level for addition
+    of new address assignments.
+    """
+    address = models.ForeignKey(
+        Network, related_name='assignments', db_index=True
+    )
+    interface = models.ForeignKey(
+        Interface, related_name='assignments', db_index=True
+    )
+    created = models.DateTimeField(auto_now_add=True)
+
+    def __unicode__(self):
+        return u'interface=%s, address=%s' % (self.interface, self.address)
+
+    class Meta:
+        unique_together = ('address', 'interface')
+        index_together = unique_together
+
+    def clean_address(self, value):
+        """Enforce that new addresses can only be host addresses."""
+        addr = validators.validate_host_address(value)
+
+        # Enforce uniqueness upon assignment.
+        existing = Assignment.objects.filter(address=addr)
+        if existing.filter(interface__device=self.interface.device).exists():
+            raise exc.ValidationError({
+                'address': 'Address already assigned to this Device.'
+            })
+
+        return value
+
+    def clean_fields(self, exclude=None):
+        self.clean_address(self.address)
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super(Assignment, self).save(*args, **kwargs)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'device': self.interface.device.id,
+            'interface': self.interface.id,
+            'address': self.address.cidr,
+        }
+
+
 def validate_name(value):
     if not value:
         raise exc.ValidationError("Name is a required field.")
 
-    if not constants.ATTRIBUTE_NAME.match(value):
+    if not settings.ATTRIBUTE_NAME.match(value):
         raise exc.ValidationError("Invalid name.")
 
     return value or False
@@ -773,7 +1136,9 @@ class Attribute(models.Model):
     """Represents a flexible attribute for Resource objects."""
     # This is purposely not unique as there is a compound index with site_id.
     name = models.CharField(max_length=64, null=False, db_index=True)
-    description = models.CharField(max_length=255, default='', null=False)
+    description = models.CharField(
+        max_length=255, default='', blank=True, null=False
+    )
 
     # The resource must contain a key and value
     required = models.BooleanField(default=False, null=False)
@@ -785,14 +1150,12 @@ class Attribute(models.Model):
     # Attribute values are expected as lists of strings.
     multi = models.BooleanField(default=False, null=False)
 
-    constraints = JSONField(null=False, blank=True)
+    constraints = fields.JSONField(null=False, blank=True)
 
     site = models.ForeignKey(
         Site, db_index=True, related_name='attributes',
         on_delete=models.PROTECT
     )
-
-    RESOURCE_CHOICES = [(c, c) for c in ATTRIBUTE_RESOURCES]
 
     resource_name = models.CharField(
         'Resource Name', max_length=20, null=False, db_index=True,
@@ -866,14 +1229,11 @@ class Attribute(models.Model):
         return value
 
     def clean_name(self, value):
-        if not value:
-            raise exc.ValidationError({
-                'name': 'This field is required.'
-            })
+        value = validators.validate_name(value)
 
-        if not constants.ATTRIBUTE_NAME.match(value):
+        if not settings.ATTRIBUTE_NAME.match(value):
             raise exc.ValidationError({
-                'name': 'Invalid name.'
+                'name': 'Invalid name: %r.' % value
             })
 
         return value or False
@@ -1010,9 +1370,6 @@ class Value(models.Model):
 
 class Change(models.Model):
     """Record of all changes in NSoT."""
-    EVENT_CHOICES = [(c, c) for c in CHANGE_EVENTS]
-    RESOURCE_CHOICES = [(c, c) for c in VALID_CHANGE_RESOURCES]
-
     site = models.ForeignKey(Site, db_index=True, related_name='changes')
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, related_name='changes', db_index=True
@@ -1024,9 +1381,9 @@ class Change(models.Model):
     resource_id = models.IntegerField('Resource ID', null=False)
     resource_name = models.CharField(
         'Resource Type', max_length=20, null=False, db_index=True,
-        choices=RESOURCE_CHOICES
+        choices=CHANGE_RESOURCE_CHOICES
     )
-    _resource = JSONField('Resource', null=False, blank=True)
+    _resource = fields.JSONField('Resource', null=False, blank=True)
 
     def __init__(self, *args, **kwargs):
         self._obj = kwargs.pop('obj', None)
