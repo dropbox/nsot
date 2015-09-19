@@ -60,3 +60,12 @@ All Create/Update/Delete events are logged as a Change. A Change includes
 information such as the change time, user, and the full resource after
 modification. Changes are immutable and can only be removed by deleting
 the entire Site.
+
+REST Hooks
+----------
+
+Any resource that logs **C**\R\ **UD** events as a Change has an event that can
+be subscribed to.
+
+Hooks are a way to tell NSoT to POST to a URL as events happen. More
+information on managing them is under the API docs.

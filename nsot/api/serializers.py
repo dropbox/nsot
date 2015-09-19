@@ -3,6 +3,8 @@ from __future__ import unicode_literals
 import ast
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.forms.models import model_to_dict
+from django.db import IntegrityError
 from collections import OrderedDict
 import json
 import logging
@@ -11,7 +13,7 @@ from rest_framework import fields, serializers
 from . import auth
 from .. import exc
 from .. import models
-
+from rest_hooks.models import Hook
 
 log = logging.getLogger(__name__)
 
@@ -296,3 +298,37 @@ class AuthTokenSerializer(serializers.Serializer):
         else:
             msg = 'Must include "email" and "secret_key"'
             raise exc.ValidationError(msg)
+
+
+#######
+# Hooks
+#######
+
+class HookSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Hook
+
+    def to_representation(self, obj):
+        """Explicitly ensure Hook serializes with all its fields"""
+        rep = model_to_dict(obj)  # This doesn't include 'auto_now' fields
+        rep['created'] = str(obj.created)
+        rep['updated'] = str(obj.updated)
+
+        return rep
+
+
+class HookCreateUpdateSerializer(HookSerializer):
+    class Meta:
+        model = Hook
+        fields = ('event', 'target', 'global_hook')
+
+    def create(self, validated_data):
+        """Explicitly include the logged-in user"""
+        ModelClass = self.Meta.model
+        validated_data['user'] = self.context['request'].user
+        try:
+            obj = ModelClass.objects.create(**validated_data)
+        except IntegrityError:
+            raise exc.ValidationError('Hook must be unique.')
+        return obj

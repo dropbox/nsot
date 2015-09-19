@@ -110,3 +110,66 @@ An example response for querying the ``sites`` endpoint might look like:
         }
     }
 
+Hooks
+-----
+
+As described in the intro, hooks are a way to subscribe to the events of
+resource types. This can let you write applications that rely on NSoT without
+needing to pull the entire list of resources all the time.
+
+* To create hooks: ``POST /api/hooks/``
+* To update hooks: ``PUT /api/hooks/[id]``
+* To delete hooks: ``PUT /api/hooks/[id]``
+
+Payload for creating and updating:
+
+.. code:: json
+
+   {
+       "event": "device.create",
+       "target": "http://url/to/post/to",
+       "global_hook": true
+   }
+
+
++-------------+-------------------------------------------------------------+
+| event       | Event to subscribe to                                       |
++-------------+-------------------------------------------------------------+
+| target      | Location to update everytime the chosen event happens       |
++-------------+-------------------------------------------------------------+
+| global_hook | Bool. Global hooks ensure every change is posted regardless |
+|             | of which user did it                                        |
++-------------+-------------------------------------------------------------+
+
+Events
+~~~~~~
+
+Events are in the form of ``[resource].[action]``, lowercased. For example::
+
+* device.create
+* device.update
+* device.delete
+* network.create
+* site.create
+
+POST Format
+~~~~~~~~~~~
+
+The format of the payload to ``POST`` to ``target``:
+
+.. code:: json
+
+    {
+        "hook": {
+            "target": "http://localhost:8991",
+            "id": 5,
+            "event": "device.update"
+        },
+        "data": {
+            "attributes": {},
+            "hostname": "updated.example.com",
+            "site_id": 1,
+            "id": 10
+        }
+    }
+

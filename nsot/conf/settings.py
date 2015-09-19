@@ -4,6 +4,9 @@ Django settings for nsot project using Django 1.8.
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
+from nsot.version import __version__
+
+NSOT_VERSION = __version__
 
 # Path where the code is found. (aka project root)
 BASE_DIR = os.path.normpath(os.path.join(os.path.dirname(__file__), os.pardir))
@@ -36,6 +39,7 @@ INSTALLED_APPS = (
     'rest_framework_swagger',
     'custom_user',
     'nsot',
+    'rest_hooks',
 )
 
 # The model to use to represent a User.
@@ -71,15 +75,12 @@ ROOT_URLCONF = 'nsot.conf.urls'
 # servers (e.g. runserver) will use.
 WSGI_APPLICATION = 'nsot.wsgi.application'
 
-# When set to True, if the request URL does not match any of the patterns in the
-# URLconf and it doesn't end in a slash, an HTTP redirect is issued to the same
-# URL with a slash appended. Note that the redirect may cause any data submitted
-# in a POST request to be lost.
+# When set to True, if the request URL does not match any of the patterns in
+# the URLconf and it doesn't end in a slash, an HTTP redirect is issued to the
+# same URL with a slash appended. Note that the redirect may cause any data
+# submitted in a POST request to be lost.
 # Default: True
 APPEND_SLASH = True
-
-from nsot.version import __version__
-NSOT_VERSION = __version__
 
 # Template loaders. The NSoT web UI is written in Angular.js using Jinja2
 # templates.
@@ -116,7 +117,7 @@ TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
         'DIRS': [
-            os.path.join(BASE_DIR, 'templates').replace('\\','/'),
+            os.path.join(BASE_DIR, 'templates').replace('\\', '/'),
         ],
         'APP_DIRS': True,
         'OPTIONS': {
@@ -190,11 +191,11 @@ USER_AUTH_HEADER = 'X-NSoT-Email'
 # Default: 600
 AUTH_TOKEN_EXPIRY = 600  # 10 minutes
 
-# A list of strings representing the host/domain names that this Django site can
-# serve. This is a security measure to prevent an attacker from poisoning caches
-# and triggering password reset emails with links to malicious hosts by
-# submitting requests with a fake HTTP Host header, which is possible even under
-# many seemingly-safe web server configurations.
+# A list of strings representing the host/domain names that this Django site
+# can serve. This is a security measure to prevent an attacker from poisoning
+# caches and triggering password reset emails with links to malicious hosts by
+# submitting requests with a fake HTTP Host header, which is possible even
+# under many seemingly-safe web server configurations.
 # https://docs.djangoproject.com/en/1.8/ref/settings/#allowed-hosts
 ALLOWED_HOSTS = ['*']
 
@@ -239,7 +240,7 @@ STATIC_ROOT = os.path.realpath(os.path.join(BASE_DIR, 'staticfiles'))
 
 SWAGGER_SETTINGS = {
     'exclude_namespaces': ['.*', 'attribute_types'],
-    #'api_version': __version__,
+    # 'api_version': __version__,
 }
 
 
@@ -251,24 +252,24 @@ LOGGING = {
     'disable_existing_loggers': False,
     'formatters': {
         'verbose': {
-            'format' : "%(asctime)s %(levelname)s [%(name)s:%(lineno)s] %(message)s",
-            'datefmt' : "%d/%b/%Y %H:%M:%S"
+            'format': "%(asctime)s %(levelname)s [%(name)s:%(lineno)s] %(message)s",
+            'datefmt': "%d/%b/%Y %H:%M:%S"
         },
         'simple': {
             'format': '%(levelname)s %(message)s'
         },
     },
     'handlers': {
-        'console':{
+        'console': {
             'level': 'DEBUG',
             'class': 'logging.StreamHandler',
         },
     },
     'loggers': {
         'django.request': {
-            'handlers':['console'],
+            'handlers': ['console'],
             'propagate': True,
-            'level':'ERROR',
+            'level': 'ERROR',
         },
         'nsot': {
             'handlers': ['console'],
@@ -280,3 +281,34 @@ LOGGING = {
         },
     }
 }
+
+##############
+# REST Hooks #
+##############
+
+# HOOK_EVENTS must be dict where keys are the event names users expect to
+# subscribe to and the value is the metadata pointing to the actual Django
+# event. eg, models.Site.created.
+#
+# Custom hooks, however, must have value of none and use hook_event.send()
+# within a method on the desired model to say "Hi this is event x"
+#
+# Custom Hooks below are backed by Change object because it is a source of
+# truth for all CRUD.
+#
+# To add new events, add a new item in this list resource_name.action
+CUSTOM_HOOK_LIST = [
+    'site.create',
+    'site.update',
+    'site.delete',
+    'network.create',
+    'network.update',
+    'network.delete',
+    'device.create',
+    'device.update',
+    'device.delete',
+]
+CUSTOM_HOOK_EVENTS = dict(zip(CUSTOM_HOOK_LIST, [None]*len(CUSTOM_HOOK_LIST)))
+NORMAL_HOOK_EVENTS = {}
+HOOK_EVENTS = CUSTOM_HOOK_EVENTS.copy()
+HOOK_EVENTS.update(NORMAL_HOOK_EVENTS)

@@ -32,6 +32,9 @@ router.register(r'networks', views.NetworkViewSet)
 router.register(r'users', views.UserViewSet)
 router.register(r'values', views.ValueViewSet)
 
+# REST Hooks views
+router.register(r'hooks', views.HookViewSet)
+
 # Wire up our API using automatic URL routing.
 # Additionally, we include login URLs for the browsable API.
 urlpatterns = [
