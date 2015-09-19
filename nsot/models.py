@@ -11,6 +11,7 @@ from django.core.exceptions import (ValidationError as DjangoValidationError,
                                     ObjectDoesNotExist)
 from django.core.validators import EmailValidator
 from django_extensions.db.fields.json import JSONField
+from rest_hooks.signals import raw_hook_event
 import ipaddress
 import json
 import logging
@@ -1083,6 +1084,7 @@ class Change(models.Model):
     def save(self, *args, **kwargs):
         self.full_clean()  # First validate fields are correct
         super(Change, self).save(*args, **kwargs)
+        self.send_hook()  # .save() doesn't return anything, this is fine
 
     def to_dict(self):
         resource = None
@@ -1099,3 +1101,19 @@ class Change(models.Model):
             'resource_id': self.resource_id,
             'resource': resource,
         }
+
+    def send_hook(self):
+        '''Send hook signal for each change at resource_name.event
+
+        As long as a resource creates a Change record for each CRUD, this will
+        work without anything extra. Just add the hook to be registered in
+        settings.py
+        '''
+        raw_hook_event.send(
+            sender=None,
+            event_name='%s.%s' % (
+                self.resource_name.lower(), self.event.lower()
+            ),
+            payload=self.resource,
+            user=self.user,
+        )

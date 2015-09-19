@@ -12,6 +12,7 @@ from rest_framework.views import APIView
 from rest_framework.decorators import detail_route, list_route
 from rest_framework.response import Response
 from rest_framework_bulk import mixins as bulk_mixins
+from rest_hooks.models import Hook
 
 from . import auth
 from . import serializers
@@ -74,22 +75,26 @@ class BaseNsotViewSet(viewsets.ReadOnlyModelViewSet):
 
     def create(self, request, *args, **kwargs):
         """Return objects that have just been created."""
-        response = super(BaseNsotViewSet, self).create(request, *args, **kwargs)
+        response = super(BaseNsotViewSet, self) \
+            .create(request, *args, **kwargs)
         return self.success(
-            response.data, status=response.status_code, headers=dict(response.items()),
+            response.data,
+            status=response.status_code,
+            headers=dict(response.items()),
         )
 
     def update(self, request, *args, **kwargs):
         """Return objects that have just been updated."""
-        response = super(BaseNsotViewSet, self).update(request, *args, **kwargs)
+        response = super(BaseNsotViewSet, self) \
+            .update(request, *args, **kwargs)
         return self.success(response.data)
 
     def list(self, request, site_pk=None, queryset=None, *args, **kwargs):
         """List objects optionally filtered by site."""
         if queryset is None:
             queryset = self.filter_queryset(self.get_queryset())
-            # Query by site_pk if it's set (.e.g /site/1/:foo) and make sure any
-            # filtering args are passed.
+            # Query by site_pk if it's set (.e.g /site/1/:foo) and make sure
+            # any filtering args are passed.
             if site_pk is not None:
                 queryset = queryset.filter(site=site_pk)
 
@@ -345,7 +350,8 @@ class NetworkViewSet(ResourceViewSet):
         if root_only:
             networks = networks.filter(parent=None)
 
-        # If cidr is provided, use it to populate network_address and prefix_length
+        # If cidr is provided, use it to populate network_address and
+        # prefix_length
         if cidr is not None:
             log.debug('got cidr: %s' % cidr)
             network_address, _, prefix_length = cidr.partition('/')
@@ -572,7 +578,7 @@ class UserViewSet(BaseNsotViewSet, mixins.CreateModelMixin):
         if user != request.user:
             raise exc.Forbidden(
                 "Can't access secret_key of user that isn't you."
-        )
+            )
 
         user.rotate_secret_key()
         return self.success(user.secret_key, 'secret_key')
@@ -620,3 +626,16 @@ class AuthTokenVerifyView(APIView):
                 ('data', True),
             ])
         )
+
+
+class HookViewSet(viewsets.ModelViewSet):
+    """
+    Retrieve, create, update, or destroy webooks
+    """
+    queryset = Hook.objects.all()
+    serializer_class = serializers.HookSerializer
+
+    def get_serializer_class(self):
+        if self.request.method in ('POST', 'PUT'):
+            return serializers.HookCreateUpdateSerializer
+        return self.serializer_class
