@@ -146,9 +146,30 @@ Events
 
 Events are in the form of ``[resource].[action]``, lowercased. For example::
 
-    device.create
-    device.update
-    device.delete
-    network.create
-    site.create
-    ...
+* device.create
+* device.update
+* device.delete
+* network.create
+* site.create
+
+POST Format
+~~~~~~~~~~~
+
+The format of the payload to ``POST`` to ``target``:
+
+.. code:: json
+
+    {
+        "hook": {
+            "target": "http://localhost:8991",
+            "id": 5,
+            "event": "device.update"
+        },
+        "data": {
+            "attributes": {},
+            "hostname": "updated.example.com",
+            "site_id": 1,
+            "id": 10
+        }
+    }
+
