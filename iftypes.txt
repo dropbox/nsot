@@ -1,0 +1,34 @@
+Distinct types
+
+mysql> select if_type, count(*) as num from ports group by if_type;
++---------+--------+
+| if_type | num    |
++---------+--------+
+|       1 |   4482 |
+|       6 | 178033 |
+|      24 |   2031 |
+|      53 |  20402 |
+|     131 |    875 |
+|     135 |     17 |
+|     136 |   1590 |
+|     150 |    175 |
+|     161 |   3918 |
++---------+--------+
+9 rows in set (0.15 sec)
+
+Type mappings
+
+These are mappings to the formal integer types from SNMP IF-MIB::ifType. The
+types listed here are the most commonly found in the wild.
+
+Ref: https://www.iana.org/assignments/ianaiftype-mib/ianaiftype-mib
+
+other(1),             -- none of the following
+ethernetCsmacd(6),    -- for all ethernet-like interfaces,
+                      -- regardless of speed, as per RFC3635
+softwareLoopback(24),
+tunnel (131),         -- Encapsulation interface
+l2vlan (135),         -- Layer 2 Virtual LAN using 802.1Q
+l3ipvlan (136),       -- Layer 3 Virtual LAN using IP
+mplsTunnel (150),     -- MPLS Tunnel Virtual Interface
+ieee8023adLag (161),  -- IEEE 802.3ad Link Aggregate

@@ -1,15 +1,20 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
-from base64 import b64decode, b64encode
 from django.db.backends.sqlite3.base import DatabaseWrapper
 from django.db import models
-from django.conf import settings
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils.datastructures import DictWrapper
-from django.utils.encoding import force_bytes
+from django_extensions.db.fields.json import JSONField
+from macaddress.fields import MACAddressField as BaseMACAddressField
 import ipaddress
 import logging
 import types
+
+from . import exc
+
+
+__all__ = ('BinaryIPAddressField', 'JSONField', 'MACAddressField')
 
 
 log = logging.getLogger(__name__)
@@ -22,8 +27,9 @@ if not hasattr(DatabaseWrapper, 'get_new_connection_is_patched'):
     Credit: http://stackoverflow.com/a/28794677/194311
     """
     _get_new_connection = DatabaseWrapper.get_new_connection
+
     def _get_new_connection_tolerant(self, conn_params):
-        conn = _get_new_connection( self, conn_params )
+        conn = _get_new_connection(self, conn_params)
         conn.text_factory = bytes
         return conn
 
@@ -58,3 +64,18 @@ class BinaryIPAddressField(models.Field):
     def get_db_prep_value(self, value, connection, prepared=False):
         """Python -> DB."""
         return ipaddress.ip_address(value).packed
+
+
+class MACAddressField(BaseMACAddressField):
+    """
+    Subclass of base field to raise a DRF ValidationError.
+
+    DRF handles Django's default ValidationError, but this is so that we can
+    always expect the DRF version, for better consistency in debugging and
+    testing.
+    """
+    def to_python(self, value):
+        try:
+            return super(MACAddressField, self).to_python(value)
+        except DjangoValidationError as err:
+            raise exc.ValidationError(err.message)

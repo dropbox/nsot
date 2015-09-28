@@ -26,7 +26,15 @@ def admin_user(django_user_model):
 
 @pytest.fixture
 def site():
+    """Create and return a Site object."""
     site = models.Site.objects.create(
         name='Test Site', description='This is a Test Site.'
     )
     return site
+
+
+@pytest.fixture
+def device(site):
+    """Create and return a Device object bound to ``site``."""
+    device = models.Device.objects.create(site=site, hostname='foo-bar1')
+    return device

@@ -3,6 +3,7 @@ staticfiles
 
 *.sqlite
 *.sqlite-journal
+*.sqlite3
 
 # Bower Components
 _bc

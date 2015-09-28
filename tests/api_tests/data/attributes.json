@@ -50,5 +50,21 @@
         "description": "Network VLAN.", 
         "name": "vlan", 
         "resource_name": "Network"
-    }
+    },
+    {
+        "constraints": {
+            "valid_values": [
+                "300", 
+                "400"
+            ]
+        }, 
+        "description": "Interface VLAN.", 
+        "name": "vlan", 
+        "resource_name": "Interface"
+    },
+    {
+        "description": "Interface scope.", 
+        "name": "scope", 
+        "resource_name": "Interface"
+    } 
 ]

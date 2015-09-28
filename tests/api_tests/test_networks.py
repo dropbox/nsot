@@ -108,7 +108,7 @@ def test_filters(site, client):
     # Pre-load the Attributes
     client.post(attr_uri, data=load('attributes.json'))
 
-    # Populate the network objects and retreive them for testing.
+    # Populate the Network objects and retreive them for testing.
     client.post(net_uri, data=load('networks.json'))
     net_resp = client.retrieve(net_uri, include_ips=True)
     net_out = net_resp.json()['data']
@@ -160,13 +160,23 @@ def test_filters(site, client):
         expected
     )
 
-
     # Test lookup by network_address + prefix_length
     wanted = ['10.0.0.0/8']
     expected['networks'] = filter_networks(networks, wanted)
     expected.update({'total': len(wanted)})
     assert_success(
         client.retrieve(net_uri, network_address='10.0.0.0', prefix_length=8),
+        expected
+    )
+
+    # Test lookup by ip_version
+    ipv6_resp = client.create(net_uri, cidr='2401:d:d0e::/64')
+    ipv6 = ipv6_resp.json()['data']['network']
+    wanted = ['2401:d:d0e::/64']
+    expected['networks'] = [ipv6]
+    expected.update({'total': len(wanted)})
+    assert_success(
+        client.retrieve(net_uri, ip_version='6'),
         expected
     )
 
@@ -399,6 +409,7 @@ def test_mptt_detail_routes(site, client):
     expected['networks'] = wanted
     expected['total'] = len(wanted)
     assert_success(client.retrieve(uri, include_self=True), expected)
+
 
 def test_get_next_detail_routes(site, client):
     """Test the detail routes for getting next available networks/addresses."""

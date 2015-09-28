@@ -246,6 +246,20 @@ class ResourceViewSet(NsotViewSet, bulk_mixins.BulkCreateModelMixin):
         objects = self.queryset.set_query(query, site_id=site_pk)
         return self.list(request, queryset=objects, *args, **kwargs)
 
+    def get_resource_object(self, pk, site_pk):
+        """Return a resource object based on pk or site_pk."""
+        if site_pk is not None:
+            query = self.queryset.filter(pk=pk, site=site_pk)
+        else:
+            query = self.queryset.filter(pk=pk)
+
+        object = query.first()
+
+        if not object:
+            self.not_found(pk, site_pk)
+
+        return object
+
 
 class DeviceViewSet(ResourceViewSet):
     """
@@ -290,6 +304,15 @@ class DeviceViewSet(ResourceViewSet):
 
         return devices
 
+    @detail_route(methods=['get'])
+    def interfaces(self, request, pk=None, site_pk=None, *args, **kwargs):
+        """Return all interfaces for this Device."""
+        device = self.get_resource_object(pk, site_pk)
+        interfaces = device.interfaces.all()
+        self.result_key_plural = 'interfaces'
+
+        return self.list(request, queryset=interfaces, *args, **kwargs)
+
 
 class NetworkViewSet(ResourceViewSet):
     """
@@ -297,6 +320,7 @@ class NetworkViewSet(ResourceViewSet):
     """
     queryset = models.Network.objects.all()
     serializer_class = serializers.NetworkSerializer
+    filter_fields = ('ip_version',)
 
     def get_serializer_class(self):
         if self.request.method == 'POST':
@@ -382,23 +406,10 @@ class NetworkViewSet(ResourceViewSet):
 
         return networks
 
-    def get_network(self, pk, site_pk):
-        """Return a Network object based on pk or site_pk."""
-        if site_pk is not None:
-            query = self.queryset.filter(pk=pk, site=site_pk)
-        else:
-            query = self.queryset.filter(pk=pk)
-        network = query.first()
-
-        if not network:
-            self.not_found(pk, site_pk)
-
-        return network
-
     @detail_route(methods=['get'])
     def subnets(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return subnets of this Network."""
-        network = self.get_network(pk, site_pk)
+        network = self.get_resource_object(pk, site_pk)
 
         params = request.query_params
         include_networks = qpbool(params.get('include_networks', True))
@@ -415,7 +426,7 @@ class NetworkViewSet(ResourceViewSet):
     @detail_route(methods=['get'])
     def supernets(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return supernets of this Network."""
-        network = self.get_network(pk, site_pk)
+        network = self.get_resource_object(pk, site_pk)
 
         params = request.query_params
         direct = qpbool(params.get('direct', False))
@@ -427,7 +438,7 @@ class NetworkViewSet(ResourceViewSet):
     @detail_route(methods=['get'])
     def next_network(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return next available networks from this Network."""
-        network = self.get_network(pk, site_pk)
+        network = self.get_resource_object(pk, site_pk)
 
         params = request.query_params
         prefix_length = params.get('prefix_length')
@@ -442,7 +453,7 @@ class NetworkViewSet(ResourceViewSet):
     @detail_route(methods=['get'])
     def next_address(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return next available IPs from this Network."""
-        network = self.get_network(pk, site_pk)
+        network = self.get_resource_object(pk, site_pk)
 
         num = request.query_params.get('num')
         addresses = network.get_next_address(num, as_objects=False)
@@ -452,7 +463,7 @@ class NetworkViewSet(ResourceViewSet):
     @detail_route(methods=['get'])
     def ancestors(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return ancestors of this Network."""
-        network = self.get_network(pk, site_pk)
+        network = self.get_resource_object(pk, site_pk)
         ascending = qpbool(request.query_params.get('ascending', False))
         ancestors = network.get_ancestors(ascending=ascending)
 
@@ -461,7 +472,7 @@ class NetworkViewSet(ResourceViewSet):
     @detail_route(methods=['get'])
     def children(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return the immediate children of this Network."""
-        network = self.get_network(pk, site_pk)
+        network = self.get_resource_object(pk, site_pk)
         children = network.get_children()
 
         return self.list(request, queryset=children, *args, **kwargs)
@@ -469,7 +480,7 @@ class NetworkViewSet(ResourceViewSet):
     @detail_route(methods=['get'])
     def descendents(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return descendents of this Network."""
-        network = self.get_network(pk, site_pk)
+        network = self.get_resource_object(pk, site_pk)
         descendents = network.get_descendents()
 
         return self.list(request, queryset=descendents, *args, **kwargs)
@@ -477,7 +488,7 @@ class NetworkViewSet(ResourceViewSet):
     @detail_route(methods=['get'])
     def parent(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return the parent of this Network."""
-        network = self.get_network(pk, site_pk)
+        network = self.get_resource_object(pk, site_pk)
         parent = network.parent
         if parent is not None:
             pk = network.parent_id
@@ -489,7 +500,7 @@ class NetworkViewSet(ResourceViewSet):
     @detail_route(methods=['get'])
     def root(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return the parent of all ancestors for this Network."""
-        network = self.get_network(pk, site_pk)
+        network = self.get_resource_object(pk, site_pk)
         root = network.get_root()
         if root is not None:
             pk = root.id
@@ -504,11 +515,55 @@ class NetworkViewSet(ResourceViewSet):
         Return Networks with the same parent. Root nodes are
         siblings to other root nodes.
         """
-        network = self.get_network(pk, site_pk)
+        network = self.get_resource_object(pk, site_pk)
         include_self = qpbool(request.query_params.get('include_self', False))
         descendents = network.get_siblings(include_self=include_self)
 
         return self.list(request, queryset=descendents, *args, **kwargs)
+
+
+class InterfaceViewSet(ResourceViewSet):
+    """
+    API endpoint that allows Interfaces to be viewed or edited.
+    """
+    queryset = models.Interface.objects.all()
+    serializer_class = serializers.InterfaceSerializer
+    filter_fields = ('device_id', 'name', 'speed', 'type', 'description',
+                     'parent_id')
+
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return serializers.InterfaceCreateSerializer
+        if self.request.method == 'PUT':
+            return serializers.InterfaceUpdateSerializer
+
+        return self.serializer_class
+
+    @detail_route(methods=['get'])
+    def addresses(self, request, pk=None, site_pk=None, *args, **kwargs):
+        """Return a list of addresses for this Interface."""
+        interface = self.get_resource_object(pk, site_pk)
+        addresses = interface.addresses.all()
+        self.result_key_plural = 'addresses'
+
+        return self.list(request, queryset=addresses, *args, **kwargs)
+
+    @detail_route(methods=['get'])
+    def assignments(self, request, pk=None, site_pk=None, *args, **kwargs):
+        """Return a list of information about my assigned addresses."""
+        interface = self.get_resource_object(pk, site_pk)
+        assignments = interface.assignments.all()
+        self.result_key_plural = 'assignments'
+
+        return self.list(request, queryset=assignments, *args, **kwargs)
+
+    @detail_route(methods=['get'])
+    def networks(self, request, pk=None, site_pk=None, *args, **kwargs):
+        """Return all the containing Networks for my assigned addresses."""
+        interface = self.get_resource_object(pk, site_pk)
+        self.result_key_plural = 'networks'
+
+        return self.list(request, queryset=interface.networks, *args, **kwargs)
 
 
 class SiteViewSet(NsotViewSet):

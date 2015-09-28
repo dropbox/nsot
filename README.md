@@ -5,18 +5,19 @@
 
 ## Warning
 
-This project is still very much in flux and likely to have database changes without
-migration support for the time being. Also some documentation may describe steps not yet possible.
+This project is stable and fully unit-tested, however as it is pre-1.0 it is
+still very much in flux and likely to have backwards-incompatible API changes
+for the time being. Also some documentation may describe steps not yet
+possible, or in some cases possible steps may not be fully documented. 
 
-### Description
+## Description
 
 NSoT is a Network Source of Truth API and FE for managing Network Assets.
 
-Currently only IP Address Management is on the road-map but it will evolve
-into more over time.
+Currently only IP Address Management is on the road-map but it will evolve into
+more over time.
 
-
-### Installation
+## Installation
 
 New versions will be updated to PyPI pretty regularly so it should be as easy
 as:
@@ -25,24 +26,25 @@ as:
 $ pip install nsot
 ```
 
-### Documentation
+## Documentation
 
 The latest documentation will always be available at http://nsot.readthedocs.org/en/latest/
 
-### Development
+## Development
 
-Note: You'll need to have a reasonably recent version of [npm](https://github.com/npm/npm) to build
-frontend dependencies. Minimum Version tested is `1.3.24`
+Note: You'll need to have a reasonably recent version of
+[npm](https://github.com/npm/npm) to build frontend dependencies. Minimum
+Version tested is `1.3.24`
 
-I suggest setting up your test environment in a virtual environment. If you use
-virtualenvwrapper you can just do
+We suggest setting up your test environment in a virtual environment. If you
+use virtualenvwrapper you can just do:
 
 ```bash
 $ mkvirtualenv nsot
 ```
 
-After that, clone the repo into whichever directory you use for development
-and install the dependencies.
+After that, clone the repo into whichever directory you use for development and
+install the dependencies.
 
 ```bash
 $ git clone git@github.com:dropbox/nsot.git
@@ -51,6 +53,7 @@ $ pip install -r requirements-dev.txt
 $ python setup.py develop
 ```
 #### Running Tests
+
 All tests will automatically be run on Travis CI when pull requests are sent.
 However, it's beneficial to run the tests often during development.
 
@@ -58,11 +61,11 @@ However, it's beneficial to run the tests often during development.
 py.test -v tests/
 ```
 
-#### Running a Test instance
+### Running a Test instance
 
-NSoT runs behind a reverse proxy that handles Authentication and so expects
-a valid, authenticated, user account. I've included a test proxy for running
-on development instances.
+NSoT runs behind a reverse proxy that handles Authentication and so expects a
+valid, authenticated, user account. We've included a test proxy for running on
+development instances.
 
 ```bash
 
@@ -80,7 +83,7 @@ nsot-server start
 
 ```
 
-#### Working with migrations
+### Working with migrations
 
 If you make any changes to the models you'll want to generate a new migration.
 We use Django's built-in support for migrations underneath, so for general
@@ -101,11 +104,11 @@ nsot-server migrate
 
 ```
 
-#### Working with docs
+### Working with docs
 
-Documentation is done with Sphinx. If you just want to build and view the docs you
-cd into the `docs` directory and run `make html`. Then point your browser to
-`docs/\_build/html/index.html` on your local filesystem.
+Documentation is done with Sphinx. If you just want to build and view the docs
+you cd into the `docs` directory and run `make html`. Then point your browser
+to `docs/\_build/html/index.html` on your local filesystem.
 
 If you're actively modifying the docs it's useful to run the autobuild server like
 so:
@@ -114,19 +117,20 @@ so:
 sphinx-autobuild docs docs/_build/html/
 ```
 
-This will start a server listening on a port that you can browse to and will
-be automatically reloaded when you change any rst files. One downside of this
+This will start a server listening on a port that you can browse to and will be
+automatically reloaded when you change any rst files. One downside of this
 approach is that is doesn't refresh when docstrings are modified.
 
-#### Frontend development
+### Frontend development
 
-We use a combination of npm, bower, and gulp to do frontend development. npm is used
-to manage our build dependencies, bower to manage our web dependencies, and gulp
-for building/linting/testing/etc.
+We use a combination of npm, bower, and gulp to do frontend development. npm is
+used to manage our build dependencies, bower to manage our web dependencies,
+and gulp for building/linting/testing/etc.
 
-`setup.py develop` will install and build all frontend components so for the most part
-you shouldn't need to care about these details though if you want to add new build
-dependencies, for example gulp-concat, you would run the followiing:
+`setup.py develop` will install and build all frontend components so for the
+most part you shouldn't need to care about these details though if you want to
+add new build dependencies, for example gulp-concat, you would run the
+followiing:
 
 ```bash
 # Install gulp-concat, updating package.json with a new devDependency
@@ -144,10 +148,16 @@ Adding new web dependencies are done through bower
 bower install lodash --save
 ```
 
-Unfortunately bower doesn't have a shrinkwrap/freeze feature so you'll want to update
-the version string to make the version explicit for repeatable builds.
+Unfortunately bower doesn't have a shrinkwrap/freeze feature so you'll want to
+update the version string to make the version explicit for repeatable builds.
 
-We make use of bower's "main file" concept to distribute only "main" files. Most packages
-don't consider consider the minified versions of their project to be their main files so
-you'll likely also need to update the `overrides` section of bower.json with which files
-to distribute.
+We make use of bower's "main file" concept to distribute only "main" files.
+Most packages don't consider consider the minified versions of their project to
+be their main files so you'll likely also need to update the `overrides`
+section of bower.json with which files to distribute.
+
+## Support
+
+For the time being the best way to get support, provide feedback, ask
+questions, or to just talk shop is to find us on IRC at `#nsot` on Freenode
+(irc://irc.freenode.net/nsot).

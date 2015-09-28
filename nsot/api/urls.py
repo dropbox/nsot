@@ -22,12 +22,14 @@ sites_router = nested_routers.NestedSimpleRouter(
 sites_router.register(r'attributes', views.AttributeViewSet)
 sites_router.register(r'changes', views.ChangeViewSet)
 sites_router.register(r'devices', views.DeviceViewSet)
+sites_router.register(r'interfaces', views.InterfaceViewSet)
 sites_router.register(r'networks', views.NetworkViewSet)
 
 # Resources pinned to API index at /
 router.register(r'attributes', views.AttributeViewSet)
 router.register(r'changes', views.ChangeViewSet)
 router.register(r'devices', views.DeviceViewSet)
+router.register(r'interfaces', views.InterfaceViewSet)
 router.register(r'networks', views.NetworkViewSet)
 router.register(r'users', views.UserViewSet)
 router.register(r'values', views.ValueViewSet)
