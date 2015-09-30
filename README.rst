@@ -172,7 +172,7 @@ We use a combination JavaScript utilities to do front-end development:
 it will install and build all front-end components for you!
 
 Adding new build dependencies
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 For the most part you shouldn't need to care about these details though if you
 want to add new build dependencies, for example `gulp-concat
@@ -188,7 +188,7 @@ want to add new build dependencies, for example `gulp-concat
     $ npm shrinkwrap --dev
 
 Adding new web dependencies
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Adding new web dependencies are done through bower:
 
@@ -206,8 +206,18 @@ Most packages don't consider consider the minified versions of their project to
 be their main files so you'll likely also need to update the ``overrides``
 section of ``bower.json`` with which files to distribute.
 
+Demo
+====
+
+If you would like to run the demo, make sure you've got NSoT installed, change
+to the ``demo`` directory and run:
+
+.. code:: bash
+
+   $ ./run_demo.sh
+
 Support
--------
+=======
 
 For the time being the best way to get support, provide feedback, ask
 questions, or to just talk shop is to find us on IRC at ``#nsot`` on Freenode
@@ -219,7 +229,7 @@ questions, or to just talk shop is to find us on IRC at ``#nsot`` on Freenode
    :target: https://readthedocs.org/projects/nsot/?badge=latest
 
 See Also
---------
+========
 
 + `pynsot <https://github.com/dropbox/pynsot>`_ - Python client library and
   command-line utility for the Network Source of Truth REST API.
