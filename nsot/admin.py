@@ -32,7 +32,6 @@ class UserAdmin(EmailUserAdmin):
 admin.site.register(get_user_model(), UserAdmin)
 
 
-
 class SiteAdmin(admin.ModelAdmin):
     list_display = ('name', 'description')
     list_filter = ('name',)
@@ -82,13 +81,13 @@ class NetworkAdmin(BaseChildAdmin):
     mptt_indent_field = 'cidr'
     list_display = ('cidr', 'network_address', 'prefix_length', 'ip_version',
                     'is_ip', 'parent', 'site')
-    list_filter = ('prefix_length', 'is_ip', 'ip_version', 'site')
+    list_filter = ('prefix_length', 'is_ip', 'ip_version', 'parent', 'site')
 
     def get_cidr(self):
         return '%s/%s' % (self.network_address, self.prefix_length)
 
     fields = ('network_address', 'broadcast_address', 'prefix_length',
-              'ip_version', 'is_ip', 'parent', 'site')
+              'ip_version', 'is_ip', 'site')
 admin.site.register(models.Network, NetworkAdmin)
 
 

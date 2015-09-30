@@ -3,7 +3,7 @@ import ipaddress
 import pytest
 import time
 
-from nsot.api import exc, models
+from nsot import exc, models
 
 from model_tests.fixtures import site
 
