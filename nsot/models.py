@@ -277,10 +277,6 @@ class ResourceManager(PolymorphicManager):
 
 class Resource(PolymorphicModel):
     """Base for heirarchial Resource objects that may have attributes."""
-    parent = models.ForeignKey(
-        'self', blank=True, null=True, related_name='children', default=None,
-        on_delete=models.PROTECT
-    )
     _attributes = fields.JSONField(null=False, blank=True)
 
     def __init__(self, *args, **kwargs):
@@ -457,6 +453,10 @@ class Network(Resource):
     is_ip = models.BooleanField(null=False, default=False, db_index=True)
     site = models.ForeignKey(
         Site, db_index=True, related_name='networks', on_delete=models.PROTECT
+    )
+    parent = models.ForeignKey(
+        'self', blank=True, null=True, related_name='children', default=None,
+        on_delete=models.PROTECT,
     )
 
     # Implements .objects.get_by_address()
@@ -847,6 +847,11 @@ class Interface(Resource):
             'Integer of Mbps of interface (e.g. 20000 for 20 Gbps). If not '
             'provided, defaults to %d.' % settings.INTERFACE_DEFAULT_SPEED
         )
+    )
+
+    parent = models.ForeignKey(
+        'self', blank=True, null=True, related_name='children', default=None,
+        on_delete=models.PROTECT,
     )
 
     # We are currently inferring the site_id from the parent Device both in the
