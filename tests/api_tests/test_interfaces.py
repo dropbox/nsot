@@ -190,7 +190,7 @@ def test_update(site, client):
         status.HTTP_400_BAD_REQUEST
     )
 
-    # (device, name) must be unique
+    # (device_id, name) must be unique
     params['name'] = 'eth0'
     assert_error(
         client.update(ifc2_obj_uri, **params),

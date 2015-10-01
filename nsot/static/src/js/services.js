@@ -10,6 +10,7 @@
 
     function buildActions($http, resourceName, collectionName) {
 
+        // Return a single object
         var resourceTransform = appendTransform(
             $http.defaults.transformResponse, function(response) {
                 if (response.status == "ok") {
@@ -19,6 +20,7 @@
             }
         );
 
+        // Return a collection of objects
         var collectionTransform = appendTransform(
             $http.defaults.transformResponse, function(response) {
                 return {
@@ -26,6 +28,15 @@
                     offset: response.data.offset,
                     total: response.data.total,
                     data: response.data[collectionName]
+                };
+            }
+        );
+
+        // Return the schema actions for a resource endpoint
+        var schemaTransform = appendTransform(
+            $http.defaults.transformResponse, function(response) {
+                return {
+                    schema: response.actions
                 };
             }
         );
@@ -46,6 +57,10 @@
             save: {
                 method: "POST", isArray: false,
                 transformResponse: resourceTransform,
+            },
+            schema: {
+                method: "OPTIONS", isArray: false,
+                transformResponse: schemaTransform,
             }
         };
     }
@@ -249,6 +264,69 @@
         };
 
         return Device;
+    });
+
+    app.factory("Interface", function($resource, $http){
+        var Interface = $resource(
+            "/api/sites/:siteId/interfaces/:id/",
+            { siteId: "@siteId", id: "@id" },
+            buildActions($http, "interface", "interfaces")
+        );
+
+        Interface.prototype.updateFromForm = function(formData) {
+            return _.extend(this, {
+                device: formData.device,
+                name: formData.name,
+                description: formData.description,
+                addresses: formData.addresses,
+                speed: formData.speed,
+                type: formData.type,
+                mac_address: formData.mac_address,
+                attributes: _.reduce(formData.attributes, function(acc, attribute){
+                    if (!attribute.value) attribute.value = "";
+                    if (_.isArray(attribute.value)) {
+                        attribute.value = _.map(attribute.value, function(val){
+                            return val.text;
+                        });
+                    }
+                    acc[attribute.name] = attribute.value;
+                    return acc;
+                }, {})
+            });
+        };
+
+        Interface.fromForm = function(formData) {
+            var iface = new Interface();
+            iface.updateFromForm(formData);
+            return iface;
+        };
+
+        Interface.prototype.toForm = function() {
+            return {
+                device: this.device,
+                name: this.name,
+                description: this.description,
+                addresses: this.addresses,
+                speed: this.speed,
+                type: this.type,
+                mac_address: this.mac_address,
+                attributes: _.map(_.cloneDeep(this.attributes), function(attrVal, attrKey){
+                    if (_.isArray(attrVal)) {
+                        attrVal = _.map(attrVal, function(val) {
+                            return {text: val};
+                        });
+                    }
+
+                    return {
+                        name: attrKey,
+                        value: attrVal
+                    };
+
+                })
+            };
+        };
+
+        return Interface;
     });
 
     app.factory("pagerParams", function($location){

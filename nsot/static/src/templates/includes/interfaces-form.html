@@ -1,0 +1,172 @@
+<div class="row">
+    <div class="col-md-6">
+        <div class="form-group" ng-if="formMode === 'create'" ng-class="{
+            'has-error' : interfaceForm.device.$invalid,
+            'has-success' : interfaceForm.device.$valid,
+        }">
+            <label>Device *</label>
+            <select
+                class="form-control"
+                name="device"
+                ng-required
+                ng-model="formData.device"
+            >
+                <option value="" selected disabled>
+                    Select a device (required)
+                </option>
+                <option
+                    ng-repeat="dev in formData.devices"
+                    value="[[dev.id]]">
+                    [[dev.hostname]]
+                </option>
+            </select>
+        </div>
+        <div class="form-group" ng-if="formMode === 'update'">
+            <label>Device</label>
+            <input type="text" 
+                   class="form-control"
+                   readonly
+                   value="[[iface.device]]"
+            >
+        </div>
+    </div>
+
+    <div class="col-md-6">
+
+        <div class="form-group" ng-class="{
+            'has-error' : interfaceForm.name.$invalid,
+            'has-success' : interfaceForm.name.$valid,
+        }">
+            <label>Name *</label>
+            <input type="text"
+                   class="form-control"
+                   name="name"
+                   placeholder="Name (required)"
+                   ng-model="formData.name"
+                   ng-minlength="1"
+                   required
+            >
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+
+        <div class="form-group" ng-class="{
+            'has-error' : interfaceForm.mac_address.$invalid,
+            'has-success' : interfaceForm.mac_address.$valid,
+        }">
+            <label>MAC Address</label>
+            <input type="text"
+                   class="form-control"
+                   name="mac_address"
+                   placeholder="(Default: 00:00:00:00:00:00)"
+                   ng-model="formData.mac_address"
+            >
+        </div>
+    </div>
+
+    <div class="col-md-6">
+
+        <div class="form-group" ng-class="{
+            'has-error' : interfaceForm.speed.$invalid,
+            'has-success' : interfaceForm.speed.$valid,
+        }">
+            <label>Speed</label>
+            <input type="text"
+                   class="form-control"
+                   name="speed"
+                   placeholder="Speed in Mbps (Default: 1000)"
+                   ng-model="formData.speed"
+                   ng-minlength="1"
+            >
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group" ng-class="{
+            'has-error' : interfaceForm.description.$invalid,
+            'has-success' : interfaceForm.description.$valid,
+        }">
+            <label>Description</label>
+            <input type="text"
+                   class="form-control"
+                   name="description"
+                   placeholder="Something short and sweet (optional)"
+                   ng-model="formData.description"
+            >
+        </div>
+    </div>
+</div>
+
+<h4 class="form-subheading">Attributes</h4>
+
+<div class="row" ng-repeat="attr in formData.attributes">
+
+    <div ng-if="attributesByName[attr.name].required" class="col-sm-4">
+        <select name="attribute" class="form-control" disabled>
+            <option>[[attr.name]]</option>
+        </select>
+    </div>
+    <div ng-if="!attributesByName[attr.name].required" class="col-sm-4">
+        <select
+            name="attribute"
+            class="form-control"
+            required
+            ng-change="formData.attributes[$index].value = undefined"
+            ng-model="formData.attributes[$index].name">
+            <option value="" disabled selected></option>
+            <option value="[[val.name]]"
+                    ng-selected="[[
+                        formData.attributes[$parent.$index].name == val.name
+                    ]]"
+                    ng-repeat="(idx, val) in attributes
+                               |filter:{required:false}">
+                [[val.name]]
+            </option>
+        </select>
+    </div>
+
+    <div class="col-sm-7" style="padding-left: 0px;">
+        <div class="form-group" ng-class="{
+            'has-error' : interfaceForm['value_' + $index].$invalid,
+            'has-success' : interfaceForm['value_' + $index].$valid,
+        }">
+            <input ng-if="!attributesByName[attr.name].multi"
+                   type="text"
+                   class="form-control"
+                   name="value_[[$index]]"
+                   placeholder="Value"
+                   ng-model="formData.attributes[$index].value"
+                   ng-required="!attributesByName[attr.name].constraints.allow_empty"
+            >
+            <tags-input ng-if="attributesByName[attr.name].multi"
+                        name="value_[[$index]]"
+                        ng-model="formData.attributes[$index].value"
+                        placeholder="Add multiple values"
+                        min-length="1"
+            ></tags-input>
+        </div>
+    </div>
+
+    <div class="col-sm-1 text-center">
+        <span ng-if="!attributesByName[attr.name].required" class="attr-buttons">
+            <span class="fa fa-lg fa-minus-circle rm-attr-btn"
+                  ng-click="removeAttr($index);"
+            ></span>
+        </span>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-sm-12 text-right">
+        <a ng-click="addAttr()" class="add-attr-btn">
+            Add an attribute
+            <i class="fa fa-lg fa-plus-circle add-attr-btn"></i>
+        </a>
+    </div>
+</div>
+

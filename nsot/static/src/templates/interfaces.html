@@ -1,0 +1,83 @@
+<loading-panel ng-if="loading"></loading-panel>
+<div ng-if="!loading">
+    <heading-bar heading="Interface">
+        <dropdown ctxt-obj="paginator.limiter"></dropdown>
+        <paginator pager="paginator.pager"></paginator>
+
+        <button
+            class="btn btn-success"
+            data-toggle="modal"
+            data-target="#createInterfaceModal"
+            ng-if="admin"
+        >Create Interface</button>
+    </heading-bar>
+
+    <nsot-modal title="Create Interface" modal-id="createInterfaceModal" modal-size="large">
+        <div class="modal-body">
+            <div ng-if="error" class="alert alert-danger">
+                [[error.code]] - [[error.message]]
+            </div>
+            <form novalidate name="interfaceForm" class="nsot-form">
+                <div ng-include="formUrl"></div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">
+                Close
+            </button>
+            <button type="submit" ng-click="createInterface()"
+                    class="btn btn-primary" ng-disabled="interfaceForm.$invalid"
+            >
+                Create
+            </button>
+        </div>
+    </nsot-modal>
+
+    <div class="row" class="row"><div class="col-sm-10 col-sm-offset-1">
+        <panel>
+            <panel-heading>Interfaces</panel-heading>
+            <panel-body ng-if="!interfaces.length" class="text-center">
+                No Interfaces
+            </panel-body>
+            <panel-body ng-if="interfaces.length">
+                <table class="table table-condensed table-hover">
+                    <thead>
+                        <tr>
+                            <th class="col-sm-3">Name</th>
+                            <th class="col-sm-1">Device</th>
+                            <th class="col-sm-1">Speed</th>
+                            <th class="col-sm-1">Type</th>
+                            <th class="col-sm-1">MAC</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr ng-repeat="iface in interfaces">
+                            <td>
+                                <a
+                                    href="/sites/[[siteId]]/interfaces/[[iface.id]]"
+                                >[[iface.name]]</a>
+                            </td>
+                            <td>
+                                <a
+                                    href="/sites/[[siteId]]/devices/[[iface.device]]"
+                                >[[iface.device]]</a>
+                            </td>
+                            <td>
+                                [[iface.speed]]
+                            </td>
+                            <td>
+                                [[iface.type]]
+                            </td>
+                            <td>
+                                [[iface.mac_address]]
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </panel-body>
+        </panel>
+
+    </div></div>
+
+
+</div>
