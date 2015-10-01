@@ -1063,9 +1063,8 @@ class Interface(Resource):
         return {
             'id': self.id,
             'parent_id': self.parent_id,
-            # 'site_id': self.site_id,  # We're relying on Device's site.
             'name': self.name,
-            'device_id': self.device_id,
+            'device': self.device_id,
             'description': self.description,
             'addresses': self.get_addresses(),
             'networks': self.get_networks(),

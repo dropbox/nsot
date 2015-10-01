@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 from collections import OrderedDict
 from django import http
+from django.db import IntegrityError
 import logging
 from rest_framework.exceptions import ValidationError
 from rest_framework.exceptions import APIException
@@ -87,5 +88,5 @@ class NotFound(BaseHttpError):
     default_detail = 'Endpoint not found.'
 
 
-class Conflict(BaseHttpError):
+class Conflict(BaseHttpError, IntegrityError):
     status_code = 409

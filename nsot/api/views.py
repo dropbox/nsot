@@ -138,6 +138,8 @@ class NsotViewSet(BaseNsotViewSet, viewsets.ModelViewSet):
             objects = serializer.save()
         except DjangoValidationError as err:
             raise exc.ValidationError(err.error_dict)
+        except exc.IntegrityError as err:
+            raise exc.Conflict(err.message)
         else:
             # This is so that we can always work w/ objects as a list
             if not isinstance(objects, list):
@@ -163,6 +165,8 @@ class NsotViewSet(BaseNsotViewSet, viewsets.ModelViewSet):
             obj = serializer.save()
         except DjangoValidationError as err:
             raise exc.ValidationError(err.error_dict)
+        except exc.IntegrityError as err:
+            raise exc.Conflict(err.message)
 
         log.debug('NsotViewSet.perform_update() obj = %r', obj)
         models.Change.objects.create(
