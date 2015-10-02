@@ -36,6 +36,7 @@ INSTALLED_APPS = (
     'django_extensions',
     'django_filters',
     'polymorphic',
+    'smart_selects',
     'rest_framework',
     'rest_framework_swagger',
     'custom_user',
@@ -322,14 +323,15 @@ INTERFACE_DEFAULT_MAC = eui.EUI(0, dialect=macaddress.default_dialect())
 #
 # Ref: https://www.iana.org/assignments/ianaiftype-mib/ianaiftype-mib
 INTERFACE_TYPE_CHOICES = (
-    (6, 'ethernet'),
-    (1, 'other'),
-    (135, 'l2vlan'),
-    (136, 'l3vlan'),
-    (161, 'lag'),
-    (24, 'loopback'),
-    (150, 'mpls'),
-    (131, 'tunnel'),
+    (6, 'ethernet'),       # for all ethernet-like interfaces
+    (1, 'other'),          # none of the following
+    (135, 'l2vlan'),       # Layer 2 Virtual LAN using 802.1Q
+    (136, 'l3vlan'),       # Layer 3 Virtual LAN using IP
+    (161, 'lag'),          # IEEE 802.3ad Link Aggregat
+    (24, 'loopback'),      # softwareLoopback
+    (150, 'mpls'),         # MPLS Tunnel Virtual Interface
+    (53, 'prop_virtual'),  # proprietary virtual/internal
+    (131, 'tunnel'),       # Encapsulation interface
 )
 
 INTERFACE_DEFAULT_TYPE = 6  # ethernet

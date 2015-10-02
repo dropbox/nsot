@@ -93,8 +93,8 @@ admin.site.register(models.Network, NetworkAdmin)
 
 class InterfaceAdmin(PolymorphicChildModelAdmin):
     base_model = models.Interface
-    list_display = ('name', 'parent', 'mac_address', 'device', 'type', 'speed')
-    list_filter = ('name', 'mac_address', 'device', 'type', 'speed')
+    list_display = ('name', 'device', 'parent', 'mac_address', 'type', 'speed')
+    list_filter = ('type', 'speed')
 
     fields = list_display
 admin.site.register(models.Interface, InterfaceAdmin)

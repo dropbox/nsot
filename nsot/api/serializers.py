@@ -67,6 +67,11 @@ class JSONListField(JSONDataField):
 
 
 class NsotSerializer(serializers.ModelSerializer):
+    attributes = JSONDictField(
+        required=False,
+        help_text='Dictionary of attributes to set.'
+    )
+
     """Base serializer that logs change events."""
     def to_internal_value(self, data):
         """Inject site_pk from view's kwargs if it's not already in data."""
@@ -139,6 +144,7 @@ class AttributeSerializer(NsotSerializer):
     """Used for GET, DELETE on Attributes."""
     class Meta:
         model = models.Attribute
+        exclude = ('attributes',)
 
 
 class AttributeCreateSerializer(AttributeSerializer):
@@ -195,7 +201,6 @@ class DeviceSerializer(NsotSerializer):
 
 class DeviceCreateSerializer(DeviceSerializer):
     """Used for POST on Devices."""
-    attributes = JSONDictField(required=False)
     site_id = fields.IntegerField()
 
     class Meta:
@@ -259,7 +264,6 @@ class NetworkSerializer(NsotSerializer):
 
 class NetworkCreateSerializer(NetworkSerializer):
     """Used for POST on Networks."""
-    attributes = JSONDictField(required=False)
     cidr = fields.CharField(write_only=True)
     site_id = fields.IntegerField()
 
@@ -319,14 +323,21 @@ class NetworkUpdateSerializer(NetworkCreateSerializer):
 ###########
 class InterfaceSerializer(NsotSerializer):
     """Used for GET, DELETE on Interfaces."""
+    parent_id = fields.IntegerField(
+        required=False,
+        label=get_field_attr(models.Interface, 'parent', 'verbose_name'),
+        help_text=get_field_attr(models.Interface, 'parent', 'help_text'),
+    )
+
     class Meta:
         model = models.Interface
 
 
 class InterfaceCreateSerializer(InterfaceSerializer):
     """Used for POST on Interfaces."""
-    attributes = JSONDictField(required=False)
-    addresses = JSONListField(required=False)
+    addresses = JSONListField(
+        required=False, help_text='List of host addresses to assign.'
+    )
     mac_address = fields.CharField(
         required=False,
         label=get_field_attr(models.Interface, 'mac_address', 'verbose_name'),
@@ -336,7 +347,7 @@ class InterfaceCreateSerializer(InterfaceSerializer):
     class Meta:
         model = models.Interface
         fields = ('device', 'name', 'description', 'type', 'mac_address',
-                  'speed', 'parent', 'addresses', 'attributes')
+                  'speed', 'parent_id', 'addresses', 'attributes')
 
     def create(self, validated_data):
         log.debug('InterfaceCreateSerializer.create() validated_data = %r',

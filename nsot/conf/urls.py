@@ -34,6 +34,9 @@ urlpatterns = [
         RedirectView.as_view(url='%sbuild/images/favicon/favicon.ico' %
         settings.STATIC_URL, permanent=True), name='favicon'),
 
+    # Smart selects chaining
+    url(r'^chaining/', include('smart_selects.urls')),
+
     # FE handlers
     # Catch index
     url(r'^$', FeView.as_view(), name='index'),

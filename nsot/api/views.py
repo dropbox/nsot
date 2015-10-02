@@ -532,7 +532,7 @@ class InterfaceViewSet(ResourceViewSet):
     """
     queryset = models.Interface.objects.all()
     serializer_class = serializers.InterfaceSerializer
-    filter_fields = ('device_id', 'name', 'speed', 'type', 'description',
+    filter_fields = ('device', 'name', 'speed', 'type', 'description',
                      'parent_id')
 
     def get_serializer_class(self):
