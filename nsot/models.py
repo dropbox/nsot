@@ -796,7 +796,7 @@ class Interface(Resource):
     # SNMP: ifDescr
     name = models.CharField(
         max_length=255, null=False, db_index=True,
-        help_text='The name of the interface as it appears on the device.'
+        help_text='The name of the interface as it appears on the Device.'
     )
 
     # if_addr
@@ -809,12 +809,14 @@ class Interface(Resource):
     # if_alias - String of interface description
     # SNMP: ifAlias
     description = models.CharField(
-        max_length=255, default='', blank=True, null=False
+        max_length=255, default='', blank=True, null=False,
+        help_text='A brief yet helpful description.'
     )
 
     # server_id
     device = models.ForeignKey(
-        Device, db_index=True, related_name='interfaces', null=False
+        Device, db_index=True, related_name='interfaces', null=False,
+        verbose_name='Device', help_text='Unique ID of the connected Device.'
     )
 
     # if_type - Integer of interface type id (Ethernet, LAG, etc.)
@@ -849,9 +851,12 @@ class Interface(Resource):
         )
     )
 
-    parent = models.ForeignKey(
-        'self', blank=True, null=True, related_name='children', default=None,
-        on_delete=models.PROTECT,
+    # parent = models.ForeignKey(
+    parent = fields.ChainedForeignKey(
+        'nsot.Interface', blank=True, null=True, related_name='children',
+        default=None, on_delete=models.PROTECT, verbose_name='Parent',
+        chained_field='device', chained_model_field='device', auto_choose=True,
+        help_text='Unique ID of the parent Interface.',
     )
 
     # We are currently inferring the site_id from the parent Device both in the

@@ -47,21 +47,34 @@ def test_creation(site, client):
     )
 
     # Verify successful creation
-    ifc_resp = client.create(ifc_uri, device=dev['id'], name='eth0')
-    ifc = ifc_resp.json()['data']['interface']
-    ifc_obj_uri = site.detail_uri('interface', id=ifc['id'])
+    ifc1_resp = client.create(ifc_uri, device=dev['id'], name='eth0')
+    ifc1 = ifc1_resp.json()['data']['interface']
+    ifc1_obj_uri = site.detail_uri('interface', id=ifc1['id'])
 
-    assert_created(ifc_resp, ifc_obj_uri)
+    assert_created(ifc1_resp, ifc1_obj_uri)
 
-    # Verify successful retrieval of all Interfaces
-    expected = ifc_resp.json()['data']
-    expected['interfaces'] = [expected.pop('interface')]
-    expected.update({'limit': None, 'offset': 0, 'total': 1})
+    # Create another interface with ifc1 as parent
+    ifc2_resp = client.create(
+        ifc_uri, device=dev['id'], name='eth0.0', parent_id=ifc1['id']
+    )
+    ifc2 = ifc2_resp.json()['data']['interface']
+    ifc2_obj_uri = site.detail_uri('interface', id=ifc2['id'])
 
-    assert_success(client.get(ifc_uri), expected)
+    assert_created(ifc2_resp, ifc2_obj_uri)
 
     # Verify successful get of single Interface
-    assert_success(client.get(ifc_obj_uri), {'interface': ifc})
+    assert_success(client.get(ifc1_obj_uri), {'interface': ifc1})
+
+    # Verify successful retrieval of all Interfaces
+    interfaces = [ifc1, ifc2]
+    expected = {
+        'total': len(interfaces),
+        'limit': None,
+        'offset': 0,
+        'interfaces': interfaces,
+    }
+
+    assert_success(client.get(ifc_uri), expected)
 
 
 def test_creation_with_addresses(site, client):
@@ -161,7 +174,7 @@ def test_update(site, client):
         status.HTTP_400_BAD_REQUEST
     )
 
-    # (device_id, name) must be unique
+    # (device, name) must be unique
     params['name'] = 'eth0'
     assert_error(
         client.update(ifc2_obj_uri, **params),
@@ -207,7 +220,7 @@ def test_filters(site, client):
 
     dev2_eth1_resp = client.create(
         ifc_uri, device=dev2['id'], name='eth1', type=161,
-        parent=dev2_eth0['id']
+        parent_id=dev2_eth0['id']
     )
     dev2_eth1 = dev2_eth1_resp.json()['data']['interface']
 
@@ -227,12 +240,12 @@ def test_filters(site, client):
         expected
     )
 
-    # Test filter by device_id
+    # Test filter by device
     wanted = [dev1_eth0, dev1_eth1]
     expected['interfaces'] = filter_interfaces(interfaces, wanted)
     expected.update({'total': len(wanted)})
     assert_success(
-        client.retrieve(ifc_uri, device_id=dev1['id']),
+        client.retrieve(ifc_uri, device=dev1['id']),
         expected
     )
 
@@ -371,7 +384,7 @@ def test_deletion(site, client):
     dev1_eth0_uri = site.detail_uri('interface', id=dev1_eth0['id'])
 
     dev1_eth1_resp = client.create(
-        ifc_uri, device=dev1['id'], name='eth1', parent=dev1_eth0['id']
+        ifc_uri, device=dev1['id'], name='eth1', parent_id=dev1_eth0['id']
     )
     dev1_eth1 = dev1_eth1_resp.json()['data']['interface']
     dev1_eth1_uri = site.detail_uri('interface', id=dev1_eth1['id'])
