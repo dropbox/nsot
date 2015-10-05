@@ -64,17 +64,6 @@ def test_retrieve_device(site):
 
     assert list(site.devices.all()) == [device1, device2, device3]
 
-    with pytest.raises(ValueError):
-        assert site.devices.filter(attributes__name=None, attributes__value='foo')
-
-    assert list(
-        site.devices.filter(
-            attributes__attribute__name='test'
-        ).order_by('id')
-    ) == [device1, device2]
-
-    assert list(
-        site.devices.filter(
-            attributes__attribute__name='test', attributes__value='foo'
-        )
-    ) == [device1]
+    # Filter by attributes
+    assert list(site.devices.by_attribute(None, 'foo')) == []
+    assert list(site.devices.by_attribute('test', 'foo')) == [device1]

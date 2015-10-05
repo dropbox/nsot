@@ -14,8 +14,6 @@ import ipaddress
 import json
 import logging
 from operator import attrgetter
-from polymorphic import PolymorphicModel, PolymorphicManager
-from polymorphic.query import PolymorphicQuerySet
 import re
 
 from . import exc
@@ -29,7 +27,7 @@ log = logging.getLogger(__name__)
 # These are constants that becuase they are tied directly to the underlying
 # objects are explicitly NOT USER CONFIGURABLE.
 RESOURCE_BY_IDX = (
-    'Site', 'Network', 'Attribute', 'Permission', 'Device', 'Interface'
+    'Site', 'Network', 'Attribute', 'Device', 'Interface'
 )
 RESOURCE_BY_NAME = {
     obj_type: idx
@@ -195,7 +193,7 @@ class User(AbstractEmailUser):
         return dict(out)
 
 
-class ResourceSetTheoryQuerySet(PolymorphicQuerySet):
+class ResourceSetTheoryQuerySet(models.query.QuerySet):
     """
     Set theory QuerySet for Resource objects to add ``.set_query()`` method.
 
@@ -205,6 +203,9 @@ class ResourceSetTheoryQuerySet(PolymorphicQuerySet):
         >>> qs.set_query('owner=jathan +metro=lax')
     """
     def set_query(self, query, site_id=None):
+        """
+        Filter objects by set theory attribute-value ``query`` patterns.
+        """
         objects = self
         if site_id is not None:
             objects = objects.filter(site=site_id)
@@ -230,9 +231,9 @@ class ResourceSetTheoryQuerySet(PolymorphicQuerySet):
                 **params
             )
             next_set = Q(
-                attributes=Value.objects.filter(
-                    attribute_id=attr.id, value=value
-                ).values_list('id', flat=True)
+                id__in=Value.objects.filter(
+                    name=attr.name, value=value, resource_name=resource_name
+                ).values_list('resource_id', flat=True)
             )
 
             # This is the MySQL-compatible manual implementation of set theory,
@@ -255,47 +256,113 @@ class ResourceSetTheoryQuerySet(PolymorphicQuerySet):
         # Gotta call .distinct() or we might get dupes.
         return objects.distinct()
 
+    def by_attribute(self, name, value, site_id=None):
+        """
+        Lookup objects by Attribute ``name`` and ``value``.
+        """
+        resource_name = self.model._meta.model_name.title()
+        query = self.filter(
+            id__in=Value.objects.filter(
+                name=name, value=value, resource_name=resource_name
+            ).values_list('resource_id', flat=True)
+        )
 
-class ResourceManager(PolymorphicManager):
+        if site_id is not None:
+            query = query.filter(site=site_id)
+
+        return query
+
+
+class ResourceManager(models.Manager):
     """
-    Manager for Resource objects that adds a ``.set_query()`` method.
+    Manager for Resource objects that adds a special resource methods:
 
-    For example::
-
-        >>> Network.objects.set_query('owner=jathan +metro=lax'}
-        [<Device: foo-bar1>]
+    + ``.set_query()`` - For performing set theory lookups by attribute-value
+    string patterns
+    + ``.by_attribute()`` - For looking up objects by attribute name/value.
     """
     queryset_class = ResourceSetTheoryQuerySet
 
+    def get_queryset(self):
+        return self.queryset_class(self.model, using=self._db)
+
     def set_query(self, query, site_id=None):
+        """
+        Filter objects by set theory attribute-value string patterns.
+
+        For example::
+
+            >>> Network.objects.set_query('owner=jathan +metro=lax'}
+            [<Device: foo-bar1>]
+
+        :param query:
+            Set theory query pattern
+
+        :param site_id:
+            ID of Site to filter results
+        """
+
         try:
             return self.get_queryset().set_query(query, site_id)
         # If no matching objects are found, return an empty queryset.
         except ObjectDoesNotExist:
             return self.get_queryset().none()
 
+    def by_attribute(self, name, value, site_id=None):
+        """
+        Filter objects by Attribute ``name`` and ``value``.
 
-class Resource(PolymorphicModel):
+        For example::
+
+            >>> Interface.objects.by_attribute(name='vlan', value=300)
+            [<Interface: device=1, name=eth0>]
+
+        :param name:
+            Attribute name
+
+        :param value:
+            Attribute value
+
+        :param site_id:
+            ID of Site to filter results
+        """
+        try:
+            return self.get_queryset().by_attribute(name, value, site_id)
+        # If no matching objects are found, return an empty queryset.
+        except ObjectDoesNotExist:
+            return self.get_queryset().none()
+
+
+class Resource(models.Model):
     """Base for heirarchial Resource objects that may have attributes."""
-    _attributes = fields.JSONField(null=False, blank=True)
+    _attributes_cache = fields.JSONField(null=False, blank=True)
 
     def __init__(self, *args, **kwargs):
         self._set_attributes = kwargs.pop('attributes', None)
         super(Resource, self).__init__(*args, **kwargs)
 
+    class Meta:
+        abstract = True
+
     # Implement .objects.set_query()
     objects = ResourceManager()
 
     @property
+    def attributes(self):
+        return Value.objects.filter(
+            resource_name=self._resource_name, resource_id=self.id
+        )
+
+    @property
     def _resource_name(self):
-        return self._meta.model_name.title()
+        return self.__class__.__name__
 
     def _purge_attribute_index(self):
         self.attributes.all().delete()
 
     def get_attributes(self):
         """Return the JSON-encoded attributes as a dict."""
-        return self._attributes
+        return self._attributes_cache
 
     def set_attributes(self, attributes, valid_attributes=None):
         """Validate and store the attributes dict as a JSON-encoded string."""
@@ -346,7 +413,7 @@ class Resource(PolymorphicModel):
         self._purge_attribute_index()
         for insert in inserts:
             Value.objects.create(
-                resource=self, attribute_id=insert['attribute_id'],
+                obj=self, attribute_id=insert['attribute_id'],
                 value=insert['value']
             )
 
@@ -362,11 +429,11 @@ class Resource(PolymorphicModel):
                 attrs[a.name].append(a.value)
             else:
                 attrs[a.name] = a.value
-        self._attributes = attrs
+        self._attributes_cache = attrs
         return attrs
 
     def clean_fields(self, exclude=None):
-        self._attributes = self.clean_attributes()
+        self._attributes_cache = self.clean_attributes()
 
     def save(self, *args, **kwargs):
         self._is_new = self.id is None  # Check if this is a new object.
@@ -456,7 +523,7 @@ class Network(Resource):
     )
     parent = models.ForeignKey(
         'self', blank=True, null=True, related_name='children', default=None,
-        on_delete=models.PROTECT,
+        db_index=True, on_delete=models.PROTECT,
     )
 
     # Implements .objects.get_by_address()
@@ -800,8 +867,7 @@ class Interface(Resource):
     )
 
     # if_addr
-    # Should this instead be a 1-to-1 to a Network object /32 or /128?
-    # address = fields.BinaryIPAddressField(max_length=16, db_index=True)
+    # m2m Network object /32 or /128
     addresses = models.ManyToManyField(
         Network, db_index=True, related_name='addresses', through='Assignment'
     )
@@ -851,12 +917,11 @@ class Interface(Resource):
         )
     )
 
-    # parent = models.ForeignKey(
     parent = fields.ChainedForeignKey(
         'nsot.Interface', blank=True, null=True, related_name='children',
-        default=None, on_delete=models.PROTECT, verbose_name='Parent',
-        chained_field='device', chained_model_field='device', auto_choose=True,
-        help_text='Unique ID of the parent Interface.',
+        default=None, db_index=True, on_delete=models.PROTECT,
+        chained_field='device', chained_model_field='device',
+        verbose_name='Parent', help_text='Unique ID of the parent Interface.',
     )
 
     # We are currently inferring the site_id from the parent Device both in the
@@ -1331,36 +1396,46 @@ class Value(models.Model):
         on_delete=models.PROTECT
     )
     value = models.CharField(
-        max_length=255, null=False, blank=True,
-        db_index=True
+        max_length=255, null=False, blank=True, db_index=True
     )
-    resource = models.ForeignKey(
-        'Resource', related_name='attributes', db_index=True,
-        blank=True
+    resource_id = models.IntegerField('Resource ID', null=False)
+    resource_name = models.CharField(
+        'Resource Type', max_length=20, null=False, db_index=True,
+        choices=CHANGE_RESOURCE_CHOICES
     )
+    name = models.CharField('Name', max_length=64, null=False, blank=True)
+
+    def __init__(self, *args, **kwargs):
+        self._obj = kwargs.pop('obj', None)
+        super(Value, self).__init__(*args, **kwargs)
 
     def __unicode__(self):
-        return u'%r %s=%s' % (self.resource, self.name, self.value)
+        return u'%s:%s %s=%s' % (self.resource_name, self.resource_id,
+                                 self.name, self.value)
 
     class Meta:
-        unique_together = ('attribute', 'value', 'resource')
-        index_together = unique_together
+        unique_together = ('name', 'value', 'resource_name', 'resource_id')
 
-    @property
-    def name(self):
-        return self.attribute.name
+        # This is most commonly looked up
+        # index_together = unique_together
+        index_together = ('name', 'value', 'resource_name')
 
-    @property
-    def resource_name(self):
-        return self.attribute.resource_name
+    def clean_resource_name(self, value):
+        if value not in VALID_CHANGE_RESOURCES:
+            raise exc.ValidationError('Invalid resource name: %r.' % value)
+        return value
+
+    def clean_name(self, attr):
+        return attr.name
 
     def clean_fields(self, exclude=None):
-        log.debug('cleaning %s', self.name)
-        # Make sure that the resource's type matches the resource name
-        if self.resource_name != self.resource._resource_name:
-            raise exc.ValidationError({
-                'attribute': 'Invalid attribute type for this resource.'
-            })
+        obj = self._obj
+        if obj is None:
+            return None
+
+        self.resource_name = self.clean_resource_name(obj.__class__.__name__)
+        self.resource_id = obj.id
+        self.name = self.clean_name(self.attribute)
 
     def save(self, *args, **kwargs):
         self.full_clean()
@@ -1371,9 +1446,9 @@ class Value(models.Model):
             'id': self.id,
             'name': self.name,
             'value': self.value,
-            'attribute': self.attribute.to_dict(),
+            'attribute': self.attribute_id,
             'resource_name': self.resource_name,
-            'resource': self.resource.to_dict(),
+            'resource_id': self.resource_id,
         }
 
 
@@ -1465,3 +1540,19 @@ class Change(models.Model):
             'resource_id': self.resource_id,
             'resource': resource,
         }
+
+
+# Signals
+def delete_resource_values(sender, instance, **kwargs):
+    """Delete values when a Resource object is deleted."""
+    instance.attributes.delete()  # These are instances of Value
+
+
+# Register signals
+resource_subclasses = Resource.__subclasses__()
+for model_class in resource_subclasses:
+    models.signals.post_delete.connect(
+        delete_resource_values,
+        sender=model_class,
+        dispatch_uid='value_post_delete_' + model_class.__name__
+    )

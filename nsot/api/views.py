@@ -300,9 +300,9 @@ class DeviceViewSet(ResourceViewSet):
             # Retrieve next set of networks using the same arguments as the
             # initial query.
             next_set = Q(
-                attributes=models.Value.objects.filter(
-                    attribute__name=name, value=value
-                )
+                id__in=models.Value.objects.filter(
+                    name=name, value=value, resource_name='Device'
+                ).values_list('resource_id', flat=True)
             )
             devices = devices.filter(next_set)
 
@@ -402,9 +402,9 @@ class NetworkViewSet(ResourceViewSet):
             # Retrieve next set of networks using the same arguments as the
             # initial query.
             next_set = Q(
-                attributes=models.Value.objects.filter(
-                    attribute__name=name, value=value
-                )
+                id__in=models.Value.objects.filter(
+                    name=name, value=value, resource_name='Network'
+                ).values_list('resource_id', flat=True)
             )
             networks = networks.filter(next_set)
 

@@ -224,3 +224,5 @@ def _test_parenting(device):
     # Test setting interface parent's automatically (by attrs??)
 
     # Disallow setting non-Interface objects as parent.
+
+# test_retrieve_interfaces
