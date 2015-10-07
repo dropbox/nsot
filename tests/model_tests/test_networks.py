@@ -140,39 +140,12 @@ def test_retrieve_networks(site):
     # include_networks=False, include_ips=True
     assert list(site.networks.filter(is_ip=True)) == [ip]
 
-    # There is no use-case for these tests.
-    '''
-    assert sorted(site.networks(
-        subnets_of='10.0.0.0/10'
-    )) == sorted([net_24])
+    # Filter by attribute
+    assert list(site.networks.by_attribute(None, 'foo')) == []
+    assert list(site.networks.by_attribute('test', 'foo')) == [net_8]
 
-    assert sorted(site.networks(
-        subnets_of='10.0.0.0/10', include_ips=True
-    )) == sorted([net_24, ip])
-
-    assert sorted(site.networks(
-        supernets_of='10.0.0.0/10'
-    )) == sorted([net_8])
-
-    with pytest.raises(ValueError):
-        site.networks(subnets_of='10.0.0.0/10', supernets_of='10.0.0.0/10')
-    '''
-
-    with pytest.raises(ValueError):
-        assert site.networks.filter(
-            attributes__name=None, attributes__value='foo'
-        )
-
-    assert list(
-        site.networks.filter(attributes__attribute__name='test').order_by('id')
-    ) == [net_8, net_24]
-
-    assert list(
-        site.networks.filter(
-            attributes__attribute__name='test', attributes__value='foo'
-        )
-    ) == [net_8]
-
+    # Get by address
+    assert site.networks.get_by_address(u'10.0.0.0/8') == net_8
 
 def test_mptt_methods(site):
     """Test ancestor/children/descendents/root model methods."""
