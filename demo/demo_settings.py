@@ -2,6 +2,10 @@
 NSoT demo settings.
 """
 from nsot.conf.settings import *
+import os.path
+
+# Path where the config is found.
+CONF_ROOT = os.path.dirname(__file__)
 
 DATABASES = {
     'default': {
