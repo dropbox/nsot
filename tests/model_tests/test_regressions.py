@@ -31,3 +31,18 @@ def test_reparent_bug_issues_27(site):
     assert net_8.parent_id is None
     assert net_31.parent_id == net_8.id
     assert net_25.parent_id == net_8.id
+
+
+def test_nonexistent_attr_issues_99(site):
+    """
+    Test that set query on non-existent attribute returns an empty list.
+
+    Ref: https://github.com/dropbox/nsot/issues/99
+    """
+
+    dev = models.Device.objects.create(site=site, hostname='foo-bar1')
+    models.Interface.objects.create(device=dev, name='eth0')
+    all_interfaces = models.Interface.objects.all()
+
+    assert list(models.Interface.objects.set_query('bad=bogus')) == []
+    assert list(all_interfaces.set_query('fake=notreal')) == []
