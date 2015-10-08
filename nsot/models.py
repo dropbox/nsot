@@ -228,11 +228,15 @@ class ResourceSetTheoryQuerySet(models.query.QuerySet):
             if site_id is not None:
                 params['site_id'] = site_id
 
-            # FIXME(jathan): If an Attribute doesn't exist, this should raise a
-            # ValidationError instead of a DoesNotExist.
-            attr = Attribute.objects.get(
-                **params
-            )
+            # If an Attribute doesn't exist, the set query is invalid. Return
+            # an empty queryset. (fix #99)
+            try:
+                attr = Attribute.objects.get(
+                    **params
+                )
+            except ObjectDoesNotExist as err:
+                return objects.none()
+
             next_set = Q(
                 id__in=Value.objects.filter(
                     name=attr.name, value=value, resource_name=resource_name
@@ -304,12 +308,7 @@ class ResourceManager(models.Manager):
         :param site_id:
             ID of Site to filter results
         """
-
-        try:
-            return self.get_queryset().set_query(query, site_id)
-        # If no matching objects are found, return an empty queryset.
-        except ObjectDoesNotExist:
-            return self.get_queryset().none()
+        return self.get_queryset().set_query(query, site_id)
 
     def by_attribute(self, name, value, site_id=None):
         """
@@ -329,11 +328,7 @@ class ResourceManager(models.Manager):
         :param site_id:
             ID of Site to filter results
         """
-        try:
-            return self.get_queryset().by_attribute(name, value, site_id)
-        # If no matching objects are found, return an empty queryset.
-        except ObjectDoesNotExist:
-            return self.get_queryset().none()
+        return self.get_queryset().by_attribute(name, value, site_id)
 
 
 class Resource(models.Model):
