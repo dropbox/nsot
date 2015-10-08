@@ -13,6 +13,16 @@ Sites allow an organization to have multiple instances of potentially
 conflicting resources. This could be beneficial for isolating corp vs.
 prod environments, or pulling in the IP space of an aquisition.
 
+Attributes
+----------
+
+Attributes are arbitrary key/value pairs that can be assigned to
+various resources. If an attribute is required then additions/updates
+for that resource will require that attribute be present.
+
+Changes to attribute constraints are not retroactive. Existing
+resources will not be forcefully validated until updated.
+
 Networks
 --------
 
@@ -29,13 +39,15 @@ routers, switches, console servers, pdus, servers, etc.
 
 Devices also support arbitrary attributes similar to Networks.
 
-Attributes
+Interfaces
 ----------
 
-Attributes are arbitrary key/value pairs that can be assigned to
-various resources. If an attribute is required then additions/updates
-for that resource will require that attribute be present. Existing
-resources will not be forcefully validated until update.
+An interface represents a physical or logical network interface such as an
+ethernet port. Interfaces must always be associated with a device. Zero or
+more addresses may be assigned to an Interface, although the same address may
+not be assigned to more than one interface on the same device.
+
+Interfaces also support arbitrary attributes similar to Networks and Devices.
 
 Permissions
 -----------
