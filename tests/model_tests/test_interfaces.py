@@ -189,6 +189,7 @@ def test_assign_address(device):
     # Test assign_address
     cidr = '10.1.1.1/32'
     assign1 = iface.assign_address(cidr)
+    iface.clean_addresses()
 
     # Confirm assignments
     assert iface.get_addresses() == [cidr]

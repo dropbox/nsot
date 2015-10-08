@@ -227,6 +227,9 @@ class ResourceSetTheoryQuerySet(models.query.QuerySet):
             # Only include site_id if it's set
             if site_id is not None:
                 params['site_id'] = site_id
+
+            # FIXME(jathan): If an Attribute doesn't exist, this should raise a
+            # ValidationError instead of a DoesNotExist.
             attr = Attribute.objects.get(
                 **params
             )
@@ -422,22 +425,21 @@ class Resource(models.Model):
     def clean_attributes(self):
         """Make sure that attributes are saved as JSON."""
         attrs = {}
-        for a in self.attributes.all():
+
+        # Only fetch the fields we need.
+        for a in self.attributes.only('name', 'value', 'attribute').iterator():
             if a.attribute.multi:
                 if a.name not in attrs:
                     attrs[a.name] = []
                 attrs[a.name].append(a.value)
             else:
                 attrs[a.name] = a.value
-        self._attributes_cache = attrs
-        return attrs
+        self._attributes_cache = attrs  # Cache the attributes
 
-    def clean_fields(self, exclude=None):
-        self._attributes_cache = self.clean_attributes()
+        return attrs
 
     def save(self, *args, **kwargs):
         self._is_new = self.id is None  # Check if this is a new object.
-        # self.full_clean()
         super(Resource, self).save(*args, **kwargs)
 
         # This is so that we can set the attributes on create/update, but if
@@ -933,6 +935,12 @@ class Interface(Resource):
         on_delete=models.PROTECT
     )
 
+    # Where list of assigned addresses is cached.
+    _addresses_cache = fields.JSONField(null=False, blank=True, default=[])
+
+    # Where list of attached networks is cached.
+    _networks_cache = fields.JSONField(null=False, blank=True, default=[])
+
     def __init__(self, *args, **kwargs):
         self._set_addresses = kwargs.pop('addresses', None)
         super(Interface, self).__init__(*args, **kwargs)
@@ -973,6 +981,7 @@ class Interface(Resource):
     def _purge_assignments(self):
         """Delete all of my assignments, leaving the Network objects intact."""
         self.assignments.all().delete()
+        self.clean_addresses()  # Always re-cache after we purge assignments.
 
     def assign_address(self, cidr):
         """
@@ -1040,21 +1049,31 @@ class Interface(Resource):
         for insert in inserts:
             self.assign_address(insert)
 
+        self.clean_addresses()
+
     def get_assignments(self):
         """Return a list of informatoin about my assigned addresses."""
         return [a.to_dict() for a in self.assignments.all()]
 
     def get_addresses(self):
         """Return a list of assigned addresses."""
-        return [a.cidr for a in self.addresses.all()]
+        return self._addresses_cache
 
     def get_networks(self):
         """Return a list of attached Networks."""
-        return [n.cidr for n in self.networks]
+        return self._networks_cache
 
     def get_device_site(self):
         """Return the Site for my Device."""
         return Device.objects.get(id=self.device_id).site
+
+    def clean_addresses(self):
+        """Make sure that addresses/networks are saved as JSON."""
+        addresses = [a.cidr for a in self.addresses.iterator()]
+        self._addresses_cache = addresses
+
+        networks = [n.cidr for n in self.networks.iterator()]
+        self._networks_cache = networks
 
     def clean_name(self, value):
         """Enforce name."""
@@ -1417,8 +1436,10 @@ class Value(models.Model):
         unique_together = ('name', 'value', 'resource_name', 'resource_id')
 
         # This is most commonly looked up
-        # index_together = unique_together
-        index_together = ('name', 'value', 'resource_name')
+        index_together = [
+            ('name', 'value', 'resource_name'),
+            ('resource_name', 'resource_id'),
+        ]
 
     def clean_resource_name(self, value):
         if value not in VALID_CHANGE_RESOURCES:
