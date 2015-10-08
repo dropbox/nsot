@@ -46,8 +46,8 @@ admin.site.register(models.Attribute, AttributeAdmin)
 
 
 class ValueAdmin(admin.ModelAdmin):
-    list_display = ('name', 'value', 'resource')
-    list_filter = ('attribute', 'value')
+    list_display = ('name', 'value', 'resource_name', 'resource_id')
+    list_filter = ('name', 'value', 'resource_name')
 admin.site.register(models.Value, ValueAdmin)
 
 
@@ -81,7 +81,7 @@ class NetworkAdmin(BaseChildAdmin):
     mptt_indent_field = 'cidr'
     list_display = ('cidr', 'network_address', 'prefix_length', 'ip_version',
                     'is_ip', 'parent', 'site')
-    list_filter = ('prefix_length', 'is_ip', 'ip_version', 'parent', 'site')
+    list_filter = ('prefix_length', 'is_ip', 'ip_version', 'site')
 
     def get_cidr(self):
         return '%s/%s' % (self.network_address, self.prefix_length)
