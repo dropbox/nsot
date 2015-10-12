@@ -19,7 +19,7 @@ import re
 from . import exc
 from . import fields
 from . import validators
-from .util import generate_secret_key, parse_set_query
+from .util import generate_secret_key, parse_set_query, stats
 
 
 log = logging.getLogger(__name__)
@@ -759,6 +759,9 @@ class Network(Resource):
 
         return query
 
+    def get_utilization(self):
+        return stats.get_network_utilization(self)
+
     @property
     def cidr(self):
         return u'%s/%s' % (self.network_address, self.prefix_length)
@@ -1205,7 +1208,9 @@ class Assignment(models.Model):
         return {
             'id': self.id,
             'device': self.interface.device.id,
+            'hostname': self.interface.device.hostname,
             'interface': self.interface.id,
+            'interface_name': self.interface.name,
             'address': self.address.cidr,
         }
 

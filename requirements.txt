@@ -27,6 +27,6 @@ ipython==3.1.0
 Jinja2==2.7.3
 logan==0.7.1
 MarkupSafe==0.23
-netaddr==0.7.15
+netaddr==0.7.18
 PyYAML==3.11
 static3==0.6.1
