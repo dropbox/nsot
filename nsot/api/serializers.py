@@ -219,7 +219,7 @@ class ValueSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Value
         fields = ('id', 'name', 'value', 'attribute', 'resource_name',
-                  'resource')
+                  'resource_id')
 
     # Not sure if we want to view an attribute value w/ so much context just
     # yet.
@@ -233,7 +233,7 @@ class ValueCreateSerializer(ValueSerializer):
         model = models.Value
         read_only_fields = ('id', 'name', 'resource_name')
         fields = ('id', 'name', 'value', 'attribute', 'resource_name',
-                  'resource')
+                  'resource_id')
 
 
 ########
