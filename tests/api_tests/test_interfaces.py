@@ -112,8 +112,8 @@ def test_creation_with_addresses(site, client):
     assert_success(client.get(ifc_obj_uri), {'interface': ifc})
 
 
-def test_collection_creation(site, client):
-    """Test creating multiple Interfaces at once."""
+def test_bulk_operations(site, client):
+    """Test creating/updating multiple Interfaces at once."""
     dev_uri = site.list_uri('device')
     ifc_uri = site.list_uri('interface')
 
@@ -132,13 +132,22 @@ def test_collection_creation(site, client):
     )
     assert_created(collection_response, None)
 
-    # Successfully get all created Networks
+    # Successfully get all created Interfaces
     output = collection_response.json()
     output['data'].update({
         'limit': None, 'offset': 0, 'total': len(collection)
     })
 
     assert_success(client.get(ifc_uri), output['data'])
+
+    # Test update of all created Interfaces (name: foo => bar)
+    updated = output['data']['interfaces'][:]
+    for item in updated:
+        item['name'] = item['name'].replace('foo', 'bar')
+    updated_resp = client.put(ifc_uri, data=json.dumps(updated))
+    expected = updated_resp.json()
+
+    assert updated == expected
 
 
 def test_update(site, client):

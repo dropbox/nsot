@@ -73,8 +73,10 @@ def test_creation(live_server, user, site):
     assert_success(admin_client.get(dev_obj_uri), {'device': dev})
 
 
-def test_collection_creation(site, client):
+def test_bulk_operations(site, client):
+    """Test creating/updating multiple Devices at once."""
     # URIs
+    attr_uri = site.list_uri('attribute')
     dev_uri = site.list_uri('device')
 
     # Successfully create a collection of Devices
@@ -96,6 +98,16 @@ def test_collection_creation(site, client):
     })
 
     assert_success(client.get(dev_uri), output['data'])
+
+    # Test bulk update to add attributes to each Device
+    client.create(attr_uri, resource_name='Device', name='owner')
+    updated = output['data']['devices']
+    for item in updated:
+        item['attributes'] = {'owner': 'jathan'}
+    updated_resp = client.put(dev_uri, data=json.dumps(updated))
+    expected = updated_resp.json()
+
+    assert updated == expected
 
 
 def test_filters(site, client):

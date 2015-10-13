@@ -5,9 +5,8 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db.models import Q, ProtectedError
-from django.shortcuts import render
 import logging
-from rest_framework import mixins, status, viewsets
+from rest_framework import mixins, viewsets
 from rest_framework.views import APIView
 from rest_framework.decorators import detail_route, list_route
 from rest_framework.response import Response
@@ -17,7 +16,7 @@ from . import auth
 from . import serializers
 from .. import exc
 from .. import models
-from ..util import qpbool, parse_set_query
+from ..util import qpbool
 
 
 log = logging.getLogger(__name__)
@@ -46,8 +45,8 @@ class BaseNsotViewSet(viewsets.ReadOnlyModelViewSet):
         """Standard formatting for 404 errors."""
         if msg is None:
             msg = 'No such {} found at (site_id, id) = ({}, {})'.format(
-                    self.model_name, site_pk, pk
-                )
+                self.model_name, site_pk, pk
+            )
         raise exc.NotFound(msg)
 
     def success(self, data, result_key=None, status=200, headers=None):
@@ -74,22 +73,27 @@ class BaseNsotViewSet(viewsets.ReadOnlyModelViewSet):
 
     def create(self, request, *args, **kwargs):
         """Return objects that have just been created."""
-        response = super(BaseNsotViewSet, self).create(request, *args, **kwargs)
+        response = super(BaseNsotViewSet, self).create(
+            request, *args, **kwargs
+        )
         return self.success(
-            response.data, status=response.status_code, headers=dict(response.items()),
+            response.data, status=response.status_code,
+            headers=dict(response.items()),
         )
 
     def update(self, request, *args, **kwargs):
         """Return objects that have just been updated."""
-        response = super(BaseNsotViewSet, self).update(request, *args, **kwargs)
+        response = super(BaseNsotViewSet, self).update(
+            request, *args, **kwargs
+        )
         return self.success(response.data)
 
     def list(self, request, site_pk=None, queryset=None, *args, **kwargs):
         """List objects optionally filtered by site."""
         if queryset is None:
             queryset = self.filter_queryset(self.get_queryset())
-            # Query by site_pk if it's set (.e.g /site/1/:foo) and make sure any
-            # filtering args are passed.
+            # Query by site_pk if it's set (e.g. /sites/1/:foo) and make sure
+            # any filtering args are passed.
             if site_pk is not None:
                 queryset = queryset.filter(site=site_pk)
 
@@ -162,16 +166,21 @@ class NsotViewSet(BaseNsotViewSet, viewsets.ModelViewSet):
 
     def perform_update(self, serializer):
         try:
-            obj = serializer.save()
+            objects = serializer.save()
         except DjangoValidationError as err:
             raise exc.ValidationError(err.error_dict)
         except exc.IntegrityError as err:
             raise exc.Conflict(err.message)
+        else:
+            # This is so that we can always work w/ objects as a list
+            if not isinstance(objects, list):
+                objects = [objects]
 
-        log.debug('NsotViewSet.perform_update() obj = %r', obj)
-        models.Change.objects.create(
-            obj=obj, user=self.request.user, event='Update'
-        )
+        log.debug('NsotViewSet.perform_update() objects = %r', objects)
+        for obj in objects:
+            models.Change.objects.create(
+                obj=obj, user=self.request.user, event='Update'
+            )
 
     def perform_destroy(self, instance):
         log.debug('NsotViewSet.perform_destroy() obj = %r', instance)
@@ -185,7 +194,8 @@ class NsotViewSet(BaseNsotViewSet, viewsets.ModelViewSet):
             raise exc.Conflict(err.args[0])
 
 
-class AttributeViewSet(NsotViewSet, bulk_mixins.BulkCreateModelMixin):
+class AttributeViewSet(NsotViewSet, bulk_mixins.BulkCreateModelMixin,
+                       bulk_mixins.BulkUpdateModelMixin):
     """
     API endpoint that allows Attributes to be viewed or edited.
     """
@@ -238,7 +248,8 @@ class ValueViewSet(NsotViewSet):
         return self.serializer_class
 
 
-class ResourceViewSet(NsotViewSet, bulk_mixins.BulkCreateModelMixin):
+class ResourceViewSet(NsotViewSet, bulk_mixins.BulkCreateModelMixin,
+                      bulk_mixins.BulkUpdateModelMixin):
     """
     Resource views that include set query list endpoints.
     """
@@ -373,7 +384,8 @@ class NetworkViewSet(ResourceViewSet):
         if root_only:
             networks = networks.filter(parent=None)
 
-        # If cidr is provided, use it to populate network_address and prefix_length
+        # If cidr is provided, use it to populate network_address and
+        # prefix_length
         if cidr is not None:
             log.debug('got cidr: %s' % cidr)
             network_address, _, prefix_length = cidr.partition('/')
@@ -643,7 +655,7 @@ class UserViewSet(BaseNsotViewSet, mixins.CreateModelMixin):
         if user != request.user:
             raise exc.Forbidden(
                 "Can't access secret_key of user that isn't you."
-        )
+            )
 
         user.rotate_secret_key()
         return self.success(user.secret_key, 'secret_key')

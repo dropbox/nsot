@@ -53,7 +53,8 @@ def test_creation(client, site):
     assert_success(client.get(attr_obj_uri), attr_resp.json()['data'])
 
 
-def test_collection_creation(client, site):
+def test_bulk_operations(client, site):
+    """Test creating/updating multiple Attributes at once."""
 
     attr_uri = site.list_uri('attribute')
 
@@ -79,6 +80,15 @@ def test_collection_creation(client, site):
         client.get(attr_uri),
         output['data'],
     )
+
+    # Test bulk update to add a description to each Attribute
+    updated = output['data']['attributes']
+    for item in updated:
+        item['description'] = 'This is the best attribute ever.'
+    updated_resp = client.put(attr_uri, data=json.dumps(updated))
+    expected = updated_resp.json()
+
+    assert updated == expected
 
 
 def test_update(client, site):

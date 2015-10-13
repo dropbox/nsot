@@ -6,6 +6,7 @@ from collections import OrderedDict
 import json
 import logging
 from rest_framework import fields, serializers
+from rest_framework_bulk import BulkSerializerMixin, BulkListSerializer
 import six
 
 from . import auth
@@ -200,11 +201,14 @@ class AttributeCreateSerializer(AttributeSerializer):
                   'display', 'multi', 'constraints', 'site_id')
 
 
-class AttributeUpdateSerializer(AttributeCreateSerializer):
+class AttributeUpdateSerializer(BulkSerializerMixin,
+                                AttributeCreateSerializer):
     """Used for PUT, PATCH, on Attributes."""
     class Meta:
         model = models.Attribute
-        fields = ('description', 'required', 'display', 'multi', 'constraints')
+        list_serializer_class = BulkListSerializer
+        fields = ('id', 'description', 'required', 'display', 'multi',
+                  'constraints')
 
 
 #######
@@ -271,11 +275,12 @@ class DeviceCreateSerializer(DeviceSerializer):
         return obj
 
 
-class DeviceUpdateSerializer(DeviceCreateSerializer):
+class DeviceUpdateSerializer(BulkSerializerMixin, DeviceCreateSerializer):
     """Used for PUT, PATCH, on Devices."""
     class Meta:
         model = models.Device
-        fields = ('hostname', 'attributes')
+        list_serializer_class = BulkListSerializer
+        fields = ('id', 'hostname', 'attributes')
 
     def update(self, instance, validated_data):
 
@@ -334,11 +339,12 @@ class NetworkCreateSerializer(NetworkSerializer):
         return obj
 
 
-class NetworkUpdateSerializer(NetworkCreateSerializer):
+class NetworkUpdateSerializer(BulkSerializerMixin, NetworkCreateSerializer):
     """Used for PUT, PATCH on Networks."""
     class Meta:
         model = models.Network
-        fields = ('attributes',)
+        list_serializer_class = BulkListSerializer
+        fields = ('id', 'attributes',)
 
     def update(self, instance, validated_data):
         log.debug('NetworkUpdateSerializer.update() validated_data = %r',
@@ -423,11 +429,13 @@ class InterfaceCreateSerializer(InterfaceSerializer):
         return obj
 
 
-class InterfaceUpdateSerializer(InterfaceCreateSerializer):
+class InterfaceUpdateSerializer(BulkSerializerMixin,
+                                InterfaceCreateSerializer):
     "Used for PUT, PATCH on Interfaces."""
     class Meta:
         model = models.Interface
-        fields = ('name', 'description', 'type', 'mac_address', 'speed',
+        list_serializer_class = BulkListSerializer
+        fields = ('id', 'name', 'description', 'type', 'mac_address', 'speed',
                   'parent', 'addresses', 'attributes')
 
     def update(self, instance, validated_data):
