@@ -73,8 +73,10 @@ def test_creation(live_server, user, site):
     assert_success(admin_client.get(net_obj_uri), {'network': net})
 
 
-def test_collection_creation(site, client):
+def test_bulk_operations(site, client):
+    """Test creating/updating multiple Networks at once."""
     # URIs
+    attr_uri = site.list_uri('attribute')
     net_uri = site.list_uri('network')
 
     # Successfully create a collection of Networks
@@ -96,6 +98,16 @@ def test_collection_creation(site, client):
     })
 
     assert_success(client.get(net_uri), output['data'])
+
+    # Test bulk update to add attributes to each Network
+    client.create(attr_uri, resource_name='Network', name='vlan')
+    updated = output['data']['networks']
+    for item in updated:
+        item['attributes'] = {'vlan': '300'}
+    updated_resp = client.put(net_uri, data=json.dumps(updated))
+    expected = updated_resp.json()
+
+    assert updated == expected
 
 
 def test_filters(site, client):

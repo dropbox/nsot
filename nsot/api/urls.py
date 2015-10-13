@@ -3,20 +3,27 @@ from __future__ import unicode_literals
 
 from django.conf.urls import url, include
 from django.conf import settings
-from rest_framework import routers
+from rest_framework_bulk.routes import BulkRouter
 from rest_framework_nested import routers as nested_routers
 
 from . import views
 
 
 # Register /sites as a top-level resource
-router = routers.DefaultRouter(trailing_slash=settings.APPEND_SLASH)
+router = BulkRouter(trailing_slash=settings.APPEND_SLASH)
 router.register(r'sites', views.SiteViewSet)
 
 # Nested router for resources under /sites
 sites_router = nested_routers.NestedSimpleRouter(
     router, r'sites', lookup='site', trailing_slash=settings.APPEND_SLASH
 )
+
+# Map nested router to bulk put/patch operations
+sites_router.routes[0].mapping.update({
+    'put': 'bulk_update',
+    'patch': 'partial_bulk_update',
+    'delete': 'bulk_destroy',
+})
 
 # Resources that are nested under /sites
 sites_router.register(r'attributes', views.AttributeViewSet)
