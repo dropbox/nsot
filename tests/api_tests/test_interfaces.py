@@ -47,7 +47,9 @@ def test_creation(site, client):
     )
 
     # Verify successful creation
-    ifc1_resp = client.create(ifc_uri, device=dev['id'], name='eth0')
+    ifc1_resp = client.create(
+        ifc_uri, device=dev['id'], name='eth0', parent_id=None
+    )
     ifc1 = ifc1_resp.json()['data']['interface']
     ifc1_obj_uri = site.detail_uri('interface', id=ifc1['id'])
 
