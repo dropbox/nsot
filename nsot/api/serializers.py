@@ -375,7 +375,7 @@ class InterfaceSerializer(NsotSerializer):
     #     html_cutoff=100,
     #     queryset=models.Interface.objects.all(),
     parent_id = fields.IntegerField(
-        required=False,
+        required=False, allow_null=True,
         label=get_field_attr(models.Interface, 'parent', 'verbose_name'),
         help_text=get_field_attr(models.Interface, 'parent', 'help_text'),
     )
@@ -436,7 +436,7 @@ class InterfaceUpdateSerializer(BulkSerializerMixin,
         model = models.Interface
         list_serializer_class = BulkListSerializer
         fields = ('id', 'name', 'description', 'type', 'mac_address', 'speed',
-                  'parent', 'addresses', 'attributes')
+                  'parent_id', 'addresses', 'attributes')
 
     def update(self, instance, validated_data):
         log.debug('InterfaceUpdateSerializer.update() validated_data = %r',
