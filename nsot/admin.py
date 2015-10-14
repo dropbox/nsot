@@ -5,8 +5,6 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.contrib import admin
 from django.utils.translation import ugettext_lazy as _
-from polymorphic.admin import (PolymorphicParentModelAdmin,
-                               PolymorphicChildModelAdmin)
 
 from . import models
 
@@ -58,25 +56,15 @@ class ChangeAdmin(admin.ModelAdmin):
 admin.site.register(models.Change, ChangeAdmin)
 
 
-class BaseChildAdmin(PolymorphicChildModelAdmin):
-    base_model = models.Resource
-
-    base_fieldsets = (None, {
-        'fields': ('id', 'site'),
-    })
-
-
-class DeviceAdmin(PolymorphicChildModelAdmin):
-    base_model = models.Device
+class DeviceAdmin(admin.ModelAdmin):
     list_display = ('hostname', 'site')
-    list_filter = ('hostname', 'site')
+    list_filter = ('site',)
 
     fields = list_display
 admin.site.register(models.Device, DeviceAdmin)
 
 
-class NetworkAdmin(BaseChildAdmin):
-    base_model = models.Network
+class NetworkAdmin(admin.ModelAdmin):
     mptt_level_indent = 10
     mptt_indent_field = 'cidr'
     list_display = ('cidr', 'network_address', 'prefix_length', 'ip_version',
@@ -91,8 +79,7 @@ class NetworkAdmin(BaseChildAdmin):
 admin.site.register(models.Network, NetworkAdmin)
 
 
-class InterfaceAdmin(PolymorphicChildModelAdmin):
-    base_model = models.Interface
+class InterfaceAdmin(admin.ModelAdmin):
     list_display = ('name', 'device', 'parent', 'mac_address', 'type', 'speed')
     list_filter = ('type', 'speed')
 

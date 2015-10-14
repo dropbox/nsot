@@ -3,7 +3,7 @@ betamax==0.4.2
 mrproxy==0.3.3
 py==1.4.26
 pytest==2.7.0
-pytest-django==2.8.0
+pytest-django==2.9.1
 pytest-pythonpath==0.6
 Pygments==2.0.1
 Sphinx==1.2.3
