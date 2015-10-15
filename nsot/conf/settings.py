@@ -187,6 +187,14 @@ NSOT_HOST = '0.0.0.0'
 # Default: 8990
 NSOT_PORT = 8990
 
+# The number of gunicorn worker processes for handling requests.
+# Default: 4
+NSOT_NUM_WORKERS = 4
+
+# Timeout in seconds before gunicorn workers are killed/restarted.
+# Default: 30
+NSOT_WORKER_TIMEOUT = 30
+
 # If True, serve static files directly from the app.
 # Default: True
 SERVE_STATIC_FILES = True

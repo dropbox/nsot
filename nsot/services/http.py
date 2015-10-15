@@ -1,11 +1,13 @@
 from __future__ import absolute_import, print_function
 
+from django.conf import settings
 from gunicorn.app.base import Application
 
 from nsot.services.base import Service
 
 
 class NsotGunicornCommand(Application):
+    """Gunicorn WSGI service."""
     def __init__(self, options):
         self.usage = None
         self.prog = None
@@ -29,35 +31,34 @@ class NsotGunicornCommand(Application):
 
 
 class NsotHTTPServer(Service):
+    """HTTP service options."""
     name = 'http'
 
     def __init__(self, host=None, port=None, debug=False, workers=None,
-                 worker_class=None):
-        from django.conf import settings
+                 worker_class=None, timeout=None):
 
         self.host = host or settings.NSOT_HOST
         self.port = port or settings.NSOT_PORT
-        self.workers = workers
 
-        options = {}
-        options.setdefault('bind', '%s:%s' % (self.host, self.port))
-        options.setdefault('timeout', 30)
-        options.setdefault('proc_name', 'NSoT')
-        options.setdefault('workers', 4)
-        options.setdefault('worker_class', 'gevent')
-        options.setdefault('access_logfile', '-')
-        options.setdefault('errorlog', '-')
-        options.setdefault('loglevel', 'info')
-        options.setdefault('limit_request_line', 0)
-        options['preload'] = False
-
-        if workers:
-            options['workers'] = workers
-
-        if worker_class:
-            options['worker_class'] = worker_class
+        options = {
+            'bind': '%s:%s' % (self.host, self.port),
+            'workers': workers or settings.NSOT_NUM_WORKERS,
+            'worker_class': worker_class or 'gevent',
+            'timeout': timeout or settings.NSOT_WORKER_TIMEOUT,
+            'proc_name': 'NSoT',
+            'access_logfile': '-',
+            'errorlog': '-',
+            'loglevel': 'info',
+            'limit_request_line': 0,
+            'preload': False,
+        }
 
         self.options = options
 
     def run(self):
+        print(
+            'Running service: %r, num workers: %s, worker timeout: %s' % (
+                self.name, self.options['workers'], self.options['timeout']
+            )
+        )
         NsotGunicornCommand(self.options).run()
