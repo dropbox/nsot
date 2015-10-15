@@ -7,9 +7,11 @@ from custom_user.models import AbstractEmailUser
 from django.db import models
 from django.db.models.query_utils import Q
 from django.conf import settings
+from django.core.cache import cache as djcache
 from django.core.exceptions import (ValidationError as DjangoValidationError,
                                     ObjectDoesNotExist)
 from django.core.validators import EmailValidator
+from django.utils import timezone
 import ipaddress
 import json
 import logging
@@ -234,7 +236,7 @@ class ResourceSetTheoryQuerySet(models.query.QuerySet):
                 attr = Attribute.objects.get(
                     **params
                 )
-            except ObjectDoesNotExist as err:
+            except ObjectDoesNotExist:
                 return objects.none()
 
             next_set = Q(
@@ -1569,11 +1571,28 @@ def delete_resource_values(sender, instance, **kwargs):
     instance.attributes.delete()  # These are instances of Value
 
 
+def change_api_updated_at(sender=None, instance=None, *args, **kwargs):
+    """Anytime the API is updated, invalidate the cache."""
+    djcache.set('api_updated_at_timestamp', timezone.now())
+
+
 # Register signals
 resource_subclasses = Resource.__subclasses__()
 for model_class in resource_subclasses:
+    # Value post_delete
     models.signals.post_delete.connect(
         delete_resource_values,
         sender=model_class,
         dispatch_uid='value_post_delete_' + model_class.__name__
     )
+
+
+# Invalidate Interface cache on save/delete
+models.signals.post_save.connect(
+    change_api_updated_at, sender=Interface,
+    dispatch_uid='invalidate_cache_post_save_interface'
+)
+models.signals.post_delete.connect(
+    change_api_updated_at, sender=Interface,
+    dispatch_uid='invalidate_cache_post_delete_interface'
+)

@@ -11,12 +11,13 @@ from rest_framework.views import APIView
 from rest_framework.decorators import detail_route, list_route
 from rest_framework.response import Response
 from rest_framework_bulk import mixins as bulk_mixins
+from rest_framework_extensions.cache.decorators import cache_response
 
 from . import auth
 from . import serializers
 from .. import exc
 from .. import models
-from ..util import qpbool
+from ..util import cache, qpbool
 
 
 log = logging.getLogger(__name__)
@@ -558,6 +559,16 @@ class InterfaceViewSet(ResourceViewSet):
     serializer_class = serializers.InterfaceSerializer
     filter_fields = ('device', 'name', 'speed', 'type', 'description',
                      'parent_id')
+
+    @cache_response(cache_errors=False, key_func=cache.list_key_func)
+    def list(self, *args, **kwargs):
+        """Override default list so we can cache results."""
+        return super(InterfaceViewSet, self).list(*args, **kwargs)
+
+    @cache_response(cache_errors=False, key_func=cache.object_key_func)
+    def retrieve(self, *args, **kwargs):
+        """Override default retrieve so we can cache results."""
+        return super(InterfaceViewSet, self).retrieve(*args, **kwargs)
 
     def get_serializer_class(self):
         if self.request.method == 'POST':

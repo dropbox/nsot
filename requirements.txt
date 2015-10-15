@@ -18,6 +18,7 @@ django-rest-swagger==0.3.4
 django-smart-selects==1.1.1
 djangorestframework==3.2.4
 djangorestframework-bulk==0.2.1
+drf-extensions==0.2.8
 drf-nested-routers==0.10.0
 gevent==1.0.2
 gunicorn==19.3.0
