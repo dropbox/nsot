@@ -1,11 +1,15 @@
-from datetime import datetime
-import logging
+
+"""
+Middleware to log HTTP requests.
+"""
+
+from django.utils.log import getLogger
 from time import time
 
 
 class LoggingMiddleware(object):
     def __init__(self):
-        self.logger = logging.getLogger(__name__)
+        self.logger = getLogger('nsot_server')
 
     def process_request(self, request):
         request.timer = time()
@@ -13,8 +17,7 @@ class LoggingMiddleware(object):
 
     def process_response(self, request, response):
         self.logger.info(
-            '%s INFO %s %s %s (%s) %.2fms',
-            datetime.now(),
+            '%s %s %s (%s) %.2fms',
             response.status_code,
             request.method,
             request.get_full_path(),

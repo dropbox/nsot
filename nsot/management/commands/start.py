@@ -1,80 +1,85 @@
 from __future__ import absolute_import, print_function
 
-import sys
+"""
+Command to start the NSoT server process.
+"""
 
 from django.conf import settings
 from django.core.management import call_command
-from django.core.management.base import BaseCommand, CommandError
-import logging
-from optparse import make_option
+import sys
+
+from nsot.services import http
+from nsot.util.commands import NsotCommand, CommandError
 
 
-log = logging.getLogger(__name__)
+class Command(NsotCommand):
+    help = 'Start the NSoT server process.'
 
-
-class Command(BaseCommand):
-    args = '<service>'
-    help = 'Starts the specified service'
-
-    option_list = BaseCommand.option_list + (
-        make_option(
+    def add_arguments(self, parser):
+        parser.add_argument(
+            'service',
+            nargs='?',
+            default='http',
+            help='Starts the specified service.',
+        )
+        parser.add_argument(
             '--debug',
             action='store_true',
-            dest='debug',
+            default=False,
             help='Toggle debug output.',
-            default=False
         ),
-        make_option(
-            '--no-upgrade',
-            action='store_false',
-            dest='upgrade',
-            help='Do not automatically perform any database upgrades.',
-            default=True
+        parser.add_argument(
+            '--noinput',
+            action='store_true',
+            default=False,
+            help='Tells Django to NOT prompt the user for input of any kind.',
         ),
-        make_option(
+        parser.add_argument(
             '--no-collectstatic',
             action='store_false',
             dest='collectstatic',
+            default=True,
             help='Do not automatically collect static files into STATIC_ROOT.',
-            default=True
         ),
-        make_option(
-            '--timeout', '-t',
-            dest='timeout',
+        parser.add_argument(
+            '--no-upgrade',
+            action='store_false',
+            dest='upgrade',
+            default=True,
+            help='Do not automatically perform any database upgrades.',
+        ),
+        parser.add_argument(
+            '-a', '--address',
+            type=str,
+            default='%s:%s' % (settings.NSOT_HOST, settings.NSOT_PORT),
+            help='Host:port to listen on.',
+        )
+        parser.add_argument(
+            '-k', '--worker-class',
+            type=str,
+            default=settings.NSOT_WORKER_CLASS,
+            help='The type of gunicorn workers to use.',
+        ),
+        parser.add_argument(
+            '-t', '--timeout',
             type=int,
+            default=settings.NSOT_WORKER_TIMEOUT,
             help='Timeout before gunicorn workers are killed/restarted.',
-            default=None
         ),
-        make_option(
-            '--workers', '-w',
-            dest='workers',
+        parser.add_argument(
+            '-w', '--workers',
             type=int,
+            default=settings.NSOT_NUM_WORKERS,
             help=(
                 'The number of gunicorn worker processes for handling '
                 'requests.'
             ),
-            default=None
-        ),
-        make_option(
-            '--worker-class', '-k',
-            dest='worker_class',
-            type=str,
-            help='The type of gunicorn workers to use.',
-            default='gevent'
-        ),
-        make_option(
-            '--noinput',
-            action='store_true',
-            dest='noinput',
-            default=False,
-            help='Tells Django to NOT prompt the user for input of any kind.',
-        ),
-    )
+        )
 
-    def handle(self, service_name='http', address=None, upgrade=True,
-               collectstatic=True, **options):
-        from nsot.services import http
+    def handle(self, **options):
+        address = options.get('address')
 
+        # Break address into host:port
         if address:
             if ':' in address:
                 host, port = address.split(':', 1)
@@ -89,19 +94,20 @@ class Command(BaseCommand):
             'http': http.NsotHTTPServer,
         }
 
-        if upgrade:
-            # Ensure we perform an upgrade before starting any service
+        # Ensure we perform an upgrade before starting any service.
+        if options.get('upgrade'):
             print("Performing upgrade before service startup...")
             call_command(
                 'upgrade', verbosity=0, noinput=options.get('noinput')
             )
 
-        if collectstatic and settings.SERVE_STATIC_FILES:
-            # Ensure we collect static before starting any service, but only if
-            # SERVE_STATIC_FILES=True.
+        # Ensure we collect static before starting any service, but only if
+        # SERVE_STATIC_FILES=True.
+        if options.get('collectstatic') and settings.SERVE_STATIC_FILES:
             print("Performing collectstatic before service startup...")
             call_command('collectstatic', interactive=False, ignore=['src'])
 
+        service_name = options.get('service')
         try:
             service_class = services[service_name]
         except KeyError:
