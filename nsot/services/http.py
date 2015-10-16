@@ -1,6 +1,5 @@
 from __future__ import absolute_import, print_function
 
-from django.conf import settings
 from gunicorn.app.base import Application
 
 from nsot.services.base import Service
@@ -35,20 +34,17 @@ class NsotHTTPServer(Service):
     name = 'http'
 
     def __init__(self, host=None, port=None, debug=False, workers=None,
-                 worker_class=None, timeout=None):
-
-        self.host = host or settings.NSOT_HOST
-        self.port = port or settings.NSOT_PORT
+                 worker_class=None, timeout=None, loglevel='info'):
 
         options = {
-            'bind': '%s:%s' % (self.host, self.port),
-            'workers': workers or settings.NSOT_NUM_WORKERS,
-            'worker_class': worker_class or 'gevent',
-            'timeout': timeout or settings.NSOT_WORKER_TIMEOUT,
+            'bind': '%s:%s' % (host, port),
+            'workers': workers,
+            'worker_class': worker_class,
+            'timeout': timeout,
             'proc_name': 'NSoT',
-            'access_logfile': '-',
+            'access_logfile': '-',  # 'accesslog': '-',
             'errorlog': '-',
-            'loglevel': 'info',
+            'loglevel': loglevel,
             'limit_request_line': 0,
             'preload': False,
         }

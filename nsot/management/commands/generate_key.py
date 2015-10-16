@@ -1,12 +1,13 @@
 from __future__ import absolute_import, print_function
 
-import sys
+"""Command to generate a secret key."""
 
 from cryptography.fernet import Fernet
-from django.core.management.base import BaseCommand, CommandError
+
+from nsot.util.commands import NsotCommand
 
 
-class Command(BaseCommand):
+class Command(NsotCommand):
     help = (
         'Generate a URL-safe base64-encoded 32-byte key for use in '
         'settings.SECRET_KEY.'

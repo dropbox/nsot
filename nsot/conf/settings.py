@@ -8,6 +8,7 @@ import macaddress
 from netaddr import eui
 import os
 import re
+import sys
 
 # Path where the code is found. (aka project root)
 BASE_DIR = os.path.normpath(os.path.join(os.path.dirname(__file__), os.pardir))
@@ -75,10 +76,10 @@ ROOT_URLCONF = 'nsot.conf.urls'
 # servers (e.g. runserver) will use.
 WSGI_APPLICATION = 'nsot.wsgi.application'
 
-# When set to True, if the request URL does not match any of the patterns in the
-# URLconf and it doesn't end in a slash, an HTTP redirect is issued to the same
-# URL with a slash appended. Note that the redirect may cause any data submitted
-# in a POST request to be lost.
+# When set to True, if the request URL does not match any of the patterns in
+# the URLconf and it doesn't end in a slash, an HTTP redirect is issued to the
+# same URL with a slash appended. Note that the redirect may cause any data
+# submitted in a POST request to be lost.
 # Default: True
 APPEND_SLASH = True
 
@@ -120,7 +121,7 @@ TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
         'DIRS': [
-            os.path.join(BASE_DIR, 'templates').replace('\\','/'),
+            os.path.join(BASE_DIR, 'templates').replace('\\', '/'),
         ],
         'APP_DIRS': True,
         'OPTIONS': {
@@ -195,9 +196,17 @@ NSOT_NUM_WORKERS = 4
 # Default: 30
 NSOT_WORKER_TIMEOUT = 30
 
+# Timeout in seconds before gunicorn workers are killed/restarted.
+# Default: 30
+NSOT_WORKER_CLASS = 'gevent'
+
 # If True, serve static files directly from the app.
 # Default: True
 SERVE_STATIC_FILES = True
+
+############
+# Security #
+############
 
 # Header to check for Authenticated Email. This is intended for use behind an
 # authenticating reverse proxy.
@@ -207,11 +216,11 @@ USER_AUTH_HEADER = 'X-NSoT-Email'
 # Default: 600
 AUTH_TOKEN_EXPIRY = 600  # 10 minutes
 
-# A list of strings representing the host/domain names that this Django site can
-# serve. This is a security measure to prevent an attacker from poisoning caches
-# and triggering password reset emails with links to malicious hosts by
-# submitting requests with a fake HTTP Host header, which is possible even under
-# many seemingly-safe web server configurations.
+# A list of strings representing the host/domain names that this Django site
+# can serve. This is a security measure to prevent an attacker from poisoning
+# caches and triggering password reset emails with links to malicious hosts by
+# submitting requests with a fake HTTP Host header, which is possible even
+# under many seemingly-safe web server configurations.
 # https://docs.djangoproject.com/en/1.8/ref/settings/#allowed-hosts
 ALLOWED_HOSTS = ['*']
 
@@ -255,8 +264,7 @@ STATIC_ROOT = os.path.realpath(os.path.join(BASE_DIR, 'staticfiles'))
 ###########
 
 SWAGGER_SETTINGS = {
-    'exclude_namespaces': ['.*', 'attribute_types'],
-    #'api_version': __version__,
+    'exclude_namespaces': ['index'],
 }
 
 
@@ -268,24 +276,26 @@ LOGGING = {
     'disable_existing_loggers': False,
     'formatters': {
         'verbose': {
-            'format' : "%(asctime)s %(levelname)s [%(name)s:%(lineno)s] %(message)s",
-            'datefmt' : "%d/%b/%Y %H:%M:%S"
+            'format': "[%(asctime)s] [%(process)d] [%(levelname)s] %(message)s",
+            'datefmt': "%Y-%m-%d %H:%M:%S %z"
         },
         'simple': {
             'format': '%(levelname)s %(message)s'
         },
     },
     'handlers': {
-        'console':{
+        'console': {
             'level': 'DEBUG',
             'class': 'logging.StreamHandler',
+            'stream': sys.stdout,
+            'formatter': 'verbose',
         },
     },
     'loggers': {
         'django.request': {
-            'handlers':['console'],
+            'handlers': ['console'],
             'propagate': True,
-            'level':'ERROR',
+            'level': 'ERROR',
         },
         'nsot': {
             'handlers': ['console'],
@@ -294,6 +304,10 @@ LOGGING = {
         'rest_framework': {
             'handlers': ['console'],
             'level': 'ERROR',
+        },
+        'nsot_server': {
+            'handlers': ['console'],
+            'level': 'INFO',
         },
     }
 }
@@ -323,10 +337,10 @@ INTERFACE_DEFAULT_MAC = eui.EUI(0, dialect=macaddress.default_dialect())
 # These are mappings to the formal integer types from SNMP IF-MIB::ifType. The
 # types listed here are the most commonly found in the wild.
 #
-# *IF YOU ARE GOING TO MODIFY THIS*: This MUST be a list of 2-tuples of (iftype,
-# name), where iftype is the unique ID for the IANA ifType SNMP MIB, and name is
-# whatever name your little heart desires, but hopefully matches the legit
-# description according to the MIB.
+# *IF YOU ARE GOING TO MODIFY THIS*: This MUST be a list of 2-tuples of
+# (iftype, name), where iftype is the unique ID for the IANA ifType SNMP MIB,
+# and name is whatever name your little heart desires, but hopefully matches
+# the legit description according to the MIB.
 #
 # Ref: https://www.iana.org/assignments/ianaiftype-mib/ianaiftype-mib
 INTERFACE_TYPE_CHOICES = (

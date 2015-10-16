@@ -1,22 +1,24 @@
 from __future__ import absolute_import, print_function
 
+"""
+Command for running any pending upgrades.
+"""
+
 from django.core.management import call_command
-from django.core.management.base import BaseCommand
 
-from optparse import make_option
+from nsot.util.commands import NsotCommand
 
 
-class Command(BaseCommand):
+class Command(NsotCommand):
     help = 'Performs any pending database migrations and upgrades'
 
-    option_list = BaseCommand.option_list + (
-        make_option('--noinput',
+    def add_arguments(self, parser):
+        parser.add_argument(
+            '--noinput',
             action='store_true',
-            dest='noinput',
             default=False,
             help='Tells Django to NOT prompt the user for input of any kind.',
-        ),
-    )
+        )
 
     def handle(self, **options):
         call_command(

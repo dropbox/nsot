@@ -9,54 +9,56 @@ Please, don't use me in production!
 
 import BaseHTTPServer
 from django.conf import settings
-from django.core.management.base import BaseCommand  # , CommandError
 import getpass
-import logging
-from optparse import make_option
+import socket
+
+from nsot.util.commands import NsotCommand, CommandError
 
 
-log = logging.getLogger(__name__)
+class Command(NsotCommand):
+    help = 'Start an authenticating reverse proxy for use in development.'
 
-
-class Command(BaseCommand):
-    args = '<username>'
-    help = 'Start a development reverse proxy.'
-
-    option_list = BaseCommand.option_list + (
-        make_option(
-            '--address', '-a',
-            dest='address',
+    def add_arguments(self, parser):
+        parser.add_argument(
+            'username',
+            nargs='?',
+            default=getpass.getuser(),
+            help='Username used for authentication.',
+        )
+        parser.add_argument(
+            '-a', '--address',
             type=str,
             default=settings.NSOT_HOST,
-            help='Address to listen on. (default: %s)' % settings.NSOT_HOST,
-        ),
-        make_option(
-            '--auth-header', '-H',
-            dest='auth_header',
+            help='Address to listen on.',
+        )
+        parser.add_argument(
+            '-d', '--domain',
+            type=str,
+            default='localhost',
+            help='Domain for user account.',
+        )
+        parser.add_argument(
+            '-H', '--auth-header',
             type=str,
             default=settings.USER_AUTH_HEADER,
-            help=(
-                'HTTP user auth header name. (default: %s)' %
-                settings.USER_AUTH_HEADER
-            )
-        ),
-        make_option(
-            '--listen-port', '-p',
-            dest='listen_port',
-            type=int,
-            default=settings.NSOT_PORT + 1,
-            help='Port to listen on. (default: %s)' % (settings.NSOT_PORT + 1)
-        ),
-        make_option(
-            '--backend-port', '-P',
-            dest='backend_port',
+            help='HTTP user auth header name.',
+        )
+        parser.add_argument(
+            '-P', '--backend-port',
             type=int,
             default=settings.NSOT_PORT,
-            help='Port to proxy to. (default: %s)' % settings.NSOT_PORT
-        ),
-    )
+            help='Port to proxy to.',
+        )
+        parser.add_argument(
+            '-p', '--listen-port',
+            type=int,
+            default=settings.NSOT_PORT + 1,
+            help='Port to listen on.',
+        )
 
-    def handle(self, username, **options):
+    def handle(self, **options):
+        username = options.get('username')
+
         try:
             from mrproxy import UserProxyHandler
         except ImportError:
@@ -66,28 +68,32 @@ class Command(BaseCommand):
             )
 
         class ServerArgs(object):
+            """Argument container for http service."""
             def __init__(self, backend_port, username, auth_header):
                 self.backend_port = backend_port
                 self.header = ['%s: %s' % (auth_header, username)]
 
-        if username is None:
-            username = getpass.getuser()
-            logging.debug('No username provided, using (%s)', username)
-
-        username += '@localhost'
+        username = '%s@%s' % (username, options.get('domain'))
         address = options.get('address')
         auth_header = options.get('auth_header')
         backend_port = options.get('backend_port')
         listen_port = options.get('listen_port')
 
-        server = BaseHTTPServer.HTTPServer(
-            (address, listen_port), UserProxyHandler
-        )
-        server.args = ServerArgs(backend_port, username, auth_header)
+        # Try to start the server
         try:
-            logging.info(
-                "Starting user_proxy on %s:%s with auth '%s: %s'",
-                address, listen_port, username
+            server = BaseHTTPServer.HTTPServer(
+                (address, listen_port), UserProxyHandler
+            )
+        except socket.error as err:
+            raise CommandError(err)
+        else:
+            server.args = ServerArgs(backend_port, username, auth_header)
+
+        # Run until we hit ctrl-C
+        try:
+            print(
+                "Starting proxy on %s %s => %s, auth '%s: %s'" %
+                (address, backend_port, listen_port, auth_header, username)
             )
             server.serve_forever()
         except KeyboardInterrupt:

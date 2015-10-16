@@ -9,6 +9,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/1.8/ref/settings/
 """
 
+
 from nsot.conf.settings import *
 import os.path
 
@@ -48,6 +49,14 @@ NSOT_HOST = 'localhost'
 # Default: 8990
 NSOT_PORT = 8990
 
+# The number of gunicorn worker processes for handling requests.
+# Default: 4
+NSOT_NUM_WORKERS = 4
+
+# Timeout in seconds before gunicorn workers are killed/restarted.
+# Default: 30
+NSOT_WORKER_TIMEOUT = 30
+
 # If True, serve static files directly from the app.
 # Default: True
 SERVE_STATIC_FILES = True
@@ -78,3 +87,15 @@ AUTH_TOKEN_EXPIRY = 600  # 10 minutes
 # many seemingly-safe web server configurations.
 # https://docs.djangoproject.com/en/1.8/ref/settings/#allowed-hosts
 ALLOWED_HOSTS = ['*']
+
+##############
+# Interfaces #
+##############
+
+# The default format for displaying MAC addresses. This defaults to
+# ":"-separated and expanded (e.g. '00:00:00:00:00:00')
+MACADDRESS_DEFAULT_DIALECT = 'macaddress.mac_linux'
+
+# The default speed in Mbps for newly device interfaces if not otherwise
+# specified.
+INTERFACE_DEFAULT_SPEED = 1000  # In Mbps (e.g. 1Gbps)
