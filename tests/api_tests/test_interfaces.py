@@ -46,18 +46,23 @@ def test_creation(site, client):
         status.HTTP_400_BAD_REQUEST
     )
 
-    # Verify successful creation
+    # Verify successful creation w/ null MAC
     ifc1_resp = client.create(
-        ifc_uri, device=dev['id'], name='eth0', parent_id=None
+        ifc_uri, device=dev['id'], name='eth0', parent_id=None,
+        mac_address=None,
     )
     ifc1 = ifc1_resp.json()['data']['interface']
     ifc1_obj_uri = site.detail_uri('interface', id=ifc1['id'])
 
     assert_created(ifc1_resp, ifc1_obj_uri)
 
-    # Create another interface with ifc1 as parent
+    # Make sure MAC is None
+    assert ifc1['mac_address'] is None
+
+    # Create another interface with ifc1 as parent, w/ 0 MAC
     ifc2_resp = client.create(
-        ifc_uri, device=dev['id'], name='eth0.0', parent_id=ifc1['id']
+        ifc_uri, device=dev['id'], name='eth0.0', parent_id=ifc1['id'],
+        mac_address=0
     )
     ifc2 = ifc2_resp.json()['data']['interface']
     ifc2_obj_uri = site.detail_uri('interface', id=ifc2['id'])

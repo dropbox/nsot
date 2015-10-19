@@ -3,7 +3,6 @@ from __future__ import unicode_literals
 
 from django.db.backends.sqlite3.base import DatabaseWrapper
 from django.db import models
-from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils.datastructures import DictWrapper
 from django_extensions.db.fields.json import JSONField
 from macaddress.fields import MACAddressField as BaseMACAddressField
@@ -80,5 +79,5 @@ class MACAddressField(BaseMACAddressField):
     def to_python(self, value):
         try:
             return super(MACAddressField, self).to_python(value)
-        except DjangoValidationError as err:
+        except exc.DjangoValidationError as err:
             raise exc.ValidationError(err.message)

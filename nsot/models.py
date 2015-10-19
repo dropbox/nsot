@@ -8,9 +8,6 @@ from django.db import models
 from django.db.models.query_utils import Q
 from django.conf import settings
 from django.core.cache import cache as djcache
-from django.core.exceptions import (ValidationError as DjangoValidationError,
-                                    ObjectDoesNotExist)
-from django.core.validators import EmailValidator
 from django.utils import timezone
 import ipaddress
 import json
@@ -164,14 +161,7 @@ class User(AbstractEmailUser):
         return user
 
     def clean_email(self, value):
-        validator = EmailValidator()
-        try:
-            validator(value)
-        except DjangoValidationError as err:
-            raise exc.ValidationError({
-                'email': err.message
-            })
-        return value
+        return validators.validate_email(value)
 
     def clean_fields(self, exclude=None):
         self.email = self.clean_email(self.email)
@@ -236,7 +226,7 @@ class ResourceSetTheoryQuerySet(models.query.QuerySet):
                 attr = Attribute.objects.get(
                     **params
                 )
-            except ObjectDoesNotExist:
+            except Attribute.DoesNotExist:
                 return objects.none()
 
             next_set = Q(
@@ -1067,6 +1057,12 @@ class Interface(Resource):
         """Return the Site for my Device."""
         return Device.objects.get(id=self.device_id).site
 
+    def get_mac_address(self):
+        """Return a serializable representation of mac_address."""
+        if self.mac_address is None:
+            return
+        return str(self.mac_address)
+
     def clean_addresses(self):
         """Make sure that addresses/networks are saved as JSON."""
         addresses = [a.cidr for a in self.addresses.iterator()]
@@ -1115,13 +1111,8 @@ class Interface(Resource):
         return value
 
     def clean_mac_address(self, value):
-        try:
-            validators.validate_mac_address(value)
-        except DjangoValidationError as err:
-            raise exc.ValidationError({
-                'mac_address': err.message
-            })
-        return value
+        """Enforce valid mac_address."""
+        return validators.validate_mac_address(value)
 
     def full_clean(self, exclude=None):
         self.site_id = self.clean_site(self.site_id)
@@ -1157,7 +1148,7 @@ class Interface(Resource):
             'description': self.description,
             'addresses': self.get_addresses(),
             'networks': self.get_networks(),
-            'mac_address': str(self.mac_address),
+            'mac_address': self.get_mac_address(),
             'speed': self.speed,
             'type': self.type,
             'attributes': self.get_attributes(),
