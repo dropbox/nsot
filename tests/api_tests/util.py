@@ -1,6 +1,8 @@
 from django.core.urlresolvers import reverse
 from hashlib import sha1
 import json
+import macaddress
+import netaddr
 import os
 from rest_framework import status
 import requests
@@ -192,6 +194,16 @@ def filter_networks(networks, wanted):
         n for n in networks if '%s/%s' % (n['network_address'],
         n['prefix_length']) in wanted
     ]
+
+
+def make_mac(mac):
+    """
+    Return a MAC address in the default dialect.
+
+    :param mac:
+        MAC address (string, integer, or EUI object)
+    """
+    return netaddr.EUI(mac, dialect=macaddress.default_dialect())
 
 
 class TestSite(object):

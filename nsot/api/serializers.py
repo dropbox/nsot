@@ -10,7 +10,7 @@ from rest_framework_bulk import BulkSerializerMixin, BulkListSerializer
 import six
 
 from . import auth
-from .. import exc, models
+from .. import exc, models, validators
 from ..util import get_field_attr
 
 
@@ -22,7 +22,7 @@ log = logging.getLogger(__name__)
 ###############
 class JSONDataField(fields.Field):
     """
-    Base field used to represention attributes as JSON <-> ``field_type``.
+    Base field used to represent attributes as JSON <-> ``field_type``.
 
     It is an error if ``field_type`` is not defined in a subclass.
     """
@@ -59,12 +59,12 @@ class JSONDataField(fields.Field):
 
 
 class JSONDictField(JSONDataField):
-    """Field used to represention attributes as JSON <-> Dict."""
+    """Field used to represent attributes as JSON <-> Dict."""
     field_type = dict
 
 
 class JSONListField(JSONDataField):
-    """Field used to represention attributes as JSON <-> List."""
+    """Field used to represent attributes as JSON <-> List."""
     field_type = list
 
 
@@ -104,6 +104,15 @@ class LimitedForeignKeyField(serializers.PrimaryKeyRelatedField):
             cutoff=self.html_cutoff,
             cutoff_text=self.html_cutoff_text
         )
+
+
+class MACAddressField(fields.Field):
+    """Field used to validate MAC address objects as integer or string."""
+    def to_representation(self, value):
+        return value
+
+    def to_internal_value(self, value):
+        return validators.validate_mac_address(value)
 
 
 ###################
@@ -389,7 +398,7 @@ class InterfaceCreateSerializer(InterfaceSerializer):
     addresses = JSONListField(
         required=False, help_text='List of host addresses to assign.'
     )
-    mac_address = fields.CharField(
+    mac_address = MACAddressField(
         required=False,
         label=get_field_attr(models.Interface, 'mac_address', 'verbose_name'),
         help_text=get_field_attr(models.Interface, 'mac_address', 'help_text'),
