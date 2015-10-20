@@ -51,10 +51,11 @@ class NsotHTTPServer(Service):
 
         self.options = options
 
-    def run(self):
         print(
             'Running service: %r, num workers: %s, worker timeout: %s' % (
                 self.name, self.options['workers'], self.options['timeout']
             )
         )
+
+    def run(self):
         NsotGunicornCommand(self.options).run()
