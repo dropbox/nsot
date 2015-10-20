@@ -1057,6 +1057,12 @@ class Interface(Resource):
         """Return the Site for my Device."""
         return Device.objects.get(id=self.device_id).site
 
+    def get_mac_address(self):
+        """Return a serializable representation of mac_address."""
+        if self.mac_address is None:
+            return
+        return str(self.mac_address)
+
     def clean_addresses(self):
         """Make sure that addresses/networks are saved as JSON."""
         addresses = [a.cidr for a in self.addresses.iterator()]
@@ -1142,7 +1148,7 @@ class Interface(Resource):
             'description': self.description,
             'addresses': self.get_addresses(),
             'networks': self.get_networks(),
-            'mac_address': str(self.mac_address),
+            'mac_address': self.get_mac_address(),
             'speed': self.speed,
             'type': self.type,
             'attributes': self.get_attributes(),
