@@ -56,6 +56,9 @@ def test_creation(site, client):
 
     assert_created(ifc1_resp, ifc1_obj_uri)
 
+    # Make sure MAC is None
+    assert ifc1['mac_address'] is None
+
     # Create another interface with ifc1 as parent, w/ 0 MAC
     ifc2_resp = client.create(
         ifc_uri, device=dev['id'], name='eth0.0', parent_id=ifc1['id'],
