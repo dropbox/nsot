@@ -16,7 +16,8 @@ def validate_mac_address(value):
         # If the incoming value is a string, cast it to an int
         if value.isdigit():
             value = int(value)
-    field = MACAddressFormField()
+
+    field = MACAddressFormField(required=False)  # allow None
     try:
         field.clean(value)
     except exc.DjangoValidationError as err:

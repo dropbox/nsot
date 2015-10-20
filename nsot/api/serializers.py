@@ -399,7 +399,7 @@ class InterfaceCreateSerializer(InterfaceSerializer):
         required=False, help_text='List of host addresses to assign.'
     )
     mac_address = MACAddressField(
-        required=False,
+        required=False, allow_null=True,
         label=get_field_attr(models.Interface, 'mac_address', 'verbose_name'),
         help_text=get_field_attr(models.Interface, 'mac_address', 'help_text'),
     )

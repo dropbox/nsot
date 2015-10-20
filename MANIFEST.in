@@ -4,6 +4,9 @@ include README.md
 include requirements.txt
 include requirements-dev.txt
 
+graft nsot/templates
+graft nsot/static/build
+
 recursive-include tests *
 recursive-exclude tests *.pyc
 recursive-exclude tests/api_tests/cassettes *.json
