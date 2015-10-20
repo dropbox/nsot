@@ -69,8 +69,10 @@ def test_mac_address(device):
     iface.save()
 
     # Set mac by integer
-    iface.mac_address = 12345678
+    iface.mac_address = 122191241314
     iface.save()
+
+    assert iface.mac_address == '00:1c:73:2a:60:62'
 
 
 def test_type(device):

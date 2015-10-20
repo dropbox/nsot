@@ -8,6 +8,7 @@ pytestmark = pytest.mark.django_db
 
 import copy
 from django.core.urlresolvers import reverse
+from django.conf import settings
 import json
 import logging
 from rest_framework import status
@@ -16,7 +17,7 @@ from rest_framework import status
 from .fixtures import live_server, client, user, site
 from .util import (
     assert_created, assert_error, assert_success, assert_deleted, load_json,
-    Client, load, filter_networks
+    Client, load, filter_networks, make_mac
 )
 
 
@@ -61,3 +62,46 @@ def test_network_bug_issues_34(client, site):
         ),
         expected
     )
+
+
+def test_mac_address_bug_issues_111(client, site):
+    """Test that a MAC coming in as an integer is properly formatted."""
+    # Make sure that none of them ever match wrong.
+    mac_int = 122191241314
+    mac_str = '122191241314'
+    mac_expected = '00:1c:73:2a:60:62'
+    mac_wrong = '12:21:91:24:13:14'
+
+    dev_uri = site.list_uri('device')
+    ifc_uri = site.list_uri('interface')
+
+    dev_resp = client.create(dev_uri, hostname='foo-bar1')
+    dev = dev_resp.json()['data']['device']
+
+    # Create the interface w/ an integer
+    ifc_resp = client.create(
+        ifc_uri, device=dev['id'], name='eth0', parent_id=None,
+        mac_address=mac_int
+    )
+    ifc = ifc_resp.json()['data']['interface']
+    ifc_obj_uri = site.detail_uri('interface', id=ifc['id'])
+
+    # Test that integer matches expected
+    assert make_mac(ifc['mac_address']) == mac_expected
+
+    # Update the interface w/ a string integer
+    updated = copy.deepcopy(ifc)
+    updated_resp = client.put(ifc_obj_uri, data=json.dumps(updated))
+    expected = updated_resp.json()['data']['interface']
+
+    # Test that string integer matches expectd
+    assert make_mac(expected['mac_address']) == mac_expected
+
+    # And for completeness, make sure that a formatted string still comes back
+    # the same.
+    updated['mac_address'] = mac_expected
+    updated_resp = client.put(ifc_obj_uri, data=json.dumps(updated))
+    expected = updated_resp.json()['data']['interface']
+
+    # Test that expected matches expected
+    assert make_mac(expected['mac_address']) == mac_expected

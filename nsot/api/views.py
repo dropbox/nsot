@@ -2,9 +2,7 @@ from __future__ import unicode_literals
 
 from collections import namedtuple, OrderedDict
 from django.contrib.auth import get_user_model
-from django.core.exceptions import ObjectDoesNotExist
-from django.core.exceptions import ValidationError as DjangoValidationError
-from django.db.models import Q, ProtectedError
+from django.db.models import Q
 import logging
 from rest_framework import mixins, viewsets
 from rest_framework.views import APIView
@@ -111,7 +109,7 @@ class BaseNsotViewSet(viewsets.ReadOnlyModelViewSet):
                 obj = self.queryset.get(pk=pk, site=site_pk)
             else:
                 obj = self.queryset.get(pk=pk)
-        except ObjectDoesNotExist:
+        except exc.ObjectDoesNotExist:
             self.not_found(pk, site_pk)
 
         serializer = self.get_serializer(obj, *args, **kwargs)
@@ -141,7 +139,7 @@ class NsotViewSet(BaseNsotViewSet, viewsets.ModelViewSet):
         """Support bulk create."""
         try:
             objects = serializer.save()
-        except DjangoValidationError as err:
+        except exc.DjangoValidationError as err:
             raise exc.ValidationError(err.error_dict)
         except exc.IntegrityError as err:
             raise exc.Conflict(err.message)
@@ -168,7 +166,7 @@ class NsotViewSet(BaseNsotViewSet, viewsets.ModelViewSet):
     def perform_update(self, serializer):
         try:
             objects = serializer.save()
-        except DjangoValidationError as err:
+        except exc.DjangoValidationError as err:
             raise exc.ValidationError(err.error_dict)
         except exc.IntegrityError as err:
             raise exc.Conflict(err.message)
@@ -191,7 +189,7 @@ class NsotViewSet(BaseNsotViewSet, viewsets.ModelViewSet):
 
         try:
             instance.delete()
-        except ProtectedError as err:
+        except exc.ProtectedError as err:
             raise exc.Conflict(err.args[0])
 
 
@@ -634,7 +632,7 @@ class UserViewSet(BaseNsotViewSet, mixins.CreateModelMixin):
         # Try to get the requested user
         try:
             user = self.queryset.get(pk=pk)
-        except ObjectDoesNotExist:
+        except exc.ObjectDoesNotExist:
             self.not_found(pk, site_pk)
 
         return UserPkInfo(user, pk)
