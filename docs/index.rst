@@ -9,5 +9,6 @@ Contents:
    :maxdepth: 2
 
    intro
+   install
    config
    api
