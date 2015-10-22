@@ -4,6 +4,11 @@
 Configuration
 =============
 
+Configuring NSoT
+================
+
+This section describes how to get started with configuring the NSoT server.
+
 Initializing the Configuration
 ------------------------------
 
@@ -31,3 +36,34 @@ care about, and their default values.
 
 .. literalinclude:: ../tests/test_settings.py
     :language: python
+
+Advanced Configuration
+======================
+
+This section covers additional configuration options available
+to the NSoT server and advanced configuration topics.
+
+Caching
+-------
+
+**Note:** At this time only Interface objects are cached if caching is enabled!
+
+NSoT includes built-in support for caching of API results. The default is to
+use to the "dummy" cache that doesn't actually cache -- it just implements the
+cache interface without doing anything.
+
+.. code:: python
+
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+        }
+    }
+
+The cache is invalidated on any update or delete of an object. Caching can
+dramatically perform read operations of databases with a large amount of
+network Interface objects.
+
+If you need caching, see the `official Django caching documentation
+<https://docs.djangoproject.com/en/1.8/ref/settings/#caches>`_ on how to set
+it up.
