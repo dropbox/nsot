@@ -1,14 +1,18 @@
 -r requirements.txt
+argh==0.26.1
 betamax==0.4.2
+docutils==0.12
+livereload==2.4.0
 mrproxy==0.3.3
 py==1.4.26
 pytest==2.7.0
 pytest-django==2.9.1
 pytest-pythonpath==0.6
 Pygments==2.0.1
-Sphinx==1.2.3
-argh==0.26.1
-docutils==0.12
 pathtools==0.1.2
 requests==2.7.0
+Sphinx==1.2.3
+sphinx-autobuild==0.5.2
 sphinx-rtd-theme==0.1.6
+tornado==4.2.1
+watchdog==0.8.3

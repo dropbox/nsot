@@ -176,6 +176,21 @@ DATABASES = {
     }
 }
 
+#########
+# Cache #
+#########
+# NSoT includes supportfor caching of API results, however the default is to
+# use to the "dummy" cache that doesn't actually cache -- it just implements
+# the cache interface without doing anything.
+#
+# If you need caching, see the docs to choose a caching backend:
+# https://docs.djangoproject.com/en/1.8/ref/settings/#caches
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+    }
+}
+
 ###############
 # Application #
 ###############
