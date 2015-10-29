@@ -34,7 +34,8 @@ class NsotHTTPServer(Service):
     name = 'http'
 
     def __init__(self, host=None, port=None, debug=False, workers=None,
-                 worker_class=None, timeout=None, loglevel='info'):
+                 worker_class=None, timeout=None, loglevel='info',
+                 preload=False, max_requests=0, max_requests_jitter=0):
 
         options = {
             'bind': '%s:%s' % (host, port),
@@ -46,7 +47,9 @@ class NsotHTTPServer(Service):
             'errorlog': '-',
             'loglevel': loglevel,
             'limit_request_line': 0,
-            'preload': False,
+            'preload_app': preload,
+            'max_requests': max_requests,
+            'max_requests_jitter': max_requests_jitter,
         }
 
         self.options = options
