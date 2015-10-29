@@ -81,6 +81,10 @@ class User(AbstractEmailUser):
     """A custom user object that utilizes email as the username."""
     secret_key = models.CharField(max_length=44, default=generate_secret_key)
 
+    @property
+    def username(self):
+        return self.get_username()
+
     def get_permissions(self):
         permissions = []
         if self.is_staff or self.is_superuser:

@@ -99,6 +99,7 @@ TEMPLATES = [
                 "django.template.context_processors.debug",
                 "django.template.context_processors.i18n",
                 "django.template.context_processors.media",
+                "django.template.context_processors.request",
                 "django.template.context_processors.static",
                 "django.template.context_processors.tz",
                 "django.contrib.messages.context_processors.messages",
@@ -195,9 +196,40 @@ CACHES = {
 # Application #
 ###############
 
+#
+# Back-end
+#
+
+# The type of workers to use.
+# http://docs.gunicorn.org/en/latest/settings.html#worker-class
+# Default: 'gevent'
+NSOT_WORKER_CLASS = 'gevent'
+
+# Load application code before the worker processes are forked.
+# http://docs.gunicorn.org/en/latest/settings.html#preload-app
+# Default: False
+NSOT_PRELOAD = False
+
+# The maximum number of requests a worker will process before restarting.
+# http://docs.gunicorn.org/en/latest/settings.html#max-requests
+# Default: 0
+NSOT_MAX_REQUESTS = 0
+
+# The maximum jitter to add to the max_requests setting. The jitter causes the
+# restart per worker to be randomized by randint(0, max_requests_jitter). This
+# is intended to stagger worker restarts to avoid all workers restarting at the
+# same time.
+# http://docs.gunicorn.org/en/latest/settings.html#max-requests-jitter
+# Default: 0
+NSOT_MAX_REQUESTS_JITTER = 0
+
+#
+# User-configurable
+#
+
 # The address on which the application will listen.
-# Default: localhost
-NSOT_HOST = '0.0.0.0'
+# Default: 'localhost'
+NSOT_HOST = 'localhost'
 
 # The port on which the application will be accessed.
 # Default: 8990
@@ -210,10 +242,6 @@ NSOT_NUM_WORKERS = 4
 # Timeout in seconds before gunicorn workers are killed/restarted.
 # Default: 30
 NSOT_WORKER_TIMEOUT = 30
-
-# Timeout in seconds before gunicorn workers are killed/restarted.
-# Default: 30
-NSOT_WORKER_CLASS = 'gevent'
 
 # If True, serve static files directly from the app.
 # Default: True

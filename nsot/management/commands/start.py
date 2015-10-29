@@ -27,27 +27,53 @@ class Command(NsotCommand):
             action='store_true',
             default=False,
             help='Toggle debug output.',
-        ),
+        )
+        parser.add_argument(
+            '--max-requests',
+            type=int,
+            default=settings.NSOT_MAX_REQUESTS,
+            help=(
+                'The maximum number of requests a worker will process before '
+                'restarting.'
+            ),
+        )
+        parser.add_argument(
+            '--max-requests-jitter',
+            type=int,
+            default=settings.NSOT_MAX_REQUESTS_JITTER,
+            help=(
+                'The maximum jitter to add to the max_requests setting.'
+            ),
+        )
         parser.add_argument(
             '--noinput',
             action='store_true',
             default=False,
             help='Tells Django to NOT prompt the user for input of any kind.',
-        ),
+        )
         parser.add_argument(
             '--no-collectstatic',
             action='store_false',
             dest='collectstatic',
             default=True,
             help='Do not automatically collect static files into STATIC_ROOT.',
-        ),
+        )
         parser.add_argument(
             '--no-upgrade',
             action='store_false',
             dest='upgrade',
             default=True,
             help='Do not automatically perform any database upgrades.',
-        ),
+        )
+        parser.add_argument(
+            '--preload',
+            action='store_true',
+            default=settings.NSOT_PRELOAD,
+            help=(
+                'Load application code before the worker processes are '
+                'forked.'
+            ),
+        )
         parser.add_argument(
             '-a', '--address',
             type=str,
@@ -59,13 +85,13 @@ class Command(NsotCommand):
             type=str,
             default=settings.NSOT_WORKER_CLASS,
             help='The type of gunicorn workers to use.',
-        ),
+        )
         parser.add_argument(
             '-t', '--timeout',
             type=int,
             default=settings.NSOT_WORKER_TIMEOUT,
             help='Timeout before gunicorn workers are killed/restarted.',
-        ),
+        )
         parser.add_argument(
             '-w', '--workers',
             type=int,
@@ -120,6 +146,9 @@ class Command(NsotCommand):
             workers=options.get('workers'),
             worker_class=options.get('worker_class'),
             timeout=options.get('timeout'),
+            max_requests=options.get('max_requests'),
+            max_requests_jitter=options.get('max_requests_jitter'),
+            preload=options.get('preload'),
         )
 
         # Remove command line arguments to avoid optparse failures with service
