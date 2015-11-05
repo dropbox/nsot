@@ -1,6 +1,6 @@
-###################################
-NSoT on Ubuntu Install Instructions 
-###################################
+##############################################
+NSoT on Debian and Ubuntu Install Instructions 
+##############################################
 
 This installation guide assumes that you have installed Ubuntu 12.4 on your machine, and are wanting to install NSoT.
 This guide will help you install NSoT and then run it locally from a browser window.
@@ -32,6 +32,17 @@ Finally we'll download the NSoT repository, via Git, to the /tmp/nsot directory:
 
 At this point NSoT is installed, the repository should be downloaded, Python and all dependencies are
 working, and you can go poke around in the /tmp/nsot directory.
+
+1a. Debian Permissions
+======================
+(Ubuntu users skip this step)
+
+If you are installing NSoT onto a Debian machine you will need to alter the following permissions::
+
+    $ sudo chown vagrant:vagrant /usr/local/lib/python2.7/dist-packages/
+    $ sudo chown vagrant:vagrant /usr/local/include/
+    $ sudo chown vagrant:vagrant /usr/local/share/man/
+
 
 2. Start NSoT
 =============
