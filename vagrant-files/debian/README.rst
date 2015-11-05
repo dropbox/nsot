@@ -1,16 +1,16 @@
 ##################################
-HowTo: NSOT on Vagrant VM w CentOS
+HowTo: NSOT on Vagrant VM w Debian
 ##################################
 
 The Plan:
 =========
 
-Install NSoT on it's own Linux environment: A CentOS virtual machine, with Python,
+Install NSoT on it's own Linux environment: An Debian virtual machine, with Python,
 all the dev tools, SSL, etc. We use Vagrant (which requires Oracle's Virtualbox) to
 control our virtual machines, and a ``Vagrantfile`` to provision the server from one
-file. The ``Vagrantfile`` for CentOS can be found in the same directory as this README document.
-If you would like to install NSoT on Debian, Fedora, SuSe, or Ubuntu via Vagrantfile, please `download the file for
-that architecture. <https://github.com/dropbox/nsot/tree/master/vagrant-files>`_
+file. The ``Vagrantfile`` for Debian can be found in the same directory as this README document.
+If you would like to install NSoT on CentOS, Fedora, SuSe or Ubuntu please `download the Vagrant files for that architecture.
+<https://github.com/dropbox/nsot/tree/master/vagrant-files>`_
 
 Prerequisite Steps:
 To proceed you must have working installations of Vagrant and Virtualbox on your machine. If
@@ -23,19 +23,17 @@ Virtualbox, please follow the `Getting Started
 NSOT Vagrant Test Server Instructions
 =====================================
 
-1. Download and install this README and associated Vagrantfile to location where you'd
-like NSOT to run
-(5-10 minutes on a fast connection)
+1. Download and install this README and associated Vagrantfile to location where you'd like it to run
+(5-10 minutes on a fast connection).
 
 ----------
 
 2. Provision the virtual machine
 Open a command prompt, and run the following:
 (5-10 minutes on a fast connection)::
-
-    $ cd /{Location of your Vagrantfile} 
-    $ vagrant up
           
+    $ cd /{Location of your Vagrantfile}
+    $ vagrant up
 
 This will build a new Vagrant box, configure the server, update it, add
 software, fix dependencies, ``pip install nsot``, add demo fixtures, and
@@ -46,12 +44,11 @@ deploy NSoT.
 3. Login to the new virtual machine, cd to demo directory, and run the demo::
 
     $ vagrant ssh
-    $ cd /tmp/nsot/demo 
+    $ cd /tmp/nsot/demo
     $ ./run_demo.sh
-          
 
-Demo data will be built into the new database, the NSOT server will be started, and
-NSOT will wait for commands from the web browser in step 4.
+Demo data will be built into the new database, the server will be started, and it will wait for commands
+from the web browser in step 4.
 
 ----------
 

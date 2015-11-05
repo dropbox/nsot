@@ -9,7 +9,8 @@ Install NSoT on it's own Linux environment: An Ubuntu virtual machine, with Pyth
 all the dev tools, SSL, etc. We use Vagrant (which requires Oracle's Virtualbox) to
 control our virtual machines, and a ``Vagrantfile`` to provision the server from one
 file. The ``Vagrantfile`` for Ubuntu can be found in the same directory as this README document.
-If you would like to install NSOT on CentOS, please download the Vagrant files for that architecture.
+If you would like to install NSOT on CentOS, Debian, Fedora or SuSe please `download the Vagrant files for that architecture.
+<https://github.com/dropbox/nsot/tree/master/vagrant-files>`_
 
 Prerequisite Steps:
 To proceed you must have working installations of Vagrant and Virtualbox on your machine. If
@@ -40,7 +41,7 @@ deploy NSoT.
 
 ----------
 
-3. Login to the new virtual machine, cd to demo directory, and run the demo
+3. Login to the new virtual machine, cd to demo directory, and run the demo::
 
     $ vagrant ssh
     $ cd /tmp/nsot/demo
