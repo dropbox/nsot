@@ -43,7 +43,7 @@ deploy NSoT.
 
 ----------
 
-3. Login to the new virtual machine, cd to demo directory, and run the demo
+3. Login to the new virtual machine, cd to demo directory, and run the demo::
 
     $ vagrant ssh
     $ cd /tmp/nsot/demo 
