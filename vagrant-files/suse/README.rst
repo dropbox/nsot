@@ -1,15 +1,15 @@
-##################################
-HowTo: NSOT on Vagrant VM w Debian
-##################################
+#################################
+ HowTo: NSOT on Vagrant VM w SuSe
+#################################
 
 The Plan:
 =========
 
-Install NSoT on it's own Linux environment: An Debian virtual machine, with Python,
+Install NSoT on it's own Linux environment: A SuSe virtual machine, with Python,
 all the dev tools, SSL, etc. We use Vagrant (which requires Oracle's Virtualbox) to
 control our virtual machines, and a ``Vagrantfile`` to provision the server from one
-file. The ``Vagrantfile`` for Debian can be found in the same directory as this README document.
-If you would like to install NSoT on CentOS, Fedora, SuSe or Ubuntu please `download the Vagrant files for that architecture.
+file. The ``Vagrantfile`` for SuSe can be found in the same directory as this README document.
+If you would like to install NSOT on CentOS, Fedora, Debian, or Ubuntu please `download the Vagrant files for that architecture.
 <https://github.com/dropbox/nsot/tree/master/vagrant-files>`_
 
 Prerequisite Steps:
