@@ -87,6 +87,10 @@
         $scope.deleteError = null;
         $scope.changes = [];
 
+        $scope.onClick = function(points, evt) {
+            console.log(points, evt);
+        };
+
         var siteId = $routeParams.siteId;
         var netsets = {
             siteId: siteId,
@@ -157,10 +161,25 @@
             $scope.total_allocated = results[7].total;
             $scope.total_assigned = results[8].total;
             $scope.total_orphaned = results[9].total;
-          $scope.changes = results[10].data;
+            $scope.changes = results[10].data;
             $scope.admin = $scope.user.isAdmin(siteId, ["admin"]);
             $scope.loading = false;
-            });
+
+            // BEG chart
+            $scope.labels = [
+                "Assigned",
+                "Allocated",
+                "Reserved",
+                "Orphaned"
+            ];
+            $scope.data = [
+                $scope.total_assigned,
+                $scope.total_allocated,
+                $scope.total_reserved,
+                $scope.total_orphaned
+            ];
+            // END chart
+        });
 
         $scope.updateSite = function(){
             $scope.site.$update(function(){
@@ -177,10 +196,6 @@
                 $scope.deleteError = data.data.error;
             });
         };
-
-
-            
-
     });
 
     app.controller("UsersController",
@@ -236,15 +251,15 @@
         $scope.formMode = "create";
         $scope.formUrl = "includes/networks-form.html";
         $scope.formData = {
-            attributes: []
+            attributes: [],
         };
-
+        $scope.states = ['allocated', 'assigned', 'reserved', 'orphaned'];
 
         $scope.filters = {
             include_ips: nsot.qpBool($routeParams, "include_ips", true),
             include_networks: nsot.qpBool($routeParams, "include_networks", true),
             root_only: nsot.qpBool($routeParams, "root_only", false),
-            ipam_allocation: nsot.qpBool($routeParams, "state", "allocated")
+            state: $routeParams.state
         };
 
         var params = _.extend(pagerParams(), {

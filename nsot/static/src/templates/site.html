@@ -12,88 +12,160 @@
             data-target="#deleteSiteModal"
         >Delete Site</button>
     </heading-bar>
- <h3>[[site.description]]</h3>
-<div class="container panel-heading ">
-    <div class="col-md-2 panel-body" style="padding:0 0 0 0;;">
-        <h3>Totals</h3>
-        <table class="table table-striped">
-            <thead>
-               <tr>
-                    <th>Hostnames</th>
-                    <td>
-                        <a  href="/sites/[[site.id]]/devices/" class="btn btn-info">[[total_devices]]</a>
-                    </td>
-               </tr>
-               <tr>
-                    <th>Networks</th>
-                    <td><a
-href="/sites/[[site.id]]/networks/" class="btn btn-info">[[total_networks]]</a>
-                    </td>
-                </tr>
-               <tr><th>- IPv4</th><td><a
-href="/sites/[[site.id]]/networks/" class="btn
-btn-info">[[total_ipv4]] / [[total_networks]]</a></td></tr>
-               <tr><th>- IPv6</th><td><a
-href="/sites/[[site.id]]/networks/" class="btn
-btn-info">[[total_ipv6]] / [[total_networks]]</a></td></tr>
-             </thead>
-            <tbody>
-        </table>
-    </div>
-    <div class="col-md-1">&nbsp;</div>
-    <div class="col-md-3" style="padding:0 0 0 0;">
-        <h3>IP Usage</h3>
-        <table class="table table-striped">
-            <tbody>
-              <tr>
-                <th class="bg-success">In Use</th>
-                <td class="bg-success">
-                    <a href="/sites/[[site.id]]/networks/" class="btn
-btn-success">[[total_assigned]] / [[total_networks]]</a>
-                </td> 
-              </tr>
-              <tr>
-                <th class="bg-success">Allocated</th>
-                <td class="bg-success">
-                  <a href="/sites/[[site.id]]/networks/" class="btn btn-success">[[total_allocated]] / [[total_networks]]</a>
-                </td>
-             </tr>
-             <tr>         
-                <th class="bg-warning">Reserved</th>
-                <td class="bg-warning">
-                   <a href="/sites/[[site.id]]/networks/" class="btn btn-warning">
-                        [[total_reserved]] / [[total_networks]]</a>
-                 </td>
-            </tr>
-            <tr>
-                <th class="bg-danger">Orphaned</th>
-                 <td class="bg-danger">
-                    <a href="/sites/[[site.id]]/networks/" class="btn btn-danger">
-                        [[total_orphaned]] / [[total_networks]]</a>
-                </td>
-            </tr>
-                <tr>
-                    <td colspan="2" class="center">
-                        
-<div
-donut-chart
-donut-data='[
-    {label: "Download Sales", value: 12},
-    {label: "In-Store Sales",value: 30},
-    {label: "Mail-Order Sales", value: 20}
-]'
-donut-colors='["#31C0BE","#c7254e","#98a0d3"]'
-donut-formatter='"currency"'>
-</div>
 
-<div id="chartdiv"></div>                  
-                    </td>
-                </tr> 
-            </tbody>
-        </table>
+    <div class="row">
+        <div class="col-md-12">
+            [[site.description]]<br><br>
+        </div>
     </div>
-</div>
-<nsot-modal title="Update Site" modal-id="updateSiteModal">
+
+    <div class="row">
+
+        <div class="col-md-3">
+            <panel>
+                <panel-heading>
+                    Totals
+                </panel-heading>
+                <panel-body>
+                    <table class="table table-striped">
+                        <tbody>
+                            <tr>
+                                <th>Devices</th>
+                                <td>
+                                    <a href="/sites/[[site.id]]/devices/" class="btn btn-info">
+                                        [[total_devices]]
+                                    </a>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Networks</th>
+                                <td>
+                                    <a href="/sites/[[site.id]]/networks/" class="btn btn-info">
+                                        [[total_networks]]
+                                    </a>
+                                </td>
+                            </tr>
+                            <tr>
+                               <th>- IPv4</th>
+                               <td>
+                                   <a href="/sites/[[site.id]]/networks/" class="btn btn-info">
+                                       [[total_ipv4]] / [[total_networks]]
+                                   </a>
+                               </td>
+                            </tr>
+                            <tr>
+                                <th>- IPv6</th>
+                                <td>
+                                    <a href="/sites/[[site.id]]/networks/" class="btn btn-info">
+                                       [[total_ipv6]] / [[total_networks]]
+                                   </a>
+                                </td>
+                            </tr>
+                         </tbody>
+                    </table>
+                </panel-body>
+            </panel>
+        </div>
+
+        <div class="col-md-3">
+            <panel>
+                <panel-heading>
+                    Network Usage
+                </panel-heading>
+                <panel-body>
+                    <table class="table table-striped">
+                        <tbody>
+                            <tr>
+                                <th class="bg-success">In Use</th>
+                                <td class="bg-success">
+                                    <a href="/sites/[[site.id]]/networks/" class="btn btn-success">
+                                        [[total_assigned]] / [[total_networks]]
+                                    </a>
+                              </td>
+                            </tr>
+                            <tr>
+                                <th class="bg-info">Allocated</th>
+                                <td class="bg-info">
+                                    <a href="/sites/[[site.id]]/networks/" class="btn btn-info">
+                                        [[total_allocated]] / [[total_networks]]
+                                    </a>
+                              </td>
+                           </tr>
+                           <tr>
+                                <th class="bg-warning">Reserved</th>
+                                <td class="bg-warning">
+                                    <a href="/sites/[[site.id]]/networks/" class="btn btn-warning">
+                                      [[total_reserved]] / [[total_networks]]
+                                    </a>
+                               </td>
+                          </tr>
+                          <tr>
+                                <th class="bg-danger">Orphaned</th>
+                                <td class="bg-danger">
+                                    <a href="/sites/[[site.id]]/networks/" class="btn btn-danger">
+                                      [[total_orphaned]] / [[total_networks]]
+                                    </a>
+                              </td>
+                          </tr>
+                        </tbody>
+                    </table>
+                </panel-body>
+            </panel>
+        </div>
+
+        <div class="col-md-6">
+            <panel>
+                <panel-body>
+                    <canvas
+                        id="pie" class="chart chart-pie"
+                        chart-data="data" chart-labels="labels"
+                    >
+                    </canvas> 
+                </panel-body>
+            </panel>
+        </div>                
+
+    </div>
+
+    <div class="row">
+
+        <div class="col-sm-12">
+            <panel>
+                <panel-heading>Changes</panel-heading>
+                <panel-body>
+                    <table class="table table-condensed table-hover">
+                        <thead>
+                            <tr>
+                                <th class="col-sm-1">ID</th>
+                                <th class="col-sm-2">User</th>
+                                <th class="col-sm-1">Event</th>
+                                <th class="col-sm-1">Resource Type</th>
+                                <th class="col-sm-1">Resource ID</th>
+                                <th class="col-sm-2">Change At</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr ng-repeat="change in changes">
+                                <td>
+                                    <a ng-href="/sites/[[siteId]]/changes/[[change.id]]">
+                                        [[change.id]]
+                                    </a>
+                                </td>
+                                <td>[[change.user.email]]</td>
+                                <td>[[change.event]]</td>
+                                <td>[[change.resource_name]]</td>
+                                <td>[[change.resource_id]]</td>
+                                <td>[[change.change_at|from_now]]</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </panel-body>
+            </panel>
+        </div>
+
+    </div>
+
+    <nsot-modal title="Update Site" modal-id="updateSiteModal">
         <div class="modal-body">
             <div ng-if="updateError" class="alert alert-danger">
                 [[updateError.code]] - [[updateError.message]]
@@ -153,39 +225,5 @@ donut-formatter='"currency"'>
         </div>
  
    </nsot-modal>
-</div>
- <div class="row" class="row"><div class="col-sm-10 col-sm-offset-1">
-        <panel>
-            <panel-heading>Changes</panel-heading>
-            <panel-body>
-                <table class="table table-condensed table-hover">
-                    <thead>
-                        <tr>
-                            <th class="col-sm-1">ID</th>
-                            <th class="col-sm-2">User</th>
-                            <th class="col-sm-1">Event</th>
-                            <th class="col-sm-1">Resource Type</th>
-                            <th class="col-sm-1">Resource ID</th>
-                            <th class="col-sm-2">Change At</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr ng-repeat="change in changes">
-                            <td>
-                                <a
-ng-href="/sites/[[siteId]]/changes/[[change.id]]">
-                                    [[change.id]]
-                                </a>
-                            </td>
-                            <td>[[change.user.email]]</td>
-                            <td>[[change.event]]</td>
-                            <td>[[change.resource_name]]</td>
-                            <td>[[change.resource_id]]</td>
-                            <td>[[change.change_at|from_now]]</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </panel-body>
-        </panel>
 
-    </div></div>
+</div>

@@ -50,17 +50,24 @@
                         ng-click="filters.include_ips = !filters.include_ips"
                         ng-class="{active: filters.include_ips}"
                 >IPs</button>
-`           </div>
+            </div>
+            <div class="btn-group">
+                <select name="state"
+                        class="form-control"
+                        ng-model="selectedState"
+                        ng-change="filters.state = selectedState"
+                        ng-options="selectedState for selectedState in states"
+                        ng-init='selectedState = filters.state'
+                    >
+                    <option value="" disabled>State</option>
+                    {{selectedState}}
+                </select>
+            </div>
         <form style="display: inline;" method="get" action="">
-             <select name="ipam_allocation"
-ng-click="filters.ipam_allocation " ng-class="[active:filters.ipam_allocation]"><option value="%">All
-Types</option><option value="allocated">Allocated</option><option
-value="assigned">Assigned</option><option
-value="allocated">Reserved</option><option
-value="orphaned">Orphaned</option></select>  
             <input type="hidden" name="root_only" ng-value="filters.root_only">
             <input type="hidden" name="include_ips" ng-value="filters.include_ips">
             <input type="hidden" name="include_networks" ng-value="filters.include_networks">
+            <input type="hidden" name="state" ng-value="filters.state">
             <input type="submit" class="btn btn-primary" value="Update Filters">
         </form>
 

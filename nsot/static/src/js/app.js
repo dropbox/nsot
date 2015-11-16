@@ -2,7 +2,10 @@
     "use strict";
 
     var templateCache = angular.module("nsotTemplates", []);
-    var app = angular.module("nsotApp", ["nsotTemplates", "ngRoute", "ngResource", "ngTagsInput"]);
+    var app = angular.module(
+        "nsotApp",
+        ["nsotTemplates", "ngRoute", "ngResource", "ngTagsInput", "chart.js"]
+    );
 
     app.config(function($interpolateProvider){
         $interpolateProvider.startSymbol("[[");
@@ -29,6 +32,19 @@
     .config(function($resourceProvider) {
         $resourceProvider.defaults.stripTrailingSlashes = false;
     })
+    // Configure Chart.js global settings
+    .config(function(ChartJsProvider) {
+        // Override default colors for Pie charts.
+        ChartJsProvider.setOptions('Pie', {
+            colours: [
+                "#dff0d8", // bg-success (green)
+                "#d9edf7", // bg-info (blue)
+                "#fcf8e3", // bg-warning (yellow)
+                "#f2dede"  // bg-danger (red)
+            ]
+        });
+    })
+    // NSoT app routes.
     .config(function($routeProvider) {
         $routeProvider
         .when("/", {
