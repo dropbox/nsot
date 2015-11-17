@@ -325,7 +325,7 @@ class NetworkCreateSerializer(NetworkSerializer):
 
     class Meta:
         model = models.Network
-        fields = ('cidr', 'attributes', 'site_id')
+        fields = ('cidr', 'attributes', 'state', 'site_id')
 
     def create(self, validated_data):
 
@@ -353,7 +353,7 @@ class NetworkUpdateSerializer(BulkSerializerMixin, NetworkCreateSerializer):
     class Meta:
         model = models.Network
         list_serializer_class = BulkListSerializer
-        fields = ('id', 'attributes',)
+        fields = ('id', 'attributes', 'state')
 
     def update(self, instance, validated_data):
         log.debug('NetworkUpdateSerializer.update() validated_data = %r',
