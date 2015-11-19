@@ -55,7 +55,8 @@ def test_creation(live_server, user, site):
 
     # Verify Successful Creation
     net_resp = admin_client.create(
-        net_uri, cidr='10.0.0.0/24', attributes={'attr1': 'foo'}
+        net_uri, cidr='10.0.0.0/24', attributes={'attr1': 'foo'},
+        state='reserved',
     )
     net = net_resp.json()['data']['network']
     net_obj_uri = site.detail_uri('network', id=net['id'])
@@ -269,15 +270,16 @@ def test_update(live_server, user, site):
 
     admin_client.create(attr_uri, resource_name='Network', name='attr1')
     net_resp = admin_client.create(
-        net_uri, cidr='10.0.0.0/24', attributes={'attr1': 'foo'}
+        net_uri, cidr='10.0.0.0/24', attributes={'attr1': 'foo'},
+        state='reserved'
     )
 
     # Extract the Network object so that we can play w/ it during update tests.
     net = net_resp.json()['data']['network']
     net_obj_uri = site.detail_uri('network', id=net['id'])
 
-    # Empty Update should only clear attributes.
-    params = {'attributes': {}}
+    # Empty attributes should only clear attributes. Change state to 'allocatd'
+    params = {'attributes': {}, 'state': 'allocated'}
     net.update(params)
 
     assert_success(
@@ -498,3 +500,19 @@ def test_get_next_detail_routes(site, client):
         client.retrieve(uri, num='potato'),
         status.HTTP_400_BAD_REQUEST
     )
+
+
+def test_reservation_list_route(site, client):
+    """Test the list route for getting reserved networks/addresses."""
+    net_uri = site.list_uri('network')
+    res_uri = reverse('network-reserved', args=(site.id,))
+
+    net_resp = client.create(net_uri, cidr='192.168.3.0/24', state='reserved')
+    net = net_resp.json()['data']['network']
+    net_obj_uri = site.detail_uri('network', id=net['id'])
+
+    # Fetch the reserved networks and make sure they match up.
+    networks = [net]
+    expected = {'networks': networks}
+    expected.update({'limit': None, 'offset': 0, 'total': len(networks)})
+    assert_success(client.retrieve(res_uri), expected)

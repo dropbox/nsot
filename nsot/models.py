@@ -496,9 +496,25 @@ class NetworkManager(ResourceManager):
         )
         return address
 
+    def reserved(self):
+        return Network.objects.filter(state=Network.RESERVED)
+
 
 class Network(Resource):
-    """Represents a subnet or ip address."""
+    """Represents a subnet or IP address."""
+    ALLOCATED = 'allocated'
+    ASSIGNED = 'assigned'
+    ORPHANED = 'orphaned'
+    RESERVED = 'reserved'
+
+    STATE_CHOICES = (
+        (ALLOCATED, ALLOCATED.title()),
+        (ASSIGNED, ASSIGNED.title()),
+        (ORPHANED, ORPHANED.title()),
+        (RESERVED, RESERVED.title()),
+    )
+    BUSY_STATES = [ASSIGNED, RESERVED]
+
     network_address = fields.BinaryIPAddressField(
         max_length=16, null=False, db_index=True
     )
@@ -517,6 +533,10 @@ class Network(Resource):
     parent = models.ForeignKey(
         'self', blank=True, null=True, related_name='children', default=None,
         db_index=True, on_delete=models.PROTECT,
+    )
+    state = models.CharField(
+        max_length=20, null=False, db_index=True,
+        choices=STATE_CHOICES, default=ALLOCATED
     )
 
     # Implements .objects.get_by_address()
@@ -603,6 +623,11 @@ class Network(Resource):
         :param as_objects:
             Whether to return IPNetwork objects or strings
         """
+        # If we're reserved, automatically ZILCH!!
+        # TODO(jathan): Should we raise an error instead?
+        if self.state == Network.RESERVED:
+            return []
+
         try:
             prefix_length = int(prefix_length)
         except (TypeError, ValueError) as err:
@@ -625,7 +650,9 @@ class Network(Resource):
 
         cidr = self.ip_network
         subnets = cidr.subnets(new_prefix=prefix_length)
-        children = self.get_children()
+
+        # Exclude children that are in busy states.
+        children = self.get_children().exclude(state__in=self.BUSY_STATES)
 
         # FIXME(jathan): This can potentially be very slow if the gap between
         # parent and child networks is large, say, on the order of /8.
@@ -758,6 +785,21 @@ class Network(Resource):
     def get_utilization(self):
         return stats.get_network_utilization(self)
 
+    def set_reserved(self, commit=True):
+        self.state = self.RESERVED
+        if commit:
+            self.save()
+
+    def set_assigned(self, commit=True):
+        self.state = self.ASSIGNED
+        if commit:
+            self.save()
+
+    def set_orphaned(self, commit=True):
+        self.state = self.ORPHANED
+        if commit:
+            self.save()
+
     @property
     def cidr(self):
         return u'%s/%s' % (self.network_address, self.prefix_length)
@@ -780,6 +822,16 @@ class Network(Resource):
         )
 
         query.update(parent=self)
+
+    def clean_state(self, value):
+        """Enforce that state is one of the valid states."""
+        value = value.lower()
+        if value not in [s[0] for s in self.STATE_CHOICES]:
+            raise exc.ValidationError({
+                'state': 'Invalid state: %r' % value
+            })
+
+        return value
 
     def clean_fields(self, exclude=None):
         """This will enforce correct values on fields."""
@@ -815,6 +867,7 @@ class Network(Resource):
         self.network_address = unicode(network.network_address)
         self.broadcast_address = unicode(network.broadcast_address)
         self.prefix_length = network.prefixlen
+        self.state = self.clean_state(self.state)
 
     def save(self, *args, **kwargs):
         """This is stuff we want to happen upon save."""
@@ -847,6 +900,7 @@ class Network(Resource):
             'ip_version': self.ip_version,
             'network_address': self.network_address,
             'prefix_length': self.prefix_length,
+            'state': self.state,
             'attributes': self.get_attributes(),
         }
 
@@ -1196,6 +1250,7 @@ class Assignment(models.Model):
 
     def clean_fields(self, exclude=None):
         self.clean_address(self.address)
+        self.address.set_assigned()
 
     def save(self, *args, **kwargs):
         self.full_clean()

@@ -334,7 +334,7 @@ class NetworkViewSet(ResourceViewSet):
     """
     queryset = models.Network.objects.all()
     serializer_class = serializers.NetworkSerializer
-    filter_fields = ('ip_version',)
+    filter_fields = ('ip_version', 'state')
 
     def get_serializer_class(self):
         if self.request.method == 'POST':
@@ -547,6 +547,12 @@ class NetworkViewSet(ResourceViewSet):
         self.result_key_plural = 'assignments'
 
         return self.list(request, queryset=assignments, *args, **kwargs)
+
+    @list_route(methods=['get'])
+    def reserved(self, request, site_pk=None, *args, **kwargs):
+        """Display all reserved Networks."""
+        objects = models.Network.objects.reserved()
+        return self.list(request, queryset=objects, *args, **kwargs)
 
 
 class InterfaceViewSet(ResourceViewSet):

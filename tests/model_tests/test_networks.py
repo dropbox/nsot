@@ -268,3 +268,24 @@ def test_get_next_methods(site):
 
     # as_objects=False
     assert net_25.get_next_address(num=3, as_objects=False) == slash32
+
+
+def test_reservation(site):
+    """Test that a reserved Network returns no available networks or IPs."""
+
+    # Reserved network
+    reserved = models.Network.objects.create(
+        site=site, cidr=u'192.168.3.0/24', state='reserved'
+    )
+
+    # No networks or addresses!
+    assert reserved.get_next_network(28) == []
+    assert reserved.get_next_address(num=3) == []
+
+    # And just to make sure it's working, set the Network to 'allocated':
+    reserved.state = models.Network.ALLOCATED
+    nets = [u'192.168.3.0/28']
+    assert reserved.get_next_network(28, as_objects=False) ==  nets
+
+    addresses = [u'192.168.3.1/32', u'192.168.3.2/32', u'192.168.3.3/32']
+    assert reserved.get_next_address(num=3, as_objects=False) == addresses
