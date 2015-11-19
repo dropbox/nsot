@@ -116,6 +116,9 @@ class Client(object):
     def delete(self, url, **kwargs):
         return self.request("DELETE", url, **kwargs)
 
+    def options(self, url, **kwargs):
+        return self.request("OPTIONS", url, **kwargs)
+
     def create(self, url, **kwargs):
         return self.post(url, data=json.dumps(kwargs))
 

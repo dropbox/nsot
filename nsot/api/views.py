@@ -193,8 +193,68 @@ class NsotViewSet(BaseNsotViewSet, viewsets.ModelViewSet):
             raise exc.Conflict(err.args[0])
 
 
-class AttributeViewSet(NsotViewSet, bulk_mixins.BulkCreateModelMixin,
-                       bulk_mixins.BulkUpdateModelMixin):
+class SiteViewSet(NsotViewSet):
+    """
+    API endpoint that allows Sites to be viewed or edited.
+    """
+    queryset = models.Site.objects.all()
+    serializer_class = serializers.SiteSerializer
+    filter_fields = ('name',)
+
+
+class ValueViewSet(NsotViewSet):
+    """
+    API endpoint that allows Attribute Values to be viewed or edited.
+    """
+    queryset = models.Value.objects.all()
+    serializer_class = serializers.ValueSerializer
+
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return serializers.ValueCreateSerializer
+        return self.serializer_class
+
+
+class NsotBulkUpdateModelMixin(bulk_mixins.BulkUpdateModelMixin):
+    """
+    The default mixin isn't using super() so multiple-inheritance breaks. This
+    fixes it for our use-case.
+    """
+    def perform_update(self, serializer):
+        super(bulk_mixins.BulkUpdateModelMixin, self).perform_update(
+            serializer
+        )
+
+
+class ResourceViewSet(NsotBulkUpdateModelMixin, NsotViewSet,
+                      bulk_mixins.BulkCreateModelMixin):
+    """
+    Resource views that include set query list endpoints.
+    """
+    @list_route(methods=['get'])
+    def query(self, request, site_pk=None, *args, **kwargs):
+        """Perform a set query."""
+        query = request.query_params.get('query', '')
+
+        objects = self.queryset.set_query(query, site_id=site_pk)
+        return self.list(request, queryset=objects, *args, **kwargs)
+
+    def get_resource_object(self, pk, site_pk):
+        """Return a resource object based on pk or site_pk."""
+        if site_pk is not None:
+            query = self.queryset.filter(pk=pk, site=site_pk)
+        else:
+            query = self.queryset.filter(pk=pk)
+
+        object = query.first()
+
+        if not object:
+            self.not_found(pk, site_pk)
+
+        return object
+
+
+class AttributeViewSet(ResourceViewSet):
     """
     API endpoint that allows Attributes to be viewed or edited.
     """
@@ -232,47 +292,6 @@ class AttributeViewSet(NsotViewSet, bulk_mixins.BulkCreateModelMixin,
             attributes = attributes.filter(multi=qpbool(multi))
 
         return attributes
-
-
-class ValueViewSet(NsotViewSet):
-    """
-    API endpoint that allows Attribute Values to be viewed or edited.
-    """
-    queryset = models.Value.objects.all()
-    serializer_class = serializers.ValueSerializer
-
-    def get_serializer_class(self):
-        if self.request.method == 'POST':
-            return serializers.ValueCreateSerializer
-        return self.serializer_class
-
-
-class ResourceViewSet(NsotViewSet, bulk_mixins.BulkCreateModelMixin,
-                      bulk_mixins.BulkUpdateModelMixin):
-    """
-    Resource views that include set query list endpoints.
-    """
-    @list_route(methods=['get'])
-    def query(self, request, site_pk=None, *args, **kwargs):
-        """Perform a set query."""
-        query = request.query_params.get('query', '')
-
-        objects = self.queryset.set_query(query, site_id=site_pk)
-        return self.list(request, queryset=objects, *args, **kwargs)
-
-    def get_resource_object(self, pk, site_pk):
-        """Return a resource object based on pk or site_pk."""
-        if site_pk is not None:
-            query = self.queryset.filter(pk=pk, site=site_pk)
-        else:
-            query = self.queryset.filter(pk=pk)
-
-        object = query.first()
-
-        if not object:
-            self.not_found(pk, site_pk)
-
-        return object
 
 
 class DeviceViewSet(ResourceViewSet):
@@ -607,15 +626,6 @@ class InterfaceViewSet(ResourceViewSet):
         self.result_key_plural = 'networks'
 
         return self.list(request, queryset=interface.networks, *args, **kwargs)
-
-
-class SiteViewSet(NsotViewSet):
-    """
-    API endpoint that allows Sites to be viewed or edited.
-    """
-    queryset = models.Site.objects.all()
-    serializer_class = serializers.SiteSerializer
-    filter_fields = ('name',)
 
 
 #: Namedtuple for retrieving pk and user object of current user.
