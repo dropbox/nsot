@@ -105,3 +105,21 @@ def test_mac_address_bug_issues_111(client, site):
 
     # Test that expected matches expected
     assert make_mac(expected['mac_address']) == mac_expected
+
+
+def test_options_bug_issues_126(client, site):
+    """
+    Test that OPTIONS query returns a 200 OK and has content.
+
+    Ref: https://github.com/dropbox/nsot/issues/126
+    """
+    net_uri = site.list_uri('network')
+
+    opts_resp = client.options(net_uri)
+
+    # Assert 200 OK
+    assert opts_resp.status_code == 200
+
+    # Assert payload is a thing.
+    expected = [u'actions', u'description', u'name', u'parses', u'renders']
+    assert sorted(opts_resp.json()) == expected
