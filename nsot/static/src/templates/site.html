@@ -12,8 +12,50 @@
             data-target="#deleteSiteModal"
         >Delete Site</button>
     </heading-bar>
-
-    <nsot-modal title="Update Site" modal-id="updateSiteModal">
+ <h3>[[site.description]]</h3>
+<div class="container">
+    <div class="col-md-4">
+        <h3>Devices</h3>
+        <table class="table table-striped">
+            <thead>
+               <tr><th class="bg-success">Devices</th><td>[[total_devices]]</td></tr>
+               <tr><th class="bg-success">Hostnames</th><td>*placehodler 4*</td></tr>
+               <tr><th class="bg-success">IPv4</th><td>*placeholder 5*</td></tr>
+               <tr><th class="bg-success">IPv6</th><td>*placeholder 6*</td></tr>
+             </thead>
+            <tbody>
+        </table>
+    </div>
+    <div class="col-md-8">
+        <h3>IP Usage</h3>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th class="bg-success">In Use</th>
+                    <th class="bg-success">Allocated</th>
+                    <th class="bg-alert">Reserved</th>
+                    <th class="bg-danger">Orphaned</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>
+                        <a href="/sites/[[siteId]]/networks/" class="btn-success">*8*</a>
+                    <td>
+                        <a href="/sites/[[siteId]]/networks/" class="btn-success">*9*</a>
+                    </td>
+                    <td>
+                        <a href="/sites/[[siteId]]/networks/" class="btn-warning">*10*</a>
+                    </td>
+                    <td>
+                        <a href="/sites/[[siteId]]/networks/" class="btn-danger">*11*</a>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+<nsot-modal title="Update Site" modal-id="updateSiteModal">
         <div class="modal-body">
             <div ng-if="updateError" class="alert alert-danger">
                 [[updateError.code]] - [[updateError.message]]

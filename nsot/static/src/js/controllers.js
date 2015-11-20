@@ -68,12 +68,13 @@
     });
 
     app.controller("SiteController",
-            function($scope, $route, $location, $q, $routeParams, Site, User) {
+            function($scope, $route, $location, $q, $routeParams, Site, User, Device) {
 
         $scope.loading = true;
 
         $scope.user = null;
         $scope.site = null;
+        $scope.total_devices = null;
         $scope.admin = false;
 
         $scope.updateError = null;
@@ -84,9 +85,11 @@
         $q.all([
             User.get({id: 0}).$promise,
             Site.get({id: siteId}).$promise,
+            Device.query({siteId: siteId}).$promise
         ]).then(function(results){
             $scope.user = results[0];
             $scope.site = results[1];
+            $scope.total_devices = results[2].total;
             $scope.admin = $scope.user.isAdmin(siteId, ["admin"]);
             $scope.loading = false;
         }, function(data){
