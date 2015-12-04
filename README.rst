@@ -7,16 +7,8 @@ nsot
 Network Source of Truth (NSoT) is an API and web application front-end for
 managing IP addresses (IPAM), network devices, and network interfaces.
 
-Warning
-=======
-
-This project is stable and fully unit-tested, however as it is pre-1.0 it is
-still very much in flux and likely to have backwards-incompatible API changes
-for the time being. Also some documentation may describe steps not yet
-possible, or in some cases possible steps may not be fully documented.
-
-Roadmap
-=======
+Description
+===========
 
 NSoT is designed to be a source of truth database and repository for tracking
 inventory and metadata of network entities to ease management and automation of
@@ -227,6 +219,14 @@ questions, or to just talk shop is to find us on IRC at ``#nsot`` on Freenode
    :target: https://travis-ci.org/dropbox/nsot
 .. |Documentation Status| image:: https://readthedocs.org/projects/nsot/badge/?version=latest
    :target: https://readthedocs.org/projects/nsot/?badge=latest
+
+Warning
+=======
+
+This project is stable and fully unit-tested, however as it is pre-1.0 it is
+still very much in flux and likely to have backwards-incompatible API changes
+for the time being. Also some documentation may describe steps not yet
+possible, or in some cases possible steps may not be fully documented.
 
 See Also
 ========

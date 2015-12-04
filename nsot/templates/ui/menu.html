@@ -30,6 +30,13 @@
                     </a>
                 </li>
                 <li ng-class="{
+                    active: isActive('/sites/[[siteId]]/interfaces')
+                }">
+                    <a title="Interfaces" ng-href="/sites/[[siteId]]/interfaces">
+                        Interfaces
+                    </a>
+                </li>
+                <li ng-class="{
                     active: isActive('/sites/[[siteId]]/attributes')
                 }">
                     <a title="Attributes" ng-href="/sites/[[siteId]]/attributes">

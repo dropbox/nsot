@@ -63,6 +63,14 @@
             templateUrl: "network.html",
             controller: "NetworkController"
         })
+        .when("/sites/:siteId/interfaces", {
+            templateUrl: "interfaces.html",
+            controller: "InterfacesController"
+        })
+        .when("/sites/:siteId/interfaces/:ifaceId", {
+            templateUrl: "interface.html",
+            controller: "InterfaceController"
+        })
         .when("/sites/:siteId/devices", {
             templateUrl: "devices.html",
             controller: "DevicesController"

@@ -506,6 +506,212 @@
 
     });
 
+    app.controller("InterfacesController",
+            function($scope, $location, $q, $routeParams,
+                     User, Interface, Attribute, Device, pagerParams, Paginator) {
+
+        $scope.loading = true;
+        $scope.user = null;
+        $scope.attributes = {};
+        $scope.interfaces = [];
+        $scope.devices = [];
+        $scope.paginator = null;
+        $scope.error = null;
+        $scope.admin = false;
+        var siteId = $scope.siteId = $routeParams.siteId;
+
+        $scope.formMode = "create";
+        $scope.formUrl = "includes/interfaces-form.html";
+        $scope.formData = {
+            attributes: [],
+            devices: []
+        };
+
+        var params = _.extend(pagerParams(), {
+            siteId: siteId,
+        });
+
+        $q.all([
+            User.get({id: 0}).$promise,
+            Interface.query(params).$promise
+        ]).then(function(results){
+            $scope.user = results[0];
+            $scope.interfaces = results[1].data;
+            $scope.admin = $scope.user.isAdmin(siteId, ["admin"]);
+
+
+            $scope.paginator = new Paginator(results[1]);
+            $scope.loading = false;
+        }, function(data){
+            if (data.status === 404) {
+                $location.path("/");
+                $location.replace();
+            }
+        });
+
+        $("body").on("show.bs.modal", "#createInterfaceModal", function(e){
+            Device.query({siteId: siteId}, function(response){
+                $scope.devices = response.data;
+                $scope.formData.devices = _.chain($scope.devices).value();
+                /*
+                $scope.getDeviceById = _.reduce(
+                        $scope.devices, function(acc, value, key){
+                    acc[value.name] = value;
+                    return acc;
+                }, {});
+
+                $scope.formData.devices = _.chain($scope.devices).value();
+                    .filter(function(value){
+                        return value.display;
+                    })
+                    .sortBy(function(value){
+                        return value.required ? 0 : 1;
+                    })
+                    .map(function(value){
+                        return {
+                            name: value.name
+                        };
+                    }).value();
+                */
+            });
+        });
+
+        $("body").on("show.bs.modal", "#createInterfaceModal", function(e){
+            Attribute.query({siteId: siteId, resource_name: "Interface"}, function(response){
+                $scope.attributes = response.data;
+                $scope.attributesByName = _.reduce(
+                        $scope.attributes, function(acc, value, key){
+                    acc[value.name] = value;
+                    return acc;
+                }, {});
+
+                $scope.formData.attributes = _.chain($scope.attributes)
+                    .filter(function(value){
+                        return value.display;
+                    })
+                    .sortBy(function(value){
+                        return value.required ? 0 : 1;
+                    })
+                    .map(function(value){
+                        return {
+                            name: value.name
+                        };
+                    }).value();
+            });
+        });
+
+        $scope.$on('$destroy', function() {
+            $("body").off("show.bs.modal", "#createInterfaceModal");
+        });
+
+
+        $scope.addAttr = function() {
+            $scope.formData.attributes.push({});
+        };
+
+        $scope.removeAttr = function(idx) {
+            $scope.formData.attributes.splice(idx, 1);
+        };
+
+        $scope.createInterface = function() {
+            var iface = Interface.fromForm($scope.formData);
+            iface.$save({siteId: siteId}, function(iface){
+                $location.path("/sites/" + siteId + "/interfaces/" + iface.id);
+            }, function(data){
+                $scope.error = data.data.error;
+            });
+        };
+
+    });
+
+    app.controller("InterfaceController",
+            function($scope, $route, $location, $q, $routeParams,
+                     User, Interface, Attribute, Change) {
+
+        $scope.loading = true;
+        $scope.user = {};
+        $scope.iface = {};
+        $scope.schema = null;
+        $scope.attributes = {};
+        $scope.admin = false;
+        $scope.updateError = null;
+        $scope.deleteError = null;
+        var siteId = $scope.siteId = $routeParams.siteId;
+        var ifaceId = $scope.ifaceId = $routeParams.ifaceId;
+        $scope.formMode = "update";
+        $scope.formUrl = "includes/interfaces-form.html";
+        $scope.formData = {
+            attributes: []
+        };
+
+
+        $q.all([
+            User.get({id: 0}).$promise,
+            Interface.get({siteId: siteId, id: ifaceId}).$promise,
+            Interface.schema({siteId: siteId, id: ifaceId}).$promise,
+            Change.query({
+                siteId: siteId, limit: 10, offset: 0,
+                resource_name: "Interface", resource_id: ifaceId
+            }).$promise
+        ]).then(function(results){
+            $scope.user = results[0];
+            $scope.iface = results[1];
+            $scope.schema = results[2].schema;
+            $scope.changes = results[3].data;
+            $scope.formData = $scope.iface.toForm();
+            $scope.admin = $scope.user.isAdmin(siteId, ["admin"]);
+
+            $scope.loading = false;
+        }, function(data){
+            if (data.status === 404) {
+                $location.path("/");
+                $location.replace();
+            }
+        });
+
+        $("body").on("show.bs.modal", "#updateInterfaceModal", function(e){
+            Attribute.query({siteId: siteId, resource_name: "Interface"}, function(response){
+                $scope.attributes = response.data;
+                $scope.attributesByName = _.reduce(
+                        $scope.attributes, function(acc, value, key){
+                    acc[value.name] = value;
+                    return acc;
+                }, {});
+            });
+        });
+
+        $scope.$on('$destroy', function() {
+            $("body").off("show.bs.modal", "#updateInterfaceModal");
+        });
+
+        $scope.addAttr = function() {
+            $scope.formData.attributes.push({});
+        };
+
+        $scope.removeAttr = function(idx) {
+            $scope.formData.attributes.splice(idx, 1);
+        };
+
+        $scope.updateInterface = function(){
+            var iface = $scope.iface;
+            iface.updateFromForm($scope.formData);
+            iface.$update({siteId: siteId}, function(data){
+                $route.reload();
+            }, function(data){
+                $scope.updateError = data.data.error;
+            });
+        };
+
+        $scope.deleteInterface = function(){
+            $scope.iface.$delete({siteId: siteId}, function(){
+                $location.path("/sites/" + siteId + "/interfaces");
+            }, function(data){
+                $scope.deleteError = data.data.error;
+            });
+        };
+
+    });
+
     app.controller("AttributesController",
             function($scope, $route, $location, $q, $routeParams,
                      User, Attribute) {

@@ -3,7 +3,7 @@ argh==0.26.1
 betamax==0.4.2
 docutils==0.12
 livereload==2.4.0
-mrproxy==0.3.3
+mrproxy==0.3.4
 py==1.4.26
 pytest==2.7.0
 pytest-django==2.9.1
