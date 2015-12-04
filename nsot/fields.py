@@ -50,6 +50,13 @@ class BinaryIPAddressField(models.Field):
         self.editable = True
 
     def db_type(self, connection):
+        engine = connection.settings_dict['ENGINE']
+
+        # Use the native 'inet' type for Postgres.
+        if 'postgres' in engine:
+            return 'inet'
+
+        # Or 'varbinary' for everyone else.
         data = DictWrapper(self.__dict__, connection.ops.quote_name, "qn_")
         return 'varbinary(%(max_length)s)' % data
 
@@ -59,12 +66,21 @@ class BinaryIPAddressField(models.Field):
             return value
 
         try:
-            return ipaddress.ip_address(value).exploded
+            obj = ipaddress.ip_address(unicode(value))
         except ValueError:
-            return ipaddress.ip_address(bytes(value)).exploded
+            obj = ipaddress.ip_address(bytes(value))
+
+        return obj.exploded
 
     def get_db_prep_value(self, value, connection, prepared=False):
         """Python -> DB."""
+        engine = connection.settings_dict['ENGINE']
+
+        # Send the value as-is to Postgres.
+        if 'postgres' in engine:
+            return value
+
+        # Or packed binary for everyone else.
         return ipaddress.ip_address(value).packed
 
 
