@@ -34,8 +34,8 @@
     </nsot-modal>
 
 
-    <div class="row"><div class="col-sm-10 col-sm-offset-1"><div class="adv-buttons">
-
+    <div class="row"><div class="col-sm-10 col-sm-offset-1">
+<div class="adv-buttons">
 
             <button class="btn btn-default"
                     ng-click="filters.root_only = !filters.root_only"
@@ -50,9 +50,14 @@
                         ng-click="filters.include_ips = !filters.include_ips"
                         ng-class="{active: filters.include_ips}"
                 >IPs</button>
-            </div>
-
+`           </div>
         <form style="display: inline;" method="get" action="">
+             <select name="ipam_allocation"
+ng-click="filters.ipam_allocation " ng-class="[active:filters.ipam_allocation]"><option value="%">All
+Types</option><option value="allocated">Allocated</option><option
+value="assigned">Assigned</option><option
+value="allocated">Reserved</option><option
+value="orphaned">Orphaned</option></select>  
             <input type="hidden" name="root_only" ng-value="filters.root_only">
             <input type="hidden" name="include_ips" ng-value="filters.include_ips">
             <input type="hidden" name="include_networks" ng-value="filters.include_networks">
@@ -71,18 +76,28 @@
                 <table class="table table-condensed table-hover">
                     <thead>
                         <tr>
-                            <th class="col-sm-3">Network Address</th>
-                            <th class="col-sm-1">Prefix Length</th>
+                            <th class="col-sm-3">
+                                Network Address
+                            </th>
+                            <th class="col-sm-1">
+                                Prefix Length
+                            </th>
+                            <th class="col-sm-1">State</th>
                             <th class="col-sm-1">Ip Address</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <tr ng-repeat="network in networks">
+                        <tr ng-repeat="network in networks | orderBy:sortType ">
                             <td>
                                 <a href="/sites/[[siteId]]/networks/[[network.id]]"
                                 >[[network.network_address]]</a>
                             </td>
-                            <td>[[network.prefix_length]]</td>
+                            <td>
+                                <a href="/sites/[[siteId]]/networks/[[network.id]]"
+                                >[[network.prefix_length]]</a></td>
+                            <td>
+                                <a href="/sites/[[siteId]]/networks/[[network.id]]"
+                                >[[network.state]]</a></td>
                             <td>
                                 <i ng-if="network.is_ip" class="fa fa-check"></i>
                             </td>

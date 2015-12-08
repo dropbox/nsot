@@ -68,36 +68,99 @@
     });
 
     app.controller("SiteController",
-            function($scope, $route, $location, $q, $routeParams, Site, User, Device) {
+            function($scope, $route, $location, $q, $routeParams, Site, User,
+                     Device, Network, Change) {
 
         $scope.loading = true;
-
         $scope.user = null;
         $scope.site = null;
         $scope.total_devices = null;
+        $scope.total_networks = null;
+        $scope.total_ipv4 = null ;
+        $scope.total_ipv6 = null;
+        $scope.total_reserved = null;
+        $scope.total_allocated = null;
+        $scope.total_assigned = null;
+        $scope.total_orphaned = null;
         $scope.admin = false;
-
         $scope.updateError = null;
         $scope.deleteError = null;
+        $scope.changes = [];
 
         var siteId = $routeParams.siteId;
+        var netsets = {
+            siteId: siteId,
+            include_ips: true,
+            limit: 1
+        }
+        var net4 = {
+            siteId: siteId,
+            include_ips: true,
+            ip_version: 4,
+            limit: 1
+        } 
+        var net6 = {
+            siteId: siteId,
+            include_ips: true,
+            ip_version: 6,
+            limit: 1
+         }
+        var ipam_reserved = {
+            siteId: siteId,
+            include_ips: true,
+            state: "reserved",
+            limit:1
+        }
+        var ipam_allocated = {
+            siteId: siteId,
+            include_ips: true,
+            state: "allocated",
+            limit: 1
+        }
+        var ipam_assigned = {
+            siteId: siteId,
+            include_ips: true,
+            state: "assigned",
+            limit: 1
+        }
+        var ipam_orphaned = {
+            siteId: siteId,
+            include_ips: true,
+            state: "orphaned",
+            limit: 1
+        }
+        var change_go = {
+            siteId: siteId,
+            limit: 10
+        }
 
         $q.all([
             User.get({id: 0}).$promise,
             Site.get({id: siteId}).$promise,
-            Device.query({siteId: siteId}).$promise
+            Device.query({siteId: siteId, limit:1}).$promise,
+            Network.query(netsets).$promise,
+            Network.query(net4).$promise,
+            Network.query(net6).$promise,
+            Network.query(ipam_reserved).$promise,
+            Network.query(ipam_allocated).$promise,
+            Network.query(ipam_assigned).$promise,
+            Network.query(ipam_orphaned).$promise,
+            Change.query(change_go).$promise
         ]).then(function(results){
             $scope.user = results[0];
             $scope.site = results[1];
             $scope.total_devices = results[2].total;
+            $scope.total_networks = results[3].total;
+            $scope.total_ipv4 = results[4].total;
+            $scope.total_ipv6 = results[5].total;
+            $scope.total_reserved = results[6].total;
+            $scope.total_allocated = results[7].total;
+            $scope.total_assigned = results[8].total;
+            $scope.total_orphaned = results[9].total;
+          $scope.changes = results[10].data;
             $scope.admin = $scope.user.isAdmin(siteId, ["admin"]);
             $scope.loading = false;
-        }, function(data){
-            if (data.status === 404) {
-                $location.path("/");
-                $location.replace();
-            }
-        });
+            });
 
         $scope.updateSite = function(){
             $scope.site.$update(function(){
@@ -114,6 +177,9 @@
                 $scope.deleteError = data.data.error;
             });
         };
+
+
+            
 
     });
 
@@ -156,9 +222,8 @@
     });
 
     app.controller("NetworksController",
-            function($scope, $location, $q, $routeParams,
+            function($scope, $location, $q,  $routeParams,
                      User, Network, Attribute, pagerParams, Paginator) {
-
         $scope.loading = true;
         $scope.user = null;
         $scope.attributes = {};
@@ -174,10 +239,12 @@
             attributes: []
         };
 
+
         $scope.filters = {
             include_ips: nsot.qpBool($routeParams, "include_ips", true),
             include_networks: nsot.qpBool($routeParams, "include_networks", true),
-            root_only: nsot.qpBool($routeParams, "root_only", false)
+            root_only: nsot.qpBool($routeParams, "root_only", false),
+            ipam_allocation: nsot.qpBool($routeParams, "state", "allocated")
         };
 
         var params = _.extend(pagerParams(), {
@@ -654,3 +721,4 @@
     });
 
 })();
+
