@@ -383,7 +383,7 @@ class NetworkViewSet(ResourceViewSet):
 
         params = self.request.query_params
         include_networks = qpbool(params.get('include_networks', True))
-        include_ips = qpbool(params.get('include_ips', False))
+        include_ips = qpbool(params.get('include_ips', True))
         root_only = qpbool(params.get('root_only', False))
         cidr = params.get('cidr', None)
         attributes = params.getlist('attributes', [])
@@ -447,7 +447,7 @@ class NetworkViewSet(ResourceViewSet):
 
         params = request.query_params
         include_networks = qpbool(params.get('include_networks', True))
-        include_ips = qpbool(params.get('include_ips', False))
+        include_ips = qpbool(params.get('include_ips', True))
         direct = qpbool(params.get('direct', False))
 
         networks = network.subnets(
