@@ -36,18 +36,20 @@ def test_network_bug_issues_34(client, site):
 
     # Populate the network objects and retreive them for testing.
     client.post(net_uri, data=load('networks.json'))
-    net_resp = client.retrieve(net_uri, include_ips=True)
+    net_resp = client.retrieve(net_uri)
     net_out = net_resp.json()['data']
     networks = net_out['networks']
 
-    # Filter networks w/ attribute hostname=foo-bar1
+    # Filter networks w/ attribute hostname=foo-bar1, excluding IPs
     expected = copy.deepcopy(net_out)
     wanted = ['192.168.0.0/24', '192.168.0.0/25']
     expected['networks'] = filter_networks(networks, wanted)
     expected.update({'limit': None, 'offset': 0, 'total': len(wanted)})
 
     assert_success(
-        client.retrieve(net_uri, attributes='hostname=foo-bar1'),
+        client.retrieve(
+            net_uri, attributes='hostname=foo-bar1', include_ips=False
+        ),
         expected
     )
 
@@ -58,7 +60,7 @@ def test_network_bug_issues_34(client, site):
 
     assert_success(
         client.retrieve(
-            net_uri, attributes='hostname=foo-bar1', include_ips=True
+            net_uri, attributes='hostname=foo-bar1'
         ),
         expected
     )

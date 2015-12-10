@@ -581,7 +581,7 @@ class Network(Resource):
             broadcast_address__gte=self.broadcast_address
         )
 
-    def subnets(self, include_networks=True, include_ips=False, direct=False,
+    def subnets(self, include_networks=True, include_ips=True, direct=False,
                 for_update=False):
         query = Network.objects.all()
 

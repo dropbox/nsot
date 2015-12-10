@@ -123,7 +123,7 @@ def test_filters(site, client):
 
     # Populate the Network objects and retreive them for testing.
     client.post(net_uri, data=load('networks.json'))
-    net_resp = client.retrieve(net_uri, include_ips=True)
+    net_resp = client.retrieve(net_uri)
     net_out = net_resp.json()['data']
     networks = net_out['networks']
 
@@ -207,7 +207,7 @@ def test_set_queries(client, site):
 
     # Populate the network objects and retreive them for testing.
     client.post(net_uri, data=load('networks.json'))
-    net_resp = client.retrieve(net_uri, include_ips=True)
+    net_resp = client.retrieve(net_uri)
     net_out = net_resp.json()['data']
     networks = net_out['networks']
 
@@ -230,13 +230,13 @@ def test_set_queries(client, site):
         expected
     )
 
-    # DIFFERENCE: -owner=gary
+    # DIFFERENCE: -owner=gary, networks only
     wanted = ['192.168.0.0/16', '169.254.0.0/16', '192.168.0.0/24',
               '192.168.0.0/25']
     expected['networks'] = filter_networks(networks, wanted)
     expected.update({'total': len(wanted)})
     assert_success(
-        client.retrieve(query_uri, query='-owner=gary'),
+        client.retrieve(query_uri, query='-owner=gary', include_ips=False),
         expected
     )
 
@@ -249,12 +249,12 @@ def test_set_queries(client, site):
         expected
     )
 
-    # Test that include_ips=True actually does that.
+    # Single IP result.
     wanted = ['192.168.0.1/32']
     expected['networks'] = filter_networks(networks, wanted)
     expected.update({'total': len(wanted)})
     assert_success(
-        client.retrieve(query_uri, query='vlan=300', include_ips=True),
+        client.retrieve(query_uri, query='vlan=300'),
         expected
     )
 
@@ -349,11 +349,11 @@ def test_mptt_detail_routes(site, client):
     net_25 = net_25_resp.json()['data']['networks'][0]
     net_25_obj_uri = site.detail_uri('network', id=net_25['id'])
 
-    ip1_resp = client.retrieve(net_uri, cidr='10.16.2.1/32', include_ips=True)
+    ip1_resp = client.retrieve(net_uri, cidr='10.16.2.1/32')
     ip1 = ip1_resp.json()['data']['networks'][0]
     ip1_obj_uri = site.detail_uri('network', id=ip1['id'])
 
-    ip2_resp = client.retrieve(net_uri, cidr='10.16.2.2/32', include_ips=True)
+    ip2_resp = client.retrieve(net_uri, cidr='10.16.2.2/32')
     ip2 = ip2_resp.json()['data']['networks'][0]
     ip2_obj_uri = site.detail_uri('network', id=ip2['id'])
 
@@ -443,15 +443,15 @@ def test_get_next_detail_routes(site, client):
     net_29 = net_29_resp.json()['data']['networks'][0]
     net_29_obj_uri = site.detail_uri('network', id=net_29['id'])
 
-    ip1_resp = client.retrieve(net_uri, cidr='10.16.2.1/32', include_ips=True)
+    ip1_resp = client.retrieve(net_uri, cidr='10.16.2.1/32')
     ip1 = ip1_resp.json()['data']['networks'][0]
     ip1_obj_uri = site.detail_uri('network', id=ip1['id'])
 
-    ip2_resp = client.retrieve(net_uri, cidr='10.16.2.2/32', include_ips=True)
+    ip2_resp = client.retrieve(net_uri, cidr='10.16.2.2/32')
     ip2 = ip2_resp.json()['data']['networks'][0]
     ip2_obj_uri = site.detail_uri('network', id=ip2['id'])
 
-    ip3_resp = client.retrieve(net_uri, cidr='10.16.2.2/32', include_ips=True)
+    ip3_resp = client.retrieve(net_uri, cidr='10.16.2.2/32')
     ip3 = ip3_resp.json()['data']['networks'][0]
     ip3_obj_uri = site.detail_uri('network', id=ip3['id'])
 
