@@ -13,6 +13,158 @@
         >Delete Site</button>
     </heading-bar>
 
+    <div class="row">
+        <div class="col-md-12">
+            [[site.description]]<br><br>
+        </div>
+    </div>
+
+    <div class="row">
+
+        <div class="col-md-3">
+            <panel>
+                <panel-heading>
+                    Totals
+                </panel-heading>
+                <panel-body>
+                    <table class="table table-striped">
+                        <tbody>
+                            <tr>
+                                <th>Devices</th>
+                                <td>
+                                    <a href="/sites/[[site.id]]/devices/" class="btn btn-info">
+                                        [[total_devices]]
+                                    </a>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Networks</th>
+                                <td>
+                                    <a href="/sites/[[site.id]]/networks/" class="btn btn-info">
+                                        [[total_networks]]
+                                    </a>
+                                </td>
+                            </tr>
+                            <tr>
+                               <th>- IPv4</th>
+                               <td>
+                                   <a href="/sites/[[site.id]]/networks/" class="btn btn-info">
+                                       [[total_ipv4]] / [[total_networks]]
+                                   </a>
+                               </td>
+                            </tr>
+                            <tr>
+                                <th>- IPv6</th>
+                                <td>
+                                    <a href="/sites/[[site.id]]/networks/" class="btn btn-info">
+                                       [[total_ipv6]] / [[total_networks]]
+                                   </a>
+                                </td>
+                            </tr>
+                         </tbody>
+                    </table>
+                </panel-body>
+            </panel>
+        </div>
+
+        <div class="col-md-3">
+            <panel>
+                <panel-heading>
+                    Network Usage
+                </panel-heading>
+                <panel-body>
+                    <table class="table table-striped">
+                        <tbody>
+                            <tr>
+                                <th class="bg-success">In Use</th>
+                                <td class="bg-success">
+                                    <a href="/sites/[[site.id]]/networks/" class="btn btn-success">
+                                        [[total_assigned]] / [[total_networks]]
+                                    </a>
+                              </td>
+                            </tr>
+                            <tr>
+                                <th class="bg-info">Allocated</th>
+                                <td class="bg-info">
+                                    <a href="/sites/[[site.id]]/networks/" class="btn btn-info">
+                                        [[total_allocated]] / [[total_networks]]
+                                    </a>
+                              </td>
+                           </tr>
+                           <tr>
+                                <th class="bg-warning">Reserved</th>
+                                <td class="bg-warning">
+                                    <a href="/sites/[[site.id]]/networks/" class="btn btn-warning">
+                                      [[total_reserved]] / [[total_networks]]
+                                    </a>
+                               </td>
+                          </tr>
+                          <tr>
+                                <th class="bg-danger">Orphaned</th>
+                                <td class="bg-danger">
+                                    <a href="/sites/[[site.id]]/networks/" class="btn btn-danger">
+                                      [[total_orphaned]] / [[total_networks]]
+                                    </a>
+                              </td>
+                          </tr>
+                        </tbody>
+                    </table>
+                </panel-body>
+            </panel>
+        </div>
+
+        <div class="col-md-6">
+            <panel>
+                <panel-body>
+                    <canvas
+                        id="pie" class="chart chart-pie"
+                        chart-data="data" chart-labels="labels"
+                    >
+                    </canvas> 
+                </panel-body>
+            </panel>
+        </div>                
+
+    </div>
+
+    <div class="row">
+
+        <div class="col-sm-12">
+            <panel>
+                <panel-heading>Changes</panel-heading>
+                <panel-body>
+                    <table class="table table-condensed table-hover">
+                        <thead>
+                            <tr>
+                                <th class="col-sm-1">ID</th>
+                                <th class="col-sm-2">User</th>
+                                <th class="col-sm-1">Event</th>
+                                <th class="col-sm-1">Resource Type</th>
+                                <th class="col-sm-1">Resource ID</th>
+                                <th class="col-sm-2">Change At</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr ng-repeat="change in changes">
+                                <td>
+                                    <a ng-href="/sites/[[siteId]]/changes/[[change.id]]">
+                                        [[change.id]]
+                                    </a>
+                                </td>
+                                <td>[[change.user.email]]</td>
+                                <td>[[change.event]]</td>
+                                <td>[[change.resource_name]]</td>
+                                <td>[[change.resource_id]]</td>
+                                <td>[[change.change_at|from_now]]</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </panel-body>
+            </panel>
+        </div>
+
+    </div>
+
     <nsot-modal title="Update Site" modal-id="updateSiteModal">
         <div class="modal-body">
             <div ng-if="updateError" class="alert alert-danger">
@@ -71,5 +223,7 @@
                 Delete
             </button>
         </div>
-    </nsot-modal>
+ 
+   </nsot-modal>
+
 </div>
