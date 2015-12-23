@@ -32,15 +32,26 @@
                             <tr>
                                 <th>Devices</th>
                                 <td>
-                                    <a href="/sites/[[site.id]]/devices/" class="btn btn-info">
+                                    <a href="/sites/[[site.id]]/devices/"
+                                       class="btn btn-info">
                                         [[total_devices]]
+                                    </a>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Interfaces</th>
+                                <td>
+                                    <a href="/sites/[[site.id]]/interfaces/"
+                                       class="btn btn-info">
+                                        [[total_interfaces]]
                                     </a>
                                 </td>
                             </tr>
                             <tr>
                                 <th>Networks</th>
                                 <td>
-                                    <a href="/sites/[[site.id]]/networks/" class="btn btn-info">
+                                    <a href="/sites/[[site.id]]/networks/"
+                                       class="btn btn-info">
                                         [[total_networks]]
                                     </a>
                                 </td>
@@ -48,7 +59,8 @@
                             <tr>
                                <th>- IPv4</th>
                                <td>
-                                   <a href="/sites/[[site.id]]/networks/" class="btn btn-info">
+                                   <a href="/sites/[[site.id]]/networks/?ip_version=4"
+                                      class="btn btn-info">
                                        [[total_ipv4]] / [[total_networks]]
                                    </a>
                                </td>
@@ -56,7 +68,8 @@
                             <tr>
                                 <th>- IPv6</th>
                                 <td>
-                                    <a href="/sites/[[site.id]]/networks/" class="btn btn-info">
+                                    <a href="/sites/[[site.id]]/networks/?ip_version=6"
+                                       class="btn btn-info">
                                        [[total_ipv6]] / [[total_networks]]
                                    </a>
                                 </td>
@@ -76,9 +89,10 @@
                     <table class="table table-striped">
                         <tbody>
                             <tr>
-                                <th class="bg-success">In Use</th>
+                                <th class="bg-success">Assigned</th>
                                 <td class="bg-success">
-                                    <a href="/sites/[[site.id]]/networks/" class="btn btn-success">
+                                    <a href="/sites/[[site.id]]/networks/?state=assigned"
+                                       class="btn btn-success">
                                         [[total_assigned]] / [[total_networks]]
                                     </a>
                               </td>
@@ -86,7 +100,8 @@
                             <tr>
                                 <th class="bg-info">Allocated</th>
                                 <td class="bg-info">
-                                    <a href="/sites/[[site.id]]/networks/" class="btn btn-info">
+                                    <a href="/sites/[[site.id]]/networks/?state=allocated"
+                                       class="btn btn-info">
                                         [[total_allocated]] / [[total_networks]]
                                     </a>
                               </td>
@@ -94,7 +109,8 @@
                            <tr>
                                 <th class="bg-warning">Reserved</th>
                                 <td class="bg-warning">
-                                    <a href="/sites/[[site.id]]/networks/" class="btn btn-warning">
+                                    <a href="/sites/[[site.id]]/networks/?state=reserved"
+                                       class="btn btn-warning">
                                       [[total_reserved]] / [[total_networks]]
                                     </a>
                                </td>
@@ -102,7 +118,8 @@
                           <tr>
                                 <th class="bg-danger">Orphaned</th>
                                 <td class="bg-danger">
-                                    <a href="/sites/[[site.id]]/networks/" class="btn btn-danger">
+                                    <a href="/sites/[[site.id]]/networks/?state=orphaned"
+                                       class="btn btn-danger">
                                       [[total_orphaned]] / [[total_networks]]
                                     </a>
                               </td>
@@ -131,7 +148,7 @@
 
         <div class="col-sm-12">
             <panel>
-                <panel-heading>Changes</panel-heading>
+                <panel-heading>Recent Changes</panel-heading>
                 <panel-body>
                     <table class="table table-condensed table-hover">
                         <thead>
@@ -147,7 +164,7 @@
                         <tbody>
                             <tr ng-repeat="change in changes">
                                 <td>
-                                    <a ng-href="/sites/[[siteId]]/changes/[[change.id]]">
+                                    <a ng-href="/sites/[[site.id]]/changes/[[change.id]]">
                                         [[change.id]]
                                     </a>
                                 </td>
