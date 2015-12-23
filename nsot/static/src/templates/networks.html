@@ -34,8 +34,8 @@
     </nsot-modal>
 
 
-    <div class="row"><div class="col-sm-10 col-sm-offset-1"><div class="adv-buttons">
-
+    <div class="row"><div class="col-sm-10 col-sm-offset-1">
+<div class="adv-buttons">
 
             <button class="btn btn-default"
                     ng-click="filters.root_only = !filters.root_only"
@@ -51,11 +51,23 @@
                         ng-class="{active: filters.include_ips}"
                 >IPs</button>
             </div>
-
+            <div class="btn-group">
+                <select name="state"
+                        class="form-control"
+                        ng-model="selectedState"
+                        ng-change="filters.state = selectedState"
+                        ng-options="selectedState for selectedState in states"
+                        ng-init='selectedState = filters.state'
+                    >
+                    <option value="" disabled>State</option>
+                    {{selectedState}}
+                </select>
+            </div>
         <form style="display: inline;" method="get" action="">
             <input type="hidden" name="root_only" ng-value="filters.root_only">
             <input type="hidden" name="include_ips" ng-value="filters.include_ips">
             <input type="hidden" name="include_networks" ng-value="filters.include_networks">
+            <input type="hidden" name="state" ng-value="filters.state">
             <input type="submit" class="btn btn-primary" value="Update Filters">
         </form>
 
@@ -71,8 +83,13 @@
                 <table class="table table-condensed table-hover">
                     <thead>
                         <tr>
-                            <th class="col-sm-3">Network Address</th>
-                            <th class="col-sm-1">Prefix Length</th>
+                            <th class="col-sm-3">
+                                Network Address
+                            </th>
+                            <th class="col-sm-1">
+                                Prefix Length
+                            </th>
+                            <th class="col-sm-1">State</th>
                             <th class="col-sm-1">Ip Address</th>
                         </tr>
                     </thead>
@@ -82,7 +99,12 @@
                                 <a href="/sites/[[siteId]]/networks/[[network.id]]"
                                 >[[network.network_address]]</a>
                             </td>
-                            <td>[[network.prefix_length]]</td>
+                            <td>
+                                <a href="/sites/[[siteId]]/networks/[[network.id]]"
+                                >[[network.prefix_length]]</a></td>
+                            <td>
+                                <a href="/sites/[[siteId]]/networks/[[network.id]]"
+                                >[[network.state]]</a></td>
                             <td>
                                 <i ng-if="network.is_ip" class="fa fa-check"></i>
                             </td>
