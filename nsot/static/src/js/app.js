@@ -4,7 +4,7 @@
     var templateCache = angular.module("nsotTemplates", []);
     var app = angular.module(
         "nsotApp",
-        ["nsotTemplates", "ngRoute", "ngResource", "ngTagsInput", "chart.js"]
+        ["nsotTemplates", "ngRoute", "ngResource", "ngTagsInput", "chart.js", "restangular"]
     );
 
     app.config(function($interpolateProvider){
@@ -43,6 +43,50 @@
                 "#f2dede"  // bg-danger (red)
             ]
         });
+    })
+    // Configure Restangular
+    .config(function(RestangularProvider) {
+        RestangularProvider.setBaseUrl('/api');
+        RestangularProvider.setRequestSuffix('/');
+        RestangularProvider.addResponseInterceptor(
+            function(data, operation, what, url, response, deferred) {
+                var extractedData;
+
+                console.log('what = ' + what);
+                console.log('operation = ' + operation);
+                console.log('url = ' + url);
+
+                // detail
+                if (operation === 'get') {
+                    if (response.status != 200) {
+                        extractedData = data;
+                    }
+                    else {
+                        extractedData = data.data[what.substr(0, what.length -1)];
+                    }
+                }
+
+                // post
+                else if (operation === 'post') {
+                    // Don't intercept rotate_secret_key
+                    if (what === 'rotate_secret_key') {
+                        return data;
+                    }
+                }
+
+                // list
+                else if (operation === 'getList') {
+                    extractedData = {
+                        limit: data.data.limit,
+                        offset: data.data.offset,
+                        total: data.data.total,
+                        data: data.data[what]
+                    }
+                }
+
+                return extractedData;
+            }
+        );
     })
     // NSoT app routes.
     .config(function($routeProvider) {

@@ -23,7 +23,8 @@
     "ng-tags-input": "2.3.0",
     "moment": "2.10.2",
     "jquery": "2.1.4",
-    "angular-chart.js": "~0.8.5"
+    "angular-chart.js": "~0.8.5",
+    "restangular": "~1.5.1"
   },
   "overrides": {
     "moment": {

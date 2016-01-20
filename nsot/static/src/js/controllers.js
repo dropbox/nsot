@@ -31,9 +31,9 @@
         });
     });
 
-    app.controller("ProfileController", function(User, $location, $q) {
+    app.controller("ProfileController", function(Users, $location, $q) {
         $q.all([
-            User.get({id: 0}).$promise,
+            Users.one(0).get(),
         ]).then(function(results){
             $location.path("/users/" + results[0].id);
         });
@@ -204,7 +204,7 @@
     });
 
     app.controller("UserController",
-            function($scope, $route, $location, $q, $routeParams, User) {
+            function($scope, $route, $location, $q, $routeParams, Users) {
 
         $scope.loading = true;
         $scope.currentUser = null;
@@ -214,20 +214,20 @@
         $scope.isSelf = false;
 
         $scope.showKey = function(){
-            User.get({id: userId, with_secret_key: true}, function(data){
+            Users.one(userId).get({with_secret_key: true}).then(function(data) {
                 $scope.secret_key = data.secret_key;
             });
         };
 
         $scope.rotateKey = function(){
-            $scope.profileUser.rotateSecretKey().success(function(new_key){
+            $scope.profileUser.rotateSecretKey().then(function(new_key){
                 $scope.secret_key = new_key;
             });
         };
 
         $q.all([
-            User.get({id: 0}).$promise,
-            User.get({id: userId}).$promise,
+            Users.one(0).get(),
+            Users.one(userId).get()
         ]).then(function(results){
             $scope.loading = false;
             $scope.currentUser = results[0];
@@ -713,7 +713,8 @@
 
     app.controller("InterfaceController",
             function($scope, $route, $location, $q, $routeParams,
-                     User, Interface, Attribute, Change) {
+                     Restangular, Users, Interface, Attribute, Change) {
+                     // User, Interface, Attribute, Change) {
 
         $scope.loading = true;
         $scope.user = {};
@@ -731,10 +732,58 @@
             attributes: []
         };
 
+        /*
+        Restangular.extendModel('users', function(model) {
+            model.isAdmin = function(siteId, permissions) {
+                var user_permissions = this.permissions[siteId] || {};
+
+                return _.any(user_permissions, function(value) {
+                    return _.contains(permissions, value);
+                });
+            };
+            return model;
+        });
+        */
+
+        Restangular.extendModel('interfaces', function(model) {
+            model.toForm = function() {
+		return {
+		    device: this.device,
+		    name: this.name,
+		    description: this.description,
+		    addresses: this.addresses,
+		    speed: this.speed,
+		    type: this.type,
+		    mac_address: this.mac_address,
+		    attributes: _.map(_.cloneDeep(this.attributes), function(attrVal, attrKey){
+			if (_.isArray(attrVal)) {
+			    attrVal = _.map(attrVal, function(val) {
+				return {text: val};
+			    });
+			}
+
+			return {
+			    name: attrKey,
+			    value: attrVal
+			};
+
+		    })
+		};
+            };
+            return model;
+        });
+
+        var Site = Restangular.one('sites', siteId);
+        // Restangular.one('sites', siteId).one('users', 0),
+
+        console.log(Users);
 
         $q.all([
-            User.get({id: 0}).$promise,
-            Interface.get({siteId: siteId, id: ifaceId}).$promise,
+            // User.get({id: 0}).$promise,
+            // Interface.get({siteId: siteId, id: ifaceId}).$promise,
+            // @USER: Restangular.one('users', 0).get(),
+            Users.one(0).get(),
+            Restangular.one('interfaces', ifaceId).get(),
             Interface.schema({siteId: siteId, id: ifaceId}).$promise,
             Change.query({
                 siteId: siteId, limit: 10, offset: 0,
