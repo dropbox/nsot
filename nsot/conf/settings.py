@@ -36,7 +36,6 @@ INSTALLED_APPS = (
     'django.contrib.staticfiles',
     'django_extensions',
     'django_filters',
-    'crispy_forms',
     'smart_selects',
     'rest_framework',
     'rest_framework_swagger',

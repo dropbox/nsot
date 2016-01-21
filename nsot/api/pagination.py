@@ -79,10 +79,3 @@ class CustomPagination(pagination.LimitOffsetPagination):
                 ]))
             ])
         )
-
-    def get_results(self, data, result_key=None):
-        # If path is '/api/sites/1/attributes/', this is 'attributes'
-        if result_key is None:
-            result_key = self.request.path.rstrip('/').split('/')[-1]
-
-        return data['data'][result_key]
