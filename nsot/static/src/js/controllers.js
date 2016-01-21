@@ -69,12 +69,13 @@
 
     app.controller("SiteController",
             function($scope, $route, $location, $q, $routeParams, Site, User,
-                     Device, Network, Change) {
+                     Device, Network, Change, Interface) {
 
         $scope.loading = true;
         $scope.user = null;
         $scope.site = null;
         $scope.total_devices = null;
+        $scope.total_interfaces = null;
         $scope.total_networks = null;
         $scope.total_ipv4 = null ;
         $scope.total_ipv6 = null;
@@ -87,11 +88,8 @@
         $scope.deleteError = null;
         $scope.changes = [];
 
-        $scope.onClick = function(points, evt) {
-            console.log(points, evt);
-        };
-
         var siteId = $routeParams.siteId;
+
         var netsets = {
             siteId: siteId,
             include_ips: true,
@@ -149,7 +147,8 @@
             Network.query(ipam_allocated).$promise,
             Network.query(ipam_assigned).$promise,
             Network.query(ipam_orphaned).$promise,
-            Change.query(change_go).$promise
+            Change.query(change_go).$promise,
+            Interface.query({siteId: siteId, limit:1}).$promise
         ]).then(function(results){
             $scope.user = results[0];
             $scope.site = results[1];
@@ -162,6 +161,7 @@
             $scope.total_assigned = results[8].total;
             $scope.total_orphaned = results[9].total;
             $scope.changes = results[10].data;
+            $scope.total_interfaces = results[11].total;
             $scope.admin = $scope.user.isAdmin(siteId, ["admin"]);
             $scope.loading = false;
 
@@ -253,12 +253,14 @@
         $scope.formData = {
             attributes: []
         };
+        $scope.ip_versions = ['4', '6'];
         $scope.states = ['allocated', 'assigned', 'reserved', 'orphaned'];
 
         $scope.filters = {
             include_ips: nsot.qpBool($routeParams, "include_ips", true),
             include_networks: nsot.qpBool($routeParams, "include_networks", true),
             root_only: nsot.qpBool($routeParams, "root_only", false),
+            ip_version: $routeParams.ip_version,
             state: $routeParams.state
         };
 
