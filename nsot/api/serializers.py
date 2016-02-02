@@ -417,9 +417,6 @@ class InterfaceCreateSerializer(InterfaceSerializer):
         attributes = validated_data.pop('attributes', {})
         addresses = validated_data.pop('addresses', [])
 
-        # Forcefully set the Site for this object to that of the parent Device.
-        validated_data['site'] = validated_data['device'].site
-
         # Save the base object to the database.
         obj = super(InterfaceCreateSerializer, self).create(validated_data)
 

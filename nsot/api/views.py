@@ -208,6 +208,7 @@ class ValueViewSet(NsotViewSet):
     """
     queryset = models.Value.objects.all()
     serializer_class = serializers.ValueSerializer
+    filter_fields = ('name', 'value', 'resource_name', 'resource_id')
 
     def get_serializer_class(self):
         if self.request.method == 'POST':
