@@ -31,6 +31,7 @@ sites_router.register(r'changes', views.ChangeViewSet)
 sites_router.register(r'devices', views.DeviceViewSet)
 sites_router.register(r'interfaces', views.InterfaceViewSet)
 sites_router.register(r'networks', views.NetworkViewSet)
+sites_router.register(r'values', views.ValueViewSet)
 
 # Resources pinned to API index at /
 router.register(r'attributes', views.AttributeViewSet)

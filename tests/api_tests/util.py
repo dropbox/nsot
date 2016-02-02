@@ -199,6 +199,24 @@ def filter_networks(networks, wanted):
     ]
 
 
+def filter_values(values, **wanted):
+    """
+    Return a list of desired Value objects.
+
+    :param networks:
+        list of Value dicts
+
+    :param wanted:
+        kwargs of field/value to filter on
+    """
+    ret = []
+    for v in values:
+        if all(v.get(field) == value for field, value in wanted.items()):
+            ret.append(v)
+
+    return ret
+
+
 def make_mac(mac):
     """
     Return a MAC address in the default dialect.

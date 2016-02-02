@@ -974,9 +974,8 @@ class Interface(Resource):
         verbose_name='Parent', help_text='Unique ID of the parent Interface.',
     )
 
-    # We are currently inferring the site_id from the parent Device both in the
-    # serializers for the API and in the .save() method to be doubly sure. We
-    # don't want to even care about the site_id for interfaces, but it
+    # We are currently inferring the site_id from the parent Device in the
+    # .save() method. We don't want to even care about the site_id , but it
     # simplifies managing them this way.
     site = models.ForeignKey(
         Site, db_index=True, related_name='interfaces',
@@ -1111,10 +1110,6 @@ class Interface(Resource):
         """Return a list of attached Networks."""
         return self._networks_cache
 
-    def get_device_site(self):
-        """Return the Site for my Device."""
-        return Device.objects.get(id=self.device_id).site
-
     def get_mac_address(self):
         """Return a serializable representation of mac_address."""
         if self.mac_address is None:
@@ -1136,7 +1131,11 @@ class Interface(Resource):
     def clean_site(self, value):
         """Always enforce that site is set."""
         if value is None:
-            value = self.get_device_site().id  # Use Device's site_id.
+            try:
+                return self.device.site_id
+            except Device.DoesNotExist:
+                return Device.objects.get(id=self.device_id).site_id
+
         return value
 
     def clean_speed(self, value):
@@ -1172,7 +1171,7 @@ class Interface(Resource):
         """Enforce valid mac_address."""
         return validators.validate_mac_address(value)
 
-    def full_clean(self, exclude=None):
+    def clean_fields(self, exclude=None):
         self.site_id = self.clean_site(self.site_id)
         self.name = self.clean_name(self.name)
         self.type = self.clean_type(self.type)
@@ -1180,7 +1179,9 @@ class Interface(Resource):
         self.mac_address = self.clean_mac_address(self.mac_address)
 
     def save(self, *args, **kwargs):
-        self.full_clean()
+        # We don't want to validate unique because we want the IntegrityError
+        # to fall through so we can catch it an raise a 409 CONFLICT.
+        self.full_clean(validate_unique=False)
         super(Interface, self).save(*args, **kwargs)
 
         # This is so that we can set the addresses on create/update, but if
@@ -1265,16 +1266,6 @@ class Assignment(models.Model):
             'interface_name': self.interface.name,
             'address': self.address.cidr,
         }
-
-
-def validate_name(value):
-    if not value:
-        raise exc.ValidationError("Name is a required field.")
-
-    if not settings.ATTRIBUTE_NAME.match(value):
-        raise exc.ValidationError("Invalid name.")
-
-    return value or False
 
 
 class Attribute(models.Model):
@@ -1476,6 +1467,14 @@ class Value(models.Model):
     )
     name = models.CharField('Name', max_length=64, null=False, blank=True)
 
+    # We are currently inferring the site_id from the parent Attribute in
+    # .save() method. We don't want to even care about the site_id, but it
+    # simplifies managing them this way.
+    site = models.ForeignKey(
+        Site, db_index=True, related_name='values',
+        on_delete=models.PROTECT
+    )
+
     def __init__(self, *args, **kwargs):
         self._obj = kwargs.pop('obj', None)
         super(Value, self).__init__(*args, **kwargs)
@@ -1501,11 +1500,22 @@ class Value(models.Model):
     def clean_name(self, attr):
         return attr.name
 
+    def clean_site(self, value):
+        """Always enforce that site is set."""
+        if value is None:
+            try:
+                return self.attribute.site_id
+            except Attribute.DoesNotExist:
+                return Attribute.objects.get(id=self.attribute_id).site_id
+
+        return value
+
     def clean_fields(self, exclude=None):
         obj = self._obj
         if obj is None:
             return None
 
+        self.site_id = self.clean_site(self.site_id)
         self.resource_name = self.clean_resource_name(obj.__class__.__name__)
         self.resource_id = obj.id
         self.name = self.clean_name(self.attribute)
