@@ -204,18 +204,26 @@ def test_constraints(site):
 
 
 def test_set_query(site):
+    """Test backend functionality of set queries."""
     site2 = models.Site.objects.create(name='Site 2')
-    owner1 = models.Attribute.objects.create(
+    models.Attribute.objects.create(
         name='owner', site=site, resource_name='Device'
     )
-    owner2 = models.Attribute.objects.create(
+    models.Attribute.objects.create(
         name='owner', site=site2, resource_name='Device'
+    )
+    models.Attribute.objects.create(
+        name='role', site=site, resource_name='Device'
     )
 
     device1 = models.Device.objects.create(
-        hostname='foo-bar1', attributes={'owner': 'jathan'}, site=site
+        hostname='foo-bar1', attributes={'owner': 'jathan', 'role': 'br'},
+        site=site
     )
-    device1.save()
+    device2 = models.Device.objects.create(
+        hostname='foo-bar2', attributes={'owner': 'gary', 'role': 'dr'},
+        site=site
+    )
 
 
     # Since we have two attributes named 'owner' in 2 different sites, this
@@ -231,3 +239,8 @@ def test_set_query(site):
     # returns an empty queryset. (Fix #67)
     empty = models.Device.objects.set_query('role=[ab, bb, cb]')
     assert list(empty) == []
+
+    # Test regex search querie match an union.
+    union = models.Device.objects.set_query('role=br +role=dr')
+    regex = models.Device.objects.set_query('role_regex=[bd]r')
+    assert sorted(union) == sorted(regex)
