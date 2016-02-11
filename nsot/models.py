@@ -197,6 +197,15 @@ class ResourceSetTheoryQuerySet(models.query.QuerySet):
 
         >>> qs = Network.objects.filter(network_address=u'10.0.0.0')
         >>> qs.set_query('owner=jathan +metro=lax')
+
+    You may also search using regex by appending ``_regex`` to an attribtue
+    name and providing a regex pattern as the value::
+
+        >>> qs = Device.objects.set_query('role_regex=[bd]r')
+
+    Which is functionally equivalent to::
+
+        >>> qs = Device.objects.set_query('role=br +role=dr')
     """
     def set_query(self, query, site_id=None):
         """
@@ -217,6 +226,14 @@ class ResourceSetTheoryQuerySet(models.query.QuerySet):
         # set operations w/ the ORM
         log.debug('QUERY [start]: objects = %r', objects)
         for action, name, value in attributes:
+            # Is this a regex pattern?
+            regex_query = False
+            if name.endswith('_regex'):
+                name = name.replace('_regex', '')  # Keep attribute name
+                regex_query = True
+                log.debug('Regex enabled for %r' % name)
+
+            # Attribute lookup params
             params = dict(
                 name=name, resource_name=resource_name
             )
@@ -233,9 +250,20 @@ class ResourceSetTheoryQuerySet(models.query.QuerySet):
             except Attribute.DoesNotExist:
                 return objects.none()
 
+            # Set lookup params
+            next_set_params = {
+                'name': attr.name,
+                'value': value,
+                'resource_name': resource_name
+            }
+
+            # If it's a regex query, swap ``value`` with ``value__regex``.
+            if regex_query:
+                next_set_params['value__regex'] = next_set_params.pop('value')
+
             next_set = Q(
                 id__in=Value.objects.filter(
-                    name=attr.name, value=value, resource_name=resource_name
+                    **next_set_params
                 ).values_list('resource_id', flat=True)
             )
 
