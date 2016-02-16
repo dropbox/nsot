@@ -140,7 +140,7 @@ class NsotViewSet(BaseNsotViewSet, viewsets.ModelViewSet):
         try:
             objects = serializer.save()
         except exc.DjangoValidationError as err:
-            raise exc.ValidationError(err.error_dict)
+            raise exc.ValidationError(err.message_dict)
         except exc.IntegrityError as err:
             raise exc.Conflict(err.message)
         else:
@@ -167,7 +167,7 @@ class NsotViewSet(BaseNsotViewSet, viewsets.ModelViewSet):
         try:
             objects = serializer.save()
         except exc.DjangoValidationError as err:
-            raise exc.ValidationError(err.error_dict)
+            raise exc.ValidationError(err.message_dict)
         except exc.IntegrityError as err:
             raise exc.Conflict(err.message)
         else:

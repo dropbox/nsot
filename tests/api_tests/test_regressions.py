@@ -125,3 +125,31 @@ def test_options_bug_issues_126(client, site):
     # Assert payload is a thing.
     expected = [u'actions', u'description', u'name', u'parses', u'renders']
     assert sorted(opts_resp.json()) == expected
+
+
+def test_duplicate_400_issues_142(client, site):
+    """
+    Test that creating duplicate objects results in a 400.
+
+    Ref: https://github.com/dropbox/nsot/issues/142
+    """
+    dev_uri = site.list_uri('device')
+    net_uri = site.list_uri('network')
+
+    # Device is created.
+    client.create(dev_uri, hostname='foo-bar1')
+
+    # Device duplicate fails.
+    assert_error(
+        client.create(dev_uri, hostname='foo-bar1'),
+        status.HTTP_400_BAD_REQUEST
+    )
+
+    # Network is created.
+    client.create(net_uri, cidr='10.0.0.0/8')
+
+    # Network duplicate fails.
+    assert_error(
+        client.create(net_uri, cidr='10.0.0.0/8'),
+        status.HTTP_400_BAD_REQUEST
+    )
