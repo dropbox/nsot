@@ -102,7 +102,7 @@ To get started, follow these steps:
 **Note:** This quick start assumes that you're installing and running NSoT on
 your local system (aka `localhost`).
 
-Now, point your web browser to http://localhost:8888 and explore the
+Now, point your web browser to http://localhost:8991 and explore the
 `documentation <https://nsot.readthedocs.org>`_!
 
 Running Tests
