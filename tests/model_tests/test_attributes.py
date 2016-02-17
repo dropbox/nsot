@@ -240,7 +240,7 @@ def test_set_query(site):
     empty = models.Device.objects.set_query('role=[ab, bb, cb]')
     assert list(empty) == []
 
-    # Test regex search querie match an union.
-    union = models.Device.objects.set_query('role=br +role=dr')
-    regex = models.Device.objects.set_query('role_regex=[bd]r')
-    assert sorted(union) == sorted(regex)
+    # Test regex set query matches a union set query.
+    union = models.Device.objects.set_query('role=br +role=dr').order_by('id')
+    regex = models.Device.objects.set_query('role_regex=[bd]r').order_by('id')
+    assert list(union) == list(regex)
