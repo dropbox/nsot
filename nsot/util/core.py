@@ -6,7 +6,7 @@ import collections
 from cryptography.fernet import Fernet
 from django.core.exceptions import FieldDoesNotExist
 import logging
-from logan.runner import run_app, configure_app
+from logan.runner import run_app
 
 
 log = logging.getLogger(__name__)
@@ -19,14 +19,27 @@ _TRUTHY = set([
 __all__ = (
     'qpbool', 'normalize_auth_header', 'generate_secret_key', 'get_field_attr',
     'SetQuery', 'parse_set_query', 'generate_settings', 'initialize_app',
-    'main'
+    'main', 'cidr_to_dict'
 )
 
+
 def qpbool(arg):
+    """
+    Convert "truthy" strings into Booleans.
+
+    :param arg:
+        Truthy string
+    """
     return str(arg).lower() in _TRUTHY
 
 
 def normalize_auth_header(header):
+    """
+    Normalize a header name into WSGI-compatible format.
+
+    :param header:
+        Header name
+    """
     return 'HTTP_' + header.upper().replace('-', '_')
 
 
@@ -44,6 +57,21 @@ def get_field_attr(model, field_name, attr):
     else:
         field, model, direct, m2m = field_data
         return getattr(field, attr, '')
+
+
+def cidr_to_dict(cidr):
+    """
+    Take a cidr and return it as a dictionary.
+
+    :param cidr:
+        IPv4/IPv6 CIDR string
+    """
+    from .. import validators
+    cidr = validators.validate_cidr(cidr)
+    return {
+        'network_address': cidr.network_address,
+        'prefix_length': cidr.prefixlen,
+    }
 
 
 #: Namedtuple for resultant items from ``parse_set_query()``
@@ -176,11 +204,11 @@ USER_AUTH_HEADER = 'X-NSoT-Email'
 # Default: 600
 AUTH_TOKEN_EXPIRY = 600  # 10 minutes
 
-# A list of strings representing the host/domain names that this Django site can
-# serve. This is a security measure to prevent an attacker from poisoning caches
-# and triggering password reset emails with links to malicious hosts by
-# submitting requests with a fake HTTP Host header, which is possible even under
-# many seemingly-safe web server configurations.
+# A list of strings representing the host/domain names that this Django site
+# can serve. This is a security measure to prevent an attacker from poisoning
+# caches and triggering password reset emails with links to malicious hosts by
+# submitting requests with a fake HTTP Host header, which is possible even
+# under many seemingly-safe web server configurations.
 # https://docs.djangoproject.com/en/1.8/ref/settings/#allowed-hosts
 ALLOWED_HOSTS = ['*']
 '''

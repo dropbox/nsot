@@ -15,7 +15,7 @@ from rest_framework import status
 from .fixtures import live_server, client, user, site
 from .util import (
     assert_created, assert_error, assert_success, assert_deleted, load_json,
-    Client, load, filter_networks
+    Client, load, filter_networks, mkcidr
 )
 
 
@@ -23,8 +23,10 @@ log = logging.getLogger(__name__)
 
 
 def test_creation(live_server, user, site):
+    """Test creation of Networks."""
     admin_client = Client(live_server, 'admin')
     user_client = Client(live_server, 'user')
+    cidr = '10.0.0.0/24'
 
     # URIs
     site_uri = site.list_uri()
@@ -36,7 +38,7 @@ def test_creation(live_server, user, site):
     # Invalid permissions
     assert_error(
         user_client.create(
-            net_uri, cidr='10.0.0.0/24', attributes={'attr1': 'foo'}
+            net_uri, cidr=cidr, attributes={'attr1': 'foo'}
         ),
         status.HTTP_403_FORBIDDEN
     )
@@ -55,7 +57,7 @@ def test_creation(live_server, user, site):
 
     # Verify Successful Creation
     net_resp = admin_client.create(
-        net_uri, cidr='10.0.0.0/24', attributes={'attr1': 'foo'},
+        net_uri, cidr=cidr, attributes={'attr1': 'foo'},
         state='reserved',
     )
     net = net_resp.json()['data']['network']
@@ -72,6 +74,10 @@ def test_creation(live_server, user, site):
 
     # Verify Successful get of single Network
     assert_success(admin_client.get(net_obj_uri), {'network': net})
+
+    # Verify successful get of single Network by natural_key
+    net_natural_uri = site.detail_uri('network', id=cidr)
+    assert_success(admin_client.get(net_natural_uri), {'network': net})
 
 
 def test_bulk_operations(site, client):
@@ -260,8 +266,10 @@ def test_set_queries(client, site):
 
 
 def test_update(live_server, user, site):
+    """Test updating Networks by pk and natural_key."""
     admin_client = Client(live_server, 'admin')
     user_client = Client(live_server, 'user')
+    cidr = '10.0.0.0/24'
 
     # URIs
     site_uri = site.list_uri()
@@ -270,7 +278,7 @@ def test_update(live_server, user, site):
 
     admin_client.create(attr_uri, resource_name='Network', name='attr1')
     net_resp = admin_client.create(
-        net_uri, cidr='10.0.0.0/24', attributes={'attr1': 'foo'},
+        net_uri, cidr=cidr, attributes={'attr1': 'foo'},
         state='reserved'
     )
 
@@ -299,8 +307,19 @@ def test_update(live_server, user, site):
     # Invalid permissions
     assert_error(user_client.update(net_obj_uri), status.HTTP_403_FORBIDDEN)
 
+    # Test update by natural_key by zeroing out the attribtues again.
+    params = {'attributes': {}, 'state': 'orphaned'}
+    net.update(params)
+
+    net_natural_uri = site.detail_uri('network', id=cidr)
+    assert_success(
+        admin_client.update(net_natural_uri, **params),
+        {'network': net}
+    )
+
 
 def test_deletion(site, client):
+    """Test deletion of Networks."""
     net_uri = site.list_uri('network')
     attr_uri = site.list_uri('attribute')
 
@@ -320,6 +339,12 @@ def test_deletion(site, client):
 
     # And safely delete the parent Network
     assert_deleted(client.delete(net1_obj_uri))
+
+    # Create Network 3 and delete it by natural_key
+    net3_resp = client.create(net_uri, cidr='10.0.0.0/8')
+    net3 = net3_resp.json()['data']['network']
+    net3_natural_uri = site.detail_uri('network', id=mkcidr(net3))
+    assert_deleted(client.delete(net3_natural_uri))
 
 
 def test_mptt_detail_routes(site, client):
@@ -365,64 +390,87 @@ def test_mptt_detail_routes(site, client):
         'networks': [net_8, net_12, net_14]
     }
     uri = reverse('network-ancestors', args=(site.id, net_25['id']))
+    natural_uri = reverse('network-ancestors', args=(site.id, mkcidr(net_25)))
     assert_success(client.retrieve(uri), expected)
 
     expected['networks'] = [net_14, net_12, net_8]
     assert_success(client.retrieve(uri, ascending=True), expected)
+    assert_success(client.retrieve(natural_uri, ascending=True), expected)
 
     # children
     uri = reverse('network-children', args=(site.id, net_25['id']))
+    natural_uri = reverse('network-children', args=(site.id, mkcidr(net_25)))
     wanted = [ip1, ip2]
     expected['networks'] = wanted
     expected['total'] = len(wanted)
     assert_success(client.retrieve(uri), expected)
+    assert_success(client.retrieve(natural_uri), expected)
 
     uri = reverse('network-children', args=(site.id, net_12['id']))
+    natural_uri = reverse('network-children', args=(site.id, mkcidr(net_12)))
     wanted = [net_14]
     expected['networks'] = wanted
     expected['total'] = len(wanted)
     assert_success(client.retrieve(uri), expected)
+    assert_success(client.retrieve(natural_uri), expected)
 
     # descendents
     uri = reverse('network-descendents', args=(site.id, net_8['id']))
+    natural_uri = reverse('network-descendents', args=(site.id, mkcidr(net_8)))
     wanted = [net_12, net_14, net_25, ip1, ip2]
     expected['networks'] = wanted
     expected['total'] = len(wanted)
     assert_success(client.retrieve(uri), expected)
+    assert_success(client.retrieve(natural_uri), expected)
 
     uri = reverse('network-descendents', args=(site.id, net_14['id']))
+    natural_uri = reverse(
+        'network-descendents', args=(site.id, mkcidr(net_14))
+    )
     wanted = [net_25, ip1, ip2]
     expected['networks'] = wanted
     expected['total'] = len(wanted)
     assert_success(client.retrieve(uri), expected)
+    assert_success(client.retrieve(natural_uri), expected)
 
     uri = reverse('network-descendents', args=(site.id, ip2['id']))
+    natural_uri = reverse('network-descendents', args=(site.id, mkcidr(ip2)))
     expected['networks'] = []
     expected['total'] = 0
     assert_success(client.retrieve(uri), expected)
+    assert_success(client.retrieve(natural_uri), expected)
 
     # parent
     uri = reverse('network-parent', args=(site.id, ip2['id']))
+    natural_uri = reverse('network-parent', args=(site.id, mkcidr(ip2)))
     assert_success(client.retrieve(uri), {'network': net_25})
+    assert_success(client.retrieve(natural_uri), {'network': net_25})
 
     # root
     uri = reverse('network-root', args=(site.id, ip1['id']))
+    natural_uri = reverse('network-root', args=(site.id, mkcidr(ip1)))
     assert_success(client.retrieve(uri), {'network': net_8})
+    assert_success(client.retrieve(natural_uri), {'network': net_8})
 
     uri = reverse('network-root', args=(site.id, net_8['id']))
+    natural_uri = reverse('network-root', args=(site.id, mkcidr(net_8)))
     assert_error(client.retrieve(uri), status.HTTP_404_NOT_FOUND)
+    assert_error(client.retrieve(natural_uri), status.HTTP_404_NOT_FOUND)
 
     # siblings
     uri = reverse('network-siblings', args=(site.id, ip1['id']))
+    natural_uri = reverse('network-siblings', args=(site.id, mkcidr(ip1)))
     wanted = [ip2]
     expected['networks'] = wanted
     expected['total'] = len(wanted)
     assert_success(client.retrieve(uri), expected)
+    assert_success(client.retrieve(natural_uri), expected)
 
     wanted = [ip1, ip2]
     expected['networks'] = wanted
     expected['total'] = len(wanted)
     assert_success(client.retrieve(uri, include_self=True), expected)
+    assert_success(client.retrieve(natural_uri, include_self=True), expected)
 
 
 def test_get_next_detail_routes(site, client):
@@ -459,10 +507,14 @@ def test_get_next_detail_routes(site, client):
     # next_network
     #
     uri = reverse('network-next-network', args=(site.id, net_25['id']))
+    natural_uri = reverse(
+        'network-next-network', args=(site.id, mkcidr(net_25))
+    )
 
     # A single /28
     expected = {'networks': [u'10.16.2.16/28']}
     assert_success(client.retrieve(uri, prefix_length=28), expected)
+    assert_success(client.retrieve(natural_uri, prefix_length=28), expected)
 
     # 4x /27
     networks = [u'10.16.2.0/27', u'10.16.2.32/27', u'10.16.2.64/27', u'10.16.2.96/27']
@@ -470,12 +522,30 @@ def test_get_next_detail_routes(site, client):
         client.retrieve(uri, prefix_length=27, num=4),
         {'networks': networks}
     )
+    assert_success(
+        client.retrieve(natural_uri, prefix_length=27, num=4),
+        {'networks': networks}
+    )
 
     # Missing/invalid prefix_length
+    ## by pk
     assert_error(client.retrieve(uri), status.HTTP_400_BAD_REQUEST)
     assert_error(client.retrieve(uri, prefix_length='ralph'), status.HTTP_400_BAD_REQUEST)
     assert_error(client.retrieve(uri, prefix_length=14), status.HTTP_400_BAD_REQUEST)
     assert_error(client.retrieve(uri, prefix_length=65), status.HTTP_400_BAD_REQUEST)
+    ## by natural_key
+    assert_error(client.retrieve(natural_uri), status.HTTP_400_BAD_REQUEST)
+    assert_error(
+        client.retrieve(natural_uri, prefix_length='ralph'),
+        status.HTTP_400_BAD_REQUEST
+    )
+    assert_error(
+        client.retrieve(natural_uri, prefix_length=14),
+        status.HTTP_400_BAD_REQUEST
+    )
+    assert_error(
+        client.retrieve(natural_uri, prefix_length=65), status.HTTP_400_BAD_REQUEST
+    )
 
     # Invalid num
     assert_error(
@@ -487,17 +557,26 @@ def test_get_next_detail_routes(site, client):
     # next_address
     #
     uri = reverse('network-next-address', args=(site.id, net_25['id']))
+    natural_uri = reverse(
+        'network-next-address', args=(site.id, mkcidr(net_25))
+    )
 
     # A single /32
     assert_success(client.retrieve(uri), {'addresses': [u'10.16.2.18/32']})
+    assert_success(client.retrieve(natural_uri), {'addresses': [u'10.16.2.18/32']})
 
     # 3x /32
     addresses = [u'10.16.2.18/32', u'10.16.2.19/32', u'10.16.2.20/32']
     assert_success(client.retrieve(uri, num=3), {'addresses': addresses})
+    assert_success(client.retrieve(natural_uri, num=3), {'addresses': addresses})
 
     # Invalid num is all we can really test for.
     assert_error(
         client.retrieve(uri, num='potato'),
+        status.HTTP_400_BAD_REQUEST
+    )
+    assert_error(
+        client.retrieve(natural_uri, num='potato'),
         status.HTTP_400_BAD_REQUEST
     )
 
@@ -509,7 +588,6 @@ def test_reservation_list_route(site, client):
 
     net_resp = client.create(net_uri, cidr='192.168.3.0/24', state='reserved')
     net = net_resp.json()['data']['network']
-    net_obj_uri = site.detail_uri('network', id=net['id'])
 
     # Fetch the reserved networks and make sure they match up.
     networks = [net]

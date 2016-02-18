@@ -11,11 +11,9 @@ from rest_framework.response import Response
 from rest_framework_bulk import mixins as bulk_mixins
 from rest_framework_extensions.cache.decorators import cache_response
 
-from . import auth
-from . import serializers
-from .. import exc
-from .. import models
-from ..util import cache, qpbool
+from . import auth, serializers
+from .. import exc, models
+from ..util import cache, qpbool, cidr_to_dict
 
 
 log = logging.getLogger(__name__)
@@ -31,6 +29,10 @@ class BaseNsotViewSet(viewsets.ReadOnlyModelViewSet):
     + Objects are designed to be nested under site resources, but can also be
       top-level resources.
     """
+
+    #: Natural key for the resource. If not defined, defaults to pk-only.
+    natural_key = None
+
     def __init__(self, *args, **kwargs):
         super(BaseNsotViewSet, self).__init__(*args, **kwargs)
 
@@ -39,6 +41,19 @@ class BaseNsotViewSet(viewsets.ReadOnlyModelViewSet):
         self.result_key = self.queryset.model._meta.model_name
         self.result_key_plural = self.result_key + 's'
         self.model_name = self.result_key.title()
+
+    def get_natural_key_kwargs(self, filter_value):
+        """
+        This method should take value and return a dictionary containing the
+        natural key fields used to filter results.
+
+        This is called internally by ``self.get_object()`` if a subclass has
+        defined a ``natural_key``.
+
+        :param filter_value:
+            Value to be used to filter by natural_key
+        """
+        raise NotImplementedError('This must be defined in a subclass.')
 
     def not_found(self, pk=None, site_pk=None, msg=None):
         """Standard formatting for 404 errors."""
@@ -104,16 +119,70 @@ class BaseNsotViewSet(viewsets.ReadOnlyModelViewSet):
 
     def retrieve(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Retrieve a single object optionally filtered by site."""
-        try:
-            if site_pk is not None:
-                obj = self.queryset.get(pk=pk, site=site_pk)
-            else:
-                obj = self.queryset.get(pk=pk)
-        except exc.ObjectDoesNotExist:
-            self.not_found(pk, site_pk)
+        # If the incoming pk has changed, store it in view kwargs. This is so
+        # that nested routers and detail routes work properly such as when
+        # calling ``GET /api/sites/1/networks/40/parent/``.
+        if 'pk' in self.kwargs:
+            self.kwargs['pk'] = pk
+        if 'site_pk' in self.kwargs:
+            self.kwargs['site_pk'] = site_pk
 
+        obj = self.get_object()
         serializer = self.get_serializer(obj, *args, **kwargs)
         return self.success(serializer.data)
+
+    def get_object(self):
+        """
+        Enhanced default to support looking up objects for:
+
+        + Natural key lookups for resource objects (e.g. Device.hostname)
+        + Inject of ``site`` into filter lookup if ``site_pk`` is set.
+
+        Currently this does NOT filter the queryset, which should not be a
+        problem as we were never using .get_object() before. See the FIXME
+        comments for more context.
+        """
+        # FIXME(jathan): Determine if we actually need .filter_queryset() here
+        # queryset = self.filter_queryset(self.get_queryset())
+
+        # FIXME(jathan): Determine if we actually need .get_queryset() here.
+        # Given the way things are implemented w/ the custom .get_queryset()
+        # methods for default GET filtering, we might not need to use it.
+        # queryset = self.get_queryset()
+
+        queryset = self.queryset
+
+        # Retrieve the pk, site_pk args from the view's kwargs.
+        site_pk = self.kwargs.get('site_pk')
+        pk = self.kwargs.get('pk')
+
+        # When coming from detail routes, pk might not be a string.
+        if isinstance(pk, (int, long)):
+            pk = str(pk)
+
+        # Start prepping our kwargs for lookup.
+        lookup_kwargs = {}
+        if site_pk is not None:
+            lookup_kwargs['site'] = site_pk
+
+        # If pk is null, is a digit, or if we don't have a natural_key, lookup
+        # by pk.
+        if pk is None or pk.isdigit() or self.natural_key is None:
+            lookup_kwargs['pk'] = pk
+
+        # Otherwise prepare the natural_key for a single object lookup.
+        else:
+            lookup_kwargs = self.get_natural_key_kwargs(pk)
+
+        try:
+            obj = queryset.get(**lookup_kwargs)
+        except (exc.ObjectDoesNotExist, ValueError):
+            self.not_found(pk, site_pk)
+
+        # May raise a permission denied.
+        self.check_object_permissions(self.request, obj)
+
+        return obj
 
 
 class ChangeViewSet(BaseNsotViewSet):
@@ -136,7 +205,11 @@ class NsotViewSet(BaseNsotViewSet, viewsets.ModelViewSet):
     for bulk creation of objects.
     """
     def perform_create(self, serializer):
-        """Support bulk create."""
+        """Support bulk create.
+
+        :param serializer:
+            Serializer instance
+        """
         try:
             objects = serializer.save()
         except exc.DjangoValidationError as err:
@@ -155,6 +228,12 @@ class NsotViewSet(BaseNsotViewSet, viewsets.ModelViewSet):
             )
 
     def get_success_headers(self, data):
+        """
+        Overload default to include relative request PATH.
+
+        :param data:
+            Dict of validated serializer data
+        """
         # TODO(jathan): Implement hyperlinked fields in the API?
         try:
             # return {'Location': data[api_settings.URL_FIELD_NAME]}
@@ -164,6 +243,13 @@ class NsotViewSet(BaseNsotViewSet, viewsets.ModelViewSet):
             return {}
 
     def perform_update(self, serializer):
+        """
+        Overload default to handle non-serializer exceptions, and log Change
+        events.
+
+        :param serializer:
+            Serializer instance
+        """
         try:
             objects = serializer.save()
         except exc.DjangoValidationError as err:
@@ -182,14 +268,22 @@ class NsotViewSet(BaseNsotViewSet, viewsets.ModelViewSet):
             )
 
     def perform_destroy(self, instance):
+        """
+        Overload default to handle non-serializer exceptions, and log Change
+        events.
+
+        :param instance:
+            Model instance to delete
+        """
         log.debug('NsotViewSet.perform_destroy() obj = %r', instance)
-        models.Change.objects.create(
+        change = models.Change.objects.create(
             obj=instance, user=self.request.user, event='Delete'
         )
 
         try:
             instance.delete()
         except exc.ProtectedError as err:
+            change.delete()
             raise exc.Conflict(err.args[0])
 
 
@@ -232,6 +326,7 @@ class ResourceViewSet(NsotBulkUpdateModelMixin, NsotViewSet,
     """
     Resource views that include set query list endpoints.
     """
+
     @list_route(methods=['get'])
     def query(self, request, site_pk=None, *args, **kwargs):
         """Perform a set query."""
@@ -242,17 +337,21 @@ class ResourceViewSet(NsotBulkUpdateModelMixin, NsotViewSet,
 
     def get_resource_object(self, pk, site_pk):
         """Return a resource object based on pk or site_pk."""
-        if site_pk is not None:
-            query = self.queryset.filter(pk=pk, site=site_pk)
-        else:
-            query = self.queryset.filter(pk=pk)
+        # FIXME(jathan): Revisit this after we've seen if we can need to get
+        # rid of the overloaded .get_queryset() methods on the ResourceViewSet
+        # subclasses, or provide them with some sort of "don't filter queries"
+        # flag. TBD.
 
-        object = query.first()
+        # Backup the original kwargs
+        orig_kwargs = self.kwargs.copy()
+        self.kwargs['pk'] = pk
+        self.kwargs['site_pk'] = site_pk
 
-        if not object:
-            self.not_found(pk, site_pk)
+        # Get our object and restore the original kwargs
+        obj = self.get_object()
+        self.kwargs = orig_kwargs
 
-        return object
+        return obj
 
 
 class AttributeViewSet(ResourceViewSet):
@@ -302,6 +401,7 @@ class DeviceViewSet(ResourceViewSet):
     queryset = models.Device.objects.all()
     serializer_class = serializers.DeviceSerializer
     filter_fields = ('hostname',)
+    natural_key = 'hostname'
 
     def get_serializer_class(self):
         if self.request.method == 'POST':
@@ -310,6 +410,10 @@ class DeviceViewSet(ResourceViewSet):
             return serializers.DeviceUpdateSerializer
 
         return self.serializer_class
+
+    def get_natural_key_kwargs(self, filter_value):
+        """Return a dict of kwargs for natural_key lookup."""
+        return {self.natural_key: filter_value}
 
     def get_queryset(self):
         """This is so we can filter by attribute/value pairs."""
@@ -355,6 +459,8 @@ class NetworkViewSet(ResourceViewSet):
     queryset = models.Network.objects.all()
     serializer_class = serializers.NetworkSerializer
     filter_fields = ('ip_version', 'state')
+    lookup_value_regex = '[a-fA-F0-9:.]+(?:\/\d+)?'
+    natural_key = 'cidr'
 
     def get_serializer_class(self):
         if self.request.method == 'POST':
@@ -363,6 +469,10 @@ class NetworkViewSet(ResourceViewSet):
             return serializers.NetworkUpdateSerializer
 
         return self.serializer_class
+
+    def get_natural_key_kwargs(self, filter_value):
+        """Return a dict of kwargs for natural_key lookup."""
+        return cidr_to_dict(filter_value)
 
     @list_route(methods=['get'])
     def query(self, request, site_pk=None, *args, **kwargs):
