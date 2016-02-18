@@ -23,6 +23,7 @@ log = logging.getLogger(__name__)
 
 
 def test_creation(live_server, user, site):
+    """Test creation of Devices."""
     admin_client = Client(live_server, user='admin')
     user_client = Client(live_server, user='user')
 
@@ -71,6 +72,10 @@ def test_creation(live_server, user, site):
 
     # Verify successful get of single Device
     assert_success(admin_client.get(dev_obj_uri), {'device': dev})
+
+    # Verify successful get of single Device by natural_key
+    dev_natural_uri = site.detail_uri('device', id=dev['hostname'])
+    assert_success(admin_client.get(dev_natural_uri), {'device': dev})
 
 
 def test_bulk_operations(site, client):
@@ -209,6 +214,7 @@ def test_set_queries(client, site):
 
 
 def test_update(live_server, user, site):
+    """Test updating a device using pk."""
     admin_client = Client(live_server, user='admin')
     user_client = Client(live_server, user='user')
 
@@ -250,7 +256,58 @@ def test_update(live_server, user, site):
     assert_error(user_client.update(dev_obj_uri), status.HTTP_403_FORBIDDEN)
 
 
+def test_update_natural_key(live_server, user, site):
+    """Test updating a Device using natural_key."""
+    admin_client = Client(live_server, user='admin')
+    user_client = Client(live_server, user='user')
+
+    # URIs
+    site_uri = site.list_uri()
+    attr_uri = site.list_uri('attribute')
+    dev_uri = site.list_uri('device')
+
+    admin_client.create(attr_uri, resource_name='Device', name='attr1')
+    dev_resp = admin_client.create(
+        dev_uri, hostname='device1', attributes={'attr1': 'foo'}
+    )
+
+    # Extract the device object from the response payload so we can play with
+    # it during update tests.
+    device = dev_resp.json()['data']['device']
+    dev_pk_uri = site.detail_uri('device', id=device['id'])
+    dev_natural_uri = site.detail_uri('device', id=device['hostname'])
+
+    # Empty update should only clear attributes.
+    params = {'hostname': 'foo'}
+    device.update(params)
+    device['attributes'] = {}
+
+    assert_success(
+        admin_client.update(dev_natural_uri, **params),
+        {'device': device}
+    )
+
+    # URI will have changed w/ the hostname
+    new_natural_uri = site.detail_uri('device', id=device['hostname'])
+
+    # Now put attributes back and change hostname
+    params = {'hostname': 'bar', 'attributes': {'attr1': 'foo'}}
+    device.update(params)
+
+    assert_success(
+        admin_client.update(new_natural_uri, **params),
+        {'device': device}
+    )
+
+    # URI will have changed w/ the hostname again
+    final_natural_uri = site.detail_uri('device', id=device['hostname'])
+
+    # Invalid permissions
+    assert_error(user_client.update(final_natural_uri), status.HTTP_403_FORBIDDEN)
+
+
 def test_deletion(site, client):
+    """Test deletion of Devices."""
     dev_uri = site.list_uri('device')
     attr_uri = site.list_uri('attribute')
 
@@ -269,6 +326,12 @@ def test_deletion(site, client):
 
     # Delete Device 1 w/ Attribute
     assert_deleted(client.delete(dev1_obj_uri))
+
+    # Delete Device 3 by natural_key
+    dev3_resp = client.create(dev_uri, hostname='device3')
+    dev3 = dev3_resp.json()['data']['device']
+    dev3_natural_uri = site.detail_uri('device', id=dev3['hostname'])
+    assert_deleted(client.delete(dev3_natural_uri))
 
 
 def test_detail_routes(site, client):
@@ -304,3 +367,7 @@ def test_detail_routes(site, client):
         'interfaces': interfaces,
     }
     assert_success(client.retrieve(ifaces_uri), expected)
+
+    # Now retrieve Device.interfaces by natural_key (hostname)
+    natural_ifaces_uri = reverse('device-interfaces', args=(site.id, dev1['hostname']))
+    assert_success(client.retrieve(natural_ifaces_uri), expected)

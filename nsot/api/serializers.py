@@ -245,30 +245,18 @@ class ValueCreateSerializer(ValueSerializer):
                   'resource_id')
 
 
-########
-# Device
-########
-class DeviceSerializer(NsotSerializer):
-    """Used for GET, DELETE on Devices."""
-    class Meta:
-        model = models.Device
-
-
-class DeviceCreateSerializer(DeviceSerializer):
-    """Used for POST on Devices."""
-    site_id = fields.IntegerField()
-
-    class Meta:
-        model = models.Device
-        fields = ('hostname', 'attributes', 'site_id')
-
+###########
+# Resources
+###########
+class ResourceSerializer(NsotSerializer):
+    """For any object that can have attributes."""
     def create(self, validated_data):
 
         # Remove the related fields before we write the object
         attributes = validated_data.pop('attributes', {})
 
         # Save the base object to the database.
-        obj = super(DeviceCreateSerializer, self).create(validated_data)
+        obj = super(ResourceSerializer, self).create(validated_data)
 
         # Try to populate the related fields and if there are any validation
         # problems, delete the object and re-raise the error. If not, save the
@@ -283,21 +271,13 @@ class DeviceCreateSerializer(DeviceSerializer):
 
         return obj
 
-
-class DeviceUpdateSerializer(BulkSerializerMixin, DeviceCreateSerializer):
-    """Used for PUT, PATCH, on Devices."""
-    class Meta:
-        model = models.Device
-        list_serializer_class = BulkListSerializer
-        fields = ('id', 'hostname', 'attributes')
-
     def update(self, instance, validated_data):
 
         # Remove related fields before we write the object
         attributes = validated_data.pop('attributes', {})
 
         # Save the object to the database.
-        obj = super(DeviceUpdateSerializer, self).update(
+        obj = super(ResourceSerializer, self).update(
             instance, validated_data
         )
 
@@ -309,10 +289,36 @@ class DeviceUpdateSerializer(BulkSerializerMixin, DeviceCreateSerializer):
         return obj
 
 
+########
+# Device
+########
+class DeviceSerializer(ResourceSerializer):
+    """Used for GET, DELETE on Devices."""
+    class Meta:
+        model = models.Device
+
+
+class DeviceCreateSerializer(DeviceSerializer):
+    """Used for POST on Devices."""
+    site_id = fields.IntegerField()
+
+    class Meta:
+        model = models.Device
+        fields = ('hostname', 'attributes', 'site_id')
+
+
+class DeviceUpdateSerializer(BulkSerializerMixin, DeviceCreateSerializer):
+    """Used for PUT, PATCH, on Devices."""
+    class Meta:
+        model = models.Device
+        list_serializer_class = BulkListSerializer
+        fields = ('id', 'hostname', 'attributes')
+
+
 #########
 # Network
 #########
-class NetworkSerializer(NsotSerializer):
+class NetworkSerializer(ResourceSerializer):
     """Used for GET, DELETE on Networks."""
     class Meta:
         model = models.Network
@@ -327,26 +333,6 @@ class NetworkCreateSerializer(NetworkSerializer):
         model = models.Network
         fields = ('cidr', 'attributes', 'state', 'site_id')
 
-    def create(self, validated_data):
-
-        # Remove the related fields before we write the object
-        attributes = validated_data.pop('attributes', {})
-
-        obj = super(NetworkCreateSerializer, self).create(validated_data)
-
-        # Try to populate the related fields and if there are any validation
-        # problems, delete the object and re-raise the error. If not, save the
-        # changes.
-        try:
-            obj.set_attributes(attributes)
-        except exc.ValidationError:
-            obj.delete()
-            raise
-        else:
-            obj.save()
-
-        return obj
-
 
 class NetworkUpdateSerializer(BulkSerializerMixin, NetworkCreateSerializer):
     """Used for PUT, PATCH on Networks."""
@@ -355,30 +341,11 @@ class NetworkUpdateSerializer(BulkSerializerMixin, NetworkCreateSerializer):
         list_serializer_class = BulkListSerializer
         fields = ('id', 'attributes', 'state')
 
-    def update(self, instance, validated_data):
-        log.debug('NetworkUpdateSerializer.update() validated_data = %r',
-                  validated_data)
-
-        # Remove related fields before we write the object
-        attributes = validated_data.pop('attributes', {})
-
-        # Save the object to the database.
-        obj = super(NetworkUpdateSerializer, self).update(
-            instance, validated_data
-        )
-
-        # Populate the related fields and save the object, allowing any
-        # validation errors to raise before saving.
-        obj.set_attributes(attributes)
-        obj.save()
-
-        return obj
-
 
 ###########
 # Interface
 ###########
-class InterfaceSerializer(NsotSerializer):
+class InterfaceSerializer(ResourceSerializer):
     """Used for GET, DELETE on Interfaces."""
     # parent_id = LimitedForeignKeyField(
     #     html_cutoff=100,

@@ -270,3 +270,13 @@ class TestSite(object):
 
     def __repr__(self):
         return '<TestSite: %s (%s)>' % (self.name, self.id)
+
+
+def mkcidr(obj):
+    """
+    Return cidr-formatted string.
+
+    :param obj:
+        Dict of an object
+    """
+    return '%s/%s' % (obj['network_address'], obj['prefix_length'])

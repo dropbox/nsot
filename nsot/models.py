@@ -18,7 +18,7 @@ import re
 from . import exc
 from . import fields
 from . import validators
-from .util import generate_secret_key, parse_set_query, stats
+from .util import cidr_to_dict, generate_secret_key, parse_set_query, stats
 
 
 log = logging.getLogger(__name__)
@@ -515,13 +515,21 @@ class Device(Resource):
 
 class NetworkManager(ResourceManager):
     """Manager for NetworkInterface objects."""
-    def get_by_address(self, cidr):
-        """Lookup a Network object by ``cidr``."""
-        cidr = validators.validate_cidr(cidr)
-        address = Network.objects.get(
-            network_address=cidr.network_address,
-            prefix_length=cidr.prefixlen
-        )
+    def get_by_address(self, cidr, site=None):
+        """
+        Lookup a Network object by ``cidr``.
+
+        :param cidr:
+            IPv4/IPv6 CIDR string
+
+        :param site:
+            ``Site`` instance or ``site_id``
+        """
+        lookup_kwargs = cidr_to_dict(cidr)
+        if site is not None:
+            lookup_kwargs['site'] = site
+
+        address = Network.objects.get(**lookup_kwargs)
         return address
 
     def reserved(self):
