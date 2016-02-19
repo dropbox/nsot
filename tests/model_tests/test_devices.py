@@ -67,3 +67,33 @@ def test_retrieve_device(site):
     # Filter by attributes
     assert list(site.devices.by_attribute(None, 'foo')) == []
     assert list(site.devices.by_attribute('test', 'foo')) == [device1]
+
+
+
+def test_validation(site, transactional_db):
+    with pytest.raises(exc.ValidationError):
+        models.Device.objects.create(
+            site=site, hostname=None,
+        )
+
+    with pytest.raises(exc.ValidationError):
+        models.Device.objects.create(
+            site=site, hostname='a b',
+        )
+
+    device = models.Device.objects.create(
+        site=site, hostname='testhost'
+    )
+
+    with pytest.raises(exc.ValidationError):
+        device.hostname = ''
+        device.save()
+
+    with pytest.raises(exc.ValidationError):
+        device.hostname = None
+        device.save()
+
+    device.hostname = 'newtesthostname'
+    device.save()
+
+
