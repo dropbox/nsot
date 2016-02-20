@@ -17,7 +17,7 @@ from rest_framework import status
 from .fixtures import live_server, client, user, site
 from .util import (
     assert_created, assert_error, assert_success, assert_deleted, load_json,
-    Client, load, filter_networks, make_mac
+    Client, load, filter_networks, make_mac, TestSite
 )
 
 
@@ -151,5 +151,81 @@ def test_duplicate_400_issues_142(client, site):
     # Network duplicate fails.
     assert_error(
         client.create(net_uri, cidr='10.0.0.0/8'),
+        status.HTTP_400_BAD_REQUEST
+    )
+
+
+def test_natural_lookup_without_site(client, site):
+    """
+    Test that when retrieving objects by natural_key, that uniqueness is
+    guaranteed. Since all uniqueness constraints are by Site, we could in
+    theory have objects across multiple sites w/ the same natural_key value.
+
+    - You've got multiple sites and an object w/ the same natural_key in
+      different Sites. For example: Device 'foo-bar1' in Site 1 and Device
+      'foo-bar1' in Site 2.
+    - You're not using a site-specific end-point (e.g. /api/devices/ vs.
+      /api/sites/1/devices/).
+    """
+    site1 = site  # For comparison against site2
+
+    # Top-level URIs (e.g. /api/:resource_name/)
+    site_uri = reverse('site-list')
+    net_uri = reverse('network-list')
+    dev_uri = reverse('device-list')
+
+    # Create 2nd site
+    site2_resp = client.create(site_uri, name='Test Site 2')
+    site2 = TestSite(site2_resp.json()['data']['site'])
+
+    ###########
+    # Devices #
+    ###########
+    hostname = 'foo-bar1'
+    site1_dev_uri = site1.list_uri('device')
+    site2_dev_uri = site2.list_uri('device')
+
+    # Create a Device in each site w/ the same hostname
+    client.create(site1_dev_uri, hostname=hostname)
+    client.create(site2_dev_uri, hostname=hostname)
+
+    # Site-specific: GOOD
+    site1_dev_detail_uri = site1.detail_uri('device', id=hostname)
+    site2_dev_detail_uri = site2.detail_uri('device', id=hostname)
+    dev1_resp = client.get(site1_dev_detail_uri)
+    dev2_resp = client.get(site2_dev_detail_uri)
+    assert dev1_resp.status_code == 200
+    assert dev2_resp.status_code == 200
+
+    # Top-level: BAD
+    root_dev_detail_uri = reverse('device-detail', args=(hostname,))
+    assert_error(
+        client.get(root_dev_detail_uri),
+        status.HTTP_400_BAD_REQUEST
+    )
+
+    ############
+    # Networks #
+    ############
+    cidr = '10.0.0.0/8'
+    site1_net_uri = site1.list_uri('network')
+    site2_net_uri = site2.list_uri('network')
+
+    # Create a Network in each site w/ the same cidr
+    client.create(site1_net_uri, cidr=cidr)
+    client.create(site2_net_uri, cidr=cidr)
+
+    # Site-specific: GOOD
+    site1_net_detail_uri = site1.detail_uri('network', id=cidr)
+    site2_net_detail_uri = site2.detail_uri('network', id=cidr)
+    net1_resp = client.get(site1_net_detail_uri)
+    net2_resp = client.get(site2_net_detail_uri)
+    assert net1_resp.status_code == 200
+    assert net2_resp.status_code == 200
+
+    # Top-level: BAD
+    root_net_detail_uri = reverse('network-detail', args=(cidr,))
+    assert_error(
+        client.get(root_net_detail_uri),
         status.HTTP_400_BAD_REQUEST
     )

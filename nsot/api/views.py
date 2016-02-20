@@ -172,12 +172,27 @@ class BaseNsotViewSet(viewsets.ReadOnlyModelViewSet):
 
         # Otherwise prepare the natural_key for a single object lookup.
         else:
-            lookup_kwargs = self.get_natural_key_kwargs(pk)
+            natural_kwargs = self.get_natural_key_kwargs(pk)
+            lookup_kwargs.update(natural_kwargs)
 
+        # Try to get a single object.
         try:
             obj = queryset.get(**lookup_kwargs)
-        except (exc.ObjectDoesNotExist, ValueError):
+        except exc.ObjectDoesNotExist:
             self.not_found(pk, site_pk)
+        # This may happen if:
+        # - You've got multiple sites and an object w/ the same natural_key in
+        #   different Sites. For example: Device 'foo-bar1' in Site 1 and
+        #   Device 'foo-bar1' in Site 2.
+        # - You're not using a site-specific end-point (e.g. /api/devices/ vs.
+        #   /api/sites/1/devices/).
+        except exc.MultipleObjectsReturned:
+            raise exc.ValidationError(
+                'Multiple %ss matched %s=%r. Use a site-specific endpoint '
+                'or lookup by ID.' % (
+                    self.model_name, self.natural_key, pk
+                )
+            )
 
         # May raise a permission denied.
         self.check_object_permissions(self.request, obj)
