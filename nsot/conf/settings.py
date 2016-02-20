@@ -362,6 +362,13 @@ LOGGING = {
 # Acceptable regex pattern for naming Attribute objects.
 ATTRIBUTE_NAME = re.compile(r"^[a-z][a-z0-9_]*$")
 
+###########
+# Devices #
+###########
+
+# Acceptable regex pattern for naming Device objects.
+DEVICE_NAME = re.compile(r"^([A-Za-z0-9][A-Za-z0-9\-]{0,61}[A-Za-z0-9]|[A-Za-z0-9])$")
+
 ##############
 # Interfaces #
 ##############

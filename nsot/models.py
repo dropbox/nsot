@@ -495,6 +495,10 @@ class Device(Resource):
             raise exc.ValidationError({
                 'hostname': 'Hostname must be non-zero length string.'
             })
+        if not settings.DEVICE_NAME.match(value):
+            raise exc.ValidationError({
+                'name': 'Invalid name: %r.' % value
+            })
         return value
 
     def clean_fields(self, exclude=None):

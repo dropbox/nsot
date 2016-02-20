@@ -34,6 +34,15 @@ def test_creation(live_server, user, site):
 
     admin_client.create(attr_uri, resource_name='Device', name='attr1')
 
+    # Test invalid device name
+    assert_error(
+        admin_client.create(
+            dev_uri,
+            hostname='invalid hostname'
+        ),
+        status.HTTP_400_BAD_REQUEST
+    )
+
     # Invalid permissions
     assert_error(
         user_client.create(
