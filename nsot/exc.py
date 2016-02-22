@@ -1,8 +1,10 @@
 from __future__ import unicode_literals
 
 from collections import OrderedDict
-from django.core.exceptions import (ValidationError as DjangoValidationError,
-                                    ObjectDoesNotExist)
+from django.core.exceptions import (
+    ValidationError as DjangoValidationError, ObjectDoesNotExist,
+    MultipleObjectsReturned
+)
 from django.db import IntegrityError
 from django.db.models import ProtectedError
 import logging
@@ -17,6 +19,7 @@ __all__ = (
     'Error', 'ModelError', 'BaseHttpError', 'BadRequest', 'Unauthorized',
     'Forbidden', 'NotFound', 'Conflict', 'DjangoValidationError',
     'ObjectDoesNotExist', 'ProtectedError', 'ValidationError',
+    'MultipleObjectsReturned'
 )
 
 
