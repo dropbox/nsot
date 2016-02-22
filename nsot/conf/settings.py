@@ -57,6 +57,7 @@ AUTHENTICATION_BACKENDS = (
 # A tuple of middleware classes to use.
 # https://docs.djangoproject.com/en/1.8/topics/http/middleware/
 MIDDLEWARE_CLASSES = (
+    'nsot.middleware.xforwardfor.SetRemoteAddrFromForwardedFor',
     'nsot.middleware.request_logging.LoggingMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -246,6 +247,13 @@ NSOT_WORKER_TIMEOUT = 30
 # If True, serve static files directly from the app.
 # Default: True
 SERVE_STATIC_FILES = True
+
+# If True, use X-Forward-For address instead of REMOTE_ADDR
+# Only use this if a proxy is the only way of accessing the site
+# otherwise an attacker could forge their IP address in the logs
+# by manually sending X-Forward-For
+# Default: False
+NSOT_XFORWARDFOR = False
 
 ############
 # Security #
