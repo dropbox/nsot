@@ -242,10 +242,19 @@ def test_update(live_server, user, site):
     device = dev_resp.json()['data']['device']
     dev_obj_uri = site.detail_uri('device', id=device['id'])
 
-    # Empty update should only clear attributes.
+    # Invalid permissions
+    assert_error(user_client.update(dev_obj_uri), status.HTTP_403_FORBIDDEN)
+
+    # If attributes aren't provided, it's an error.
     params = {'hostname': 'foo'}
+    assert_error(
+        admin_client.update(dev_obj_uri, **params),
+        status.HTTP_400_BAD_REQUEST
+    )
+
+    # Update hostname and clear attributes.
+    params = {'hostname': 'foo', 'attributes': {}}
     device.update(params)
-    device['attributes'] = {}
 
     assert_success(
         admin_client.update(dev_obj_uri, **params),
@@ -260,9 +269,6 @@ def test_update(live_server, user, site):
         admin_client.update(dev_obj_uri, **params),
         {'device': device}
     )
-
-    # Invalid permissions
-    assert_error(user_client.update(dev_obj_uri), status.HTTP_403_FORBIDDEN)
 
 
 def test_update_natural_key(live_server, user, site):
@@ -286,10 +292,9 @@ def test_update_natural_key(live_server, user, site):
     dev_pk_uri = site.detail_uri('device', id=device['id'])
     dev_natural_uri = site.detail_uri('device', id=device['hostname'])
 
-    # Empty update should only clear attributes.
-    params = {'hostname': 'foo'}
+    # Update hostname and clear attributes.
+    params = {'hostname': 'foo', 'attributes': {}}
     device.update(params)
-    device['attributes'] = {}
 
     assert_success(
         admin_client.update(dev_natural_uri, **params),
@@ -312,7 +317,42 @@ def test_update_natural_key(live_server, user, site):
     final_natural_uri = site.detail_uri('device', id=device['hostname'])
 
     # Invalid permissions
-    assert_error(user_client.update(final_natural_uri), status.HTTP_403_FORBIDDEN)
+    assert_error(
+        user_client.update(final_natural_uri), status.HTTP_403_FORBIDDEN
+    )
+
+
+def test_partial_update(site, client):
+    """Test PATCH operations to partially update a Device."""
+    dev_uri = site.list_uri('device')
+    attr_uri = site.list_uri('attribute')
+
+    client.create(attr_uri, resource_name='Device', name='attr1')
+    dev_resp = client.create(
+        dev_uri, hostname='device1', attributes={'attr1': 'foo'}
+    )
+
+    # Extract the device object from the response payload so we can play with
+    # it during partial update tests.
+    device = dev_resp.json()['data']['device']
+    dev_pk_uri = site.detail_uri('device', id=device['id'])
+    dev_natural_uri = site.detail_uri('device', id=device['hostname'])
+
+    # Now PATCH it by providing *only* the attributes, which wouldn't be
+    # possible in a PUT
+    params = {'attributes': {}}
+    device.update(params)
+
+    assert_success(
+        client.partial_update(dev_pk_uri, **params),
+        {'device': device}
+    )
+
+    # And just to make sure a PUT with the same payload fails...
+    assert_error(
+        client.update(dev_pk_uri, **params),
+        status.HTTP_400_BAD_REQUEST
+    )
 
 
 def test_deletion(site, client):

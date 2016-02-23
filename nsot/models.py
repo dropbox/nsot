@@ -386,15 +386,25 @@ class Resource(models.Model):
         """Return the JSON-encoded attributes as a dict."""
         return self._attributes_cache
 
-    def set_attributes(self, attributes, valid_attributes=None):
+    def set_attributes(self, attributes, valid_attributes=None, partial=False):
         """Validate and store the attributes dict as a JSON-encoded string."""
         log.debug('Resource.set_attributes() attributes = %r',
                   attributes)
-        if not isinstance(attributes, dict):
-            raise exc.ValidationError(
-                'Expected dictionary but received {}'.format(type(attributes))
-            )
 
+        # If no attributes and it's a partial update, NOOP.
+        if attributes is None and partial:
+            return None
+
+        if not isinstance(attributes, dict):
+            raise exc.ValidationError({
+                'attributes': 'Expected dictionary but received {}'.format(
+                    type(attributes)
+                )
+            })
+
+        # A dict of valid Attribute objects for this resource, keyed by
+        # attribute name. If not provided, defaults to all matching
+        # resource_name.
         if valid_attributes is None:
             valid_attributes = Attribute.all_by_name(
                 self._resource_name, self.site
@@ -402,6 +412,8 @@ class Resource(models.Model):
         log.debug('Resource.set_attributes() valid_attributes = %r',
                   valid_attributes)
 
+        # Attributes that are required according to ``valid_attributes``, but
+        # are not found incoming in ``attributes``.
         missing_attributes = {
             attribute.name for attribute in valid_attributes.itervalues()
             if attribute.required and attribute.name not in attributes
@@ -409,23 +421,28 @@ class Resource(models.Model):
         log.debug('Resource.set_attributes() missing_attributes = %r',
                   missing_attributes)
 
+        # It's an error to have any missing attributes
         if missing_attributes:
             names = ', '.join(missing_attributes)
-            raise exc.ValidationError(
-                'Missing required attributes: {}'.format(names)
-            )
+            raise exc.ValidationError({
+                'attributes': 'Missing required attributes: {}'.format(names)
+            })
 
+        # Run validation each attribute value and prepare them for DB
+        # insertion, raising any validation errors immediately.
         inserts = []
         for name, value in attributes.iteritems():
             if name not in valid_attributes:
-                raise exc.ValidationError(
-                    'Attribute name ({}) does not exist.'.format(name)
-                )
+                raise exc.ValidationError({
+                    'attributes': 'Attribute name ({}) does not exist.'.format(
+                        name
+                    )
+                })
 
             if not isinstance(name, basestring):
-                raise exc.ValidationError(
-                    'Attribute names must be a string type.'
-                )
+                raise exc.ValidationError({
+                    'attributes': 'Attribute names must be a string type.'
+                })
 
             attribute = valid_attributes[name]
             inserts.extend(attribute.validate_value(value))
@@ -1059,11 +1076,14 @@ class Interface(Resource):
     @property
     def networks(self):
         """Return all the parent Networks for my addresses."""
-        return Network.objects.filter(id=self.addresses.values_list('parent'))
+        return Network.objects.filter(
+            id__in=self.addresses.values_list('parent')
+        ).distinct()
 
     def _purge_addresses(self):
         """Delete all of my addresses (and therefore assignments)."""
         self.addresses.all().delete()
+        self.clean_addresses()  # Always re-cache after we purge addresses..
 
     def _purge_assignments(self):
         """Delete all of my assignments, leaving the Network objects intact."""
@@ -1098,7 +1118,7 @@ class Interface(Resource):
                 address.delete()
             raise
 
-    def set_addresses(self, addresses, overwrite=False):
+    def set_addresses(self, addresses, overwrite=False, partial=False):
         """
         Explicitly assign a list of addresses to this Interface.
 
@@ -1107,15 +1127,24 @@ class Interface(Resource):
 
         :param overwrite:
             Whether to purge existing assignments before assigning.
+
+        :param partial:
+            Whether this is a partial update.
         """
         log.debug(
             'Interface.set_addresses() addresses = %r', addresses
         )
 
+        # If no addresses and it's a partial update, NOOP.
+        if addresses is None and partial:
+            return None
+
         if not isinstance(addresses, list):
-            raise exc.ValidationError(
-                'Expected list but received {}'.format(type(addresses))
-            )
+            raise exc.ValidationError({
+                'addresses': 'Expected list but received {}'.format(
+                    type(addresses)
+                )
+            })
 
         if overwrite:
             self._purge_assignments()

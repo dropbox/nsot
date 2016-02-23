@@ -318,6 +318,39 @@ def test_update(live_server, user, site):
     )
 
 
+def test_partial_update(site, client):
+    """"Test PATCH operations to partially update a Network."""
+    net_uri = site.list_uri('network')
+    attr_uri = site.list_uri('attribute')
+    cidr = '10.0.0.0/24'
+
+    client.create(attr_uri, resource_name='Network', name='attr1')
+    net_resp = client.create(
+        net_uri, cidr=cidr, attributes={'attr1': 'foo'}
+    )
+
+    # Extract the Network object so that we can play w/ it during update tests.
+    net = net_resp.json()['data']['network']
+    net_pk_uri = site.detail_uri('network', id=net['id'])
+    net_natural_uri = site.detail_uri('network', id=cidr)
+
+    # Now PATCH it by providing *only* the state, which wouldn't be
+    # possible in a PUT.
+    params = {'state': 'reserved'}
+    net.update(params)
+
+    assert_success(
+        client.partial_update(net_pk_uri, **params),
+        {'network': net}
+    )
+
+    # And just to make sure a PUT with the same payload fails...
+    assert_error(
+        client.update(net_pk_uri, **params),
+        status.HTTP_400_BAD_REQUEST
+    )
+
+
 def test_deletion(site, client):
     """Test deletion of Networks."""
     net_uri = site.list_uri('network')

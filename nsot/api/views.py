@@ -380,7 +380,7 @@ class AttributeViewSet(ResourceViewSet):
     def get_serializer_class(self):
         if self.request.method == 'POST':
             return serializers.AttributeCreateSerializer
-        if self.request.method == 'PUT':
+        if self.request.method in ('PUT', 'PATCH'):
             return serializers.AttributeUpdateSerializer
         return self.serializer_class
 
@@ -423,6 +423,8 @@ class DeviceViewSet(ResourceViewSet):
             return serializers.DeviceCreateSerializer
         if self.request.method == 'PUT':
             return serializers.DeviceUpdateSerializer
+        if self.request.method == 'PATCH':
+            return serializers.DevicePartialUpdateSerializer
 
         return self.serializer_class
 
@@ -482,6 +484,8 @@ class NetworkViewSet(ResourceViewSet):
             return serializers.NetworkCreateSerializer
         if self.request.method == 'PUT':
             return serializers.NetworkUpdateSerializer
+        if self.request.method == 'PATCH':
+            return serializers.NetworkPartialUpdateSerializer
 
         return self.serializer_class
 
@@ -724,6 +728,8 @@ class InterfaceViewSet(ResourceViewSet):
             return serializers.InterfaceCreateSerializer
         if self.request.method == 'PUT':
             return serializers.InterfaceUpdateSerializer
+        if self.request.method == 'PATCH':
+            return serializers.InterfacePartialUpdateSerializer
 
         return self.serializer_class
 
