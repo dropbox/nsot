@@ -120,11 +120,6 @@ class MACAddressField(fields.Field):
 ###################
 class NsotSerializer(serializers.ModelSerializer):
     """Base serializer that logs change events."""
-    attributes = JSONDictField(
-        required=False,
-        help_text='Dictionary of attributes to set.'
-    )
-
     def to_internal_value(self, data):
         """Inject site_pk from view's kwargs if it's not already in data."""
         kwargs = self.context['view'].kwargs
@@ -196,7 +191,6 @@ class AttributeSerializer(NsotSerializer):
     """Used for GET, DELETE on Attributes."""
     class Meta:
         model = models.Attribute
-        exclude = ('attributes',)
 
 
 class AttributeCreateSerializer(AttributeSerializer):
@@ -212,7 +206,13 @@ class AttributeCreateSerializer(AttributeSerializer):
 
 class AttributeUpdateSerializer(BulkSerializerMixin,
                                 AttributeCreateSerializer):
-    """Used for PUT, PATCH, on Attributes."""
+    """
+    Used for PUT, PATCH, on Attributes.
+
+    Currently because Attributes have only one required field (name), and it
+    may not be updated, there is not much functional difference between PUT and
+    PATCH.
+    """
     class Meta:
         model = models.Attribute
         list_serializer_class = BulkListSerializer
@@ -250,8 +250,13 @@ class ValueCreateSerializer(ValueSerializer):
 ###########
 class ResourceSerializer(NsotSerializer):
     """For any object that can have attributes."""
-    def create(self, validated_data):
+    attributes = JSONDictField(
+        required=False,
+        help_text='Dictionary of attributes to set.'
+    )
 
+    def create(self, validated_data, commit=True):
+        """Create that is aware of attributes."""
         # Remove the related fields before we write the object
         attributes = validated_data.pop('attributes', {})
 
@@ -267,24 +272,32 @@ class ResourceSerializer(NsotSerializer):
             obj.delete()
             raise
         else:
-            obj.save()
+            if commit:
+                obj.save()
 
         return obj
 
-    def update(self, instance, validated_data):
+    def update(self, instance, validated_data, commit=True):
+        """
+        Update that is aware of attributes.
 
+        This will not set attributes if they are not provided during a partial
+        update.
+        """
         # Remove related fields before we write the object
-        attributes = validated_data.pop('attributes', {})
+        attributes = validated_data.pop('attributes', None)
 
         # Save the object to the database.
         obj = super(ResourceSerializer, self).update(
             instance, validated_data
         )
 
-        # Populate the related fields and save the object, allowing any
-        # validation errors to raise before saving.
-        obj.set_attributes(attributes)
-        obj.save()
+        # If attributes have been provided, populate them and save the object,
+        # allowing any validation errors to raise before saving.
+        obj.set_attributes(attributes, partial=self.partial)
+
+        if commit:
+            obj.save()
 
         return obj
 
@@ -308,7 +321,20 @@ class DeviceCreateSerializer(DeviceSerializer):
 
 
 class DeviceUpdateSerializer(BulkSerializerMixin, DeviceCreateSerializer):
-    """Used for PUT, PATCH, on Devices."""
+    """Used for PUT on Devices."""
+    attributes = JSONDictField(
+        required=True,
+        help_text='Dictionary of attributes to set.'
+    )
+
+    class Meta:
+        model = models.Device
+        list_serializer_class = BulkListSerializer
+        fields = ('id', 'hostname', 'attributes')
+
+
+class DevicePartialUpdateSerializer(BulkSerializerMixin, DeviceCreateSerializer):
+    """Used for PATCH on Devices."""
     class Meta:
         model = models.Device
         list_serializer_class = BulkListSerializer
@@ -335,7 +361,20 @@ class NetworkCreateSerializer(NetworkSerializer):
 
 
 class NetworkUpdateSerializer(BulkSerializerMixin, NetworkCreateSerializer):
-    """Used for PUT, PATCH on Networks."""
+    """Used for PUT on Networks."""
+    attributes = JSONDictField(
+        required=True,
+        help_text='Dictionary of attributes to set.'
+    )
+
+    class Meta:
+        model = models.Network
+        list_serializer_class = BulkListSerializer
+        fields = ('id', 'attributes', 'state')
+
+
+class NetworkPartialUpdateSerializer(BulkSerializerMixin, NetworkCreateSerializer):
+    """Used for PATCH on Networks."""
     class Meta:
         model = models.Network
         list_serializer_class = BulkListSerializer
@@ -359,6 +398,51 @@ class InterfaceSerializer(ResourceSerializer):
     class Meta:
         model = models.Interface
 
+    def create(self, validated_data):
+        log.debug('InterfaceCreateSerializer.create() validated_data = %r',
+                  validated_data)
+
+        # Remove the related fields before we write the object
+        addresses = validated_data.pop('addresses', [])
+
+        # Create the base object to the database, but don't save attributes
+        # yet.
+        obj = super(InterfaceSerializer, self).create(
+            validated_data, commit=False
+        )
+
+        # Try to populate the related fields and if there are any validation
+        # problems, delete the object and re-raise the error. If not, save the
+        # changes.
+        try:
+            obj.set_addresses(addresses)
+        except exc.ValidationError:
+            obj.delete()
+            raise
+        else:
+            obj.save()
+
+        return obj
+
+    def update(self, instance, validated_data):
+        log.debug('InterfaceUpdateSerializer.update() validated_data = %r',
+                  validated_data)
+
+        # Remove related fields before we write the object. Attributes are
+        # handled by the parent.
+        addresses = validated_data.pop('addresses', None)
+
+        # Update the attributes in the database, but don't save them yet.
+        obj = super(InterfaceSerializer, self).update(
+            instance, validated_data, commit=False
+        )
+
+        # Assign the address objects to the Interface.
+        obj.set_addresses(addresses, overwrite=True, partial=self.partial)
+        obj.save()
+
+        return obj
+
 
 class InterfaceCreateSerializer(InterfaceSerializer):
     """Used for POST on Interfaces."""
@@ -376,61 +460,34 @@ class InterfaceCreateSerializer(InterfaceSerializer):
         fields = ('device', 'name', 'description', 'type', 'mac_address',
                   'speed', 'parent_id', 'addresses', 'attributes')
 
-    def create(self, validated_data):
-        log.debug('InterfaceCreateSerializer.create() validated_data = %r',
-                  validated_data)
-
-        # Remove the related fields before we write the object
-        attributes = validated_data.pop('attributes', {})
-        addresses = validated_data.pop('addresses', [])
-
-        # Save the base object to the database.
-        obj = super(InterfaceCreateSerializer, self).create(validated_data)
-
-        # Try to populate the related fields and if there are any validation
-        # problems, delete the object and re-raise the error. If not, save the
-        # changes.
-        try:
-            obj.set_attributes(attributes)
-            obj.set_addresses(addresses)
-        except exc.ValidationError:
-            obj.delete()
-            raise
-        else:
-            obj.save()
-
-        return obj
-
 
 class InterfaceUpdateSerializer(BulkSerializerMixin,
                                 InterfaceCreateSerializer):
-    "Used for PUT, PATCH on Interfaces."""
+    "Used for PUT on Interfaces."""
+    addresses = JSONListField(
+        required=True, help_text='List of host addresses to assign.'
+    )
+    attributes = JSONDictField(
+        required=True,
+        help_text='Dictionary of attributes to set.'
+    )
+
     class Meta:
         model = models.Interface
         list_serializer_class = BulkListSerializer
         fields = ('id', 'name', 'description', 'type', 'mac_address', 'speed',
                   'parent_id', 'addresses', 'attributes')
 
-    def update(self, instance, validated_data):
-        log.debug('InterfaceUpdateSerializer.update() validated_data = %r',
-                  validated_data)
 
-        # Remove related fields before we write the object
-        attributes = validated_data.pop('attributes', {})
-        addresses = validated_data.pop('addresses', [])
+class InterfacePartialUpdateSerializer(BulkSerializerMixin,
+                                       InterfaceCreateSerializer):
+    "Used for PATCH on Interfaces."""
+    class Meta:
+        model = models.Interface
+        list_serializer_class = BulkListSerializer
+        fields = ('id', 'name', 'description', 'type', 'mac_address', 'speed',
+                  'parent_id', 'addresses', 'attributes')
 
-        # Save the object to the database.
-        obj = super(InterfaceUpdateSerializer, self).update(
-            instance, validated_data
-        )
-
-        # Populate the related fields and save the object, allowing any
-        # validation errors to raise before saving.
-        obj.set_attributes(attributes)
-        obj.set_addresses(addresses, overwrite=True)
-        obj.save()
-
-        return obj
 
 
 ###########

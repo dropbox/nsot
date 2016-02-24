@@ -79,14 +79,13 @@ class Client(object):
     def base_url(self):
         return self.live_server.url
 
-    # def request(self, method, url, user="admin", **kwargs):
     def request(self, method, url, user="admin", **kwargs):
 
         headers = {
             "X-NSoT-Email": self.user
         }
 
-        if method.lower() in ("put", "post"):
+        if method.lower() in ("put", "post", "patch"):
             headers["Content-type"] = "application/json"
 
         from betamax import Betamax
@@ -113,6 +112,9 @@ class Client(object):
     def put(self, url, **kwargs):
         return self.request("PUT", url, **kwargs)
 
+    def patch(self, url, **kwargs):
+        return self.request("PATCH", url, **kwargs)
+
     def delete(self, url, **kwargs):
         return self.request("DELETE", url, **kwargs)
 
@@ -124,6 +126,9 @@ class Client(object):
 
     def update(self, url, **kwargs):
         return self.put(url, data=json.dumps(kwargs))
+
+    def partial_update(self, url, **kwargs):
+        return self.patch(url, data=json.dumps(kwargs))
 
     def retrieve(self, url, **kwargs):
         return self.get(url, params=kwargs)

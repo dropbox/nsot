@@ -207,6 +207,73 @@ def test_update(site, client):
     )
 
 
+def test_partial_update(site, client):
+    """Test PATCH operations to partially update an Interface."""
+    ifc_uri = site.list_uri('interface')
+    dev_uri = site.list_uri('device')
+    net_uri = site.list_uri('network')
+    attr_uri = site.list_uri('attribute')
+
+    dev_resp = client.create(dev_uri, hostname='foo-bar1')
+    dev = dev_resp.json()['data']['device']
+
+    net_resp = client.create(net_uri, cidr='10.1.1.0/24')
+    net = net_resp.json()['data']['network']
+
+    client.create(attr_uri, name='attr1', resource_name='Interface')
+
+    # Create eth0 w/ an address
+    addresses = ['10.1.1.1/32']
+    ifc_resp = client.create(
+        ifc_uri, device=dev['id'], name='eth0', addresses=addresses,
+        attributes={'attr1': 'value'}
+
+    )
+    ifc = ifc_resp.json()['data']['interface']
+    ifc_pk_uri = site.detail_uri('interface', id=ifc['id'])
+
+    # Assert that a partial update on PUT will fail
+    params = {'name': 'ge-0/0/1'}
+    assert_error(
+        client.update(ifc_pk_uri, **params),
+        status.HTTP_400_BAD_REQUEST
+    )
+
+    # Update only name
+    payload = copy.deepcopy(ifc)
+    params = {'name': 'ge-0/0/1'}
+    payload.update(params)
+    assert_success(
+        client.partial_update(ifc_pk_uri, **params),
+        {'interface': payload}
+    )
+
+    # Update only attributes
+    params = {'attributes': {}}  # Nuke 'em
+    payload.update(params)
+    assert_success(
+        client.partial_update(ifc_pk_uri, **params),
+        {'interface': payload}
+    )
+
+    # Update only addresses
+    params = {'addresses': ['10.1.1.2/32']}
+    payload.update(params)
+    assert_success(
+        client.partial_update(ifc_pk_uri, **params),
+        {'interface': payload}
+    )
+
+    # Nuke addresses
+    params = {'addresses': []}  # Nuke 'em!
+    payload.update(params)
+    payload['networks'] = []  # This will be empty, too.
+    assert_success(
+        client.partial_update(ifc_pk_uri, **params),
+        {'interface': payload}
+    )
+
+
 def test_filters(site, client):
     """Test field filters for Interfaces."""
     ifc_uri = site.list_uri('interface')

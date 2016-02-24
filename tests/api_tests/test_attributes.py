@@ -92,6 +92,7 @@ def test_bulk_operations(client, site):
 
 
 def test_update(client, site):
+    """Test updating Attributes w/ PUT."""
 
     attr_uri = site.list_uri('attribute')
 
@@ -124,6 +125,37 @@ def test_update(client, site):
     assert_success(
         client.update(attr_obj_uri, **attr),
         {'attribute': attr}
+    )
+
+
+def test_partial_update(site, client):
+    """Test PATCH operations to partially update an Attribute."""
+    attr_uri = site.list_uri('attribute')
+
+    attr_resp = client.create(attr_uri, resource_name='Network', name='attr1')
+    attr = attr_resp.json()['data']['attribute']
+    attr_pk_uri = site.detail_uri('attribute', id=attr['id'])
+
+    # Update display
+    params = {'display': True}
+    payload = copy.deepcopy(attr)
+    payload.update(params)
+
+    assert_success(
+        client.partial_update(attr_pk_uri, **params),
+        {'attribute': payload}
+    )
+
+    # Update constraints
+    params = {
+        u'constraints': {
+            u'allow_empty': True, u'pattern': u'', u'valid_values': []
+        }
+    }
+    payload.update(params)
+    assert_success(
+        client.partial_update(attr_pk_uri, **params),
+        {'attribute': payload}
     )
 
 
