@@ -79,6 +79,20 @@ def test_creation(live_server, user, site):
     net_natural_uri = site.detail_uri('network', id=cidr)
     assert_success(admin_client.get(net_natural_uri), {'network': net})
 
+    # Test creation by network_address, prefix_length
+    params = {'network_address': '10.8.0.0', 'prefix_length': 16}
+    net2_resp = admin_client.create(net_uri, **params)
+    net2 = net2_resp.json()['data']['network']
+    net2_obj_uri = site.detail_uri('network', id=net2['id'])
+    assert_created(net2_resp, net2_obj_uri)
+
+    # Delete it and then re-recreate it w/ the original payload
+    assert_deleted(admin_client.delete(net2_obj_uri))
+    net2a_resp = admin_client.create(net_uri, **params)
+    net2a = net2a_resp.json()['data']['network']
+    net2a_obj_uri = site.detail_uri('network', id=net2a['id'])
+    assert_created(net2a_resp, net2a_obj_uri)
+
 
 def test_bulk_operations(site, client):
     """Test creating/updating multiple Networks at once."""

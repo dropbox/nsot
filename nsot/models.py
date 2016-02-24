@@ -573,12 +573,20 @@ class Network(Resource):
     BUSY_STATES = [ASSIGNED, RESERVED]
 
     network_address = fields.BinaryIPAddressField(
-        max_length=16, null=False, db_index=True
+        max_length=16, null=False, db_index=True,
+        verbose_name='Network Address',
+        help_text=(
+            'The network address for the network. The network address and '
+            'the prefix length together uniquely define a network.'
+        )
     )
     broadcast_address = fields.BinaryIPAddressField(
-        max_length=16, null=False, db_index=True
+        max_length=16, null=False, db_index=True,
     )
-    prefix_length = models.IntegerField(null=False, db_index=True)
+    prefix_length = models.IntegerField(
+        null=False, db_index=True, verbose_name='Prefix Length',
+        help_text='Length of the network prefix, in bits.'
+    )
     ip_version = models.CharField(
         max_length=1, null=False, db_index=True,
         choices=IP_VERSION_CHOICES
@@ -593,7 +601,8 @@ class Network(Resource):
     )
     state = models.CharField(
         max_length=20, null=False, db_index=True,
-        choices=STATE_CHOICES, default=ALLOCATED
+        choices=STATE_CHOICES, default=ALLOCATED,
+        help_text='The allocation state of the Network.'
     )
 
     # Implements .objects.get_by_address()

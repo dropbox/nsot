@@ -352,12 +352,31 @@ class NetworkSerializer(ResourceSerializer):
 
 class NetworkCreateSerializer(NetworkSerializer):
     """Used for POST on Networks."""
-    cidr = fields.CharField(write_only=True)
+    cidr = fields.CharField(
+        write_only=True, required=False, label='CIDR',
+        help_text=(
+            'IPv4/IPv6 CIDR address. If provided, this overrides the value of '
+            'network_address & prefix_length. If not provided, '
+            'network_address & prefix_length are required.'
+        )
+    )
+    network_address = fields.ModelField(
+        model_field=models.Network._meta.get_field('network_address'),
+        required=False,
+        label=get_field_attr(models.Network, 'network_address', 'verbose_name'),
+        help_text=get_field_attr(models.Network, 'network_address', 'help_text'),
+    )
+    prefix_length = fields.IntegerField(
+        required=False,
+        label=get_field_attr(models.Network, 'prefix_length', 'verbose_name'),
+        help_text=get_field_attr(models.Network, 'prefix_length', 'help_text'),
+    )
     site_id = fields.IntegerField()
 
     class Meta:
         model = models.Network
-        fields = ('cidr', 'attributes', 'state', 'site_id')
+        fields = ('cidr', 'network_address', 'prefix_length', 'attributes',
+                  'state', 'site_id')
 
 
 class NetworkUpdateSerializer(BulkSerializerMixin, NetworkCreateSerializer):
