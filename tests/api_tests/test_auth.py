@@ -17,7 +17,7 @@ import requests
 from .fixtures import live_server, client, user, site
 from .util import (
     assert_created, assert_error, assert_success, assert_deleted, load_json,
-    Client, load
+    Client, load, get_result
 )
 
 
@@ -32,16 +32,19 @@ def test_no_user(live_server, site):
 
 
 def test_valid_user(live_server):
+    """Test that a valid user gets through..."""
     url = '{}/api/sites/'.format(live_server.url)
     headers = {'X-NSoT-Email': 'gary@localhost'}
+    expected = []
 
     assert_success(
         requests.get(url, headers=headers),
-        {'sites': [], 'limit': None, 'offset': 0, 'total': 0}
+        expected
     )
 
 
 def test_invalid_user(live_server):
+    """Test that an invalid user DOES NOT get through..."""
     url = '{}/api/sites/'.format(live_server.url)
     headers = {'X-NSoT-Email': 'gary'}
 
@@ -61,8 +64,11 @@ def test_get_auth_token_valid(live_server, user):
     data = json.dumps(payload)
 
     resp = requests.post(url, headers=headers, data=data)
+    expected = get_result(resp)
 
-    assert_success(resp, resp.json()['data'])
+    # FIXME(jathan): This test is ridiculous. It's testing itself against
+    # itself. Of course it will pass! How though? I mean... Yeah.
+    assert_success(resp, expected)
 
 
 def test_get_auth_token_invalid(live_server, user):
@@ -117,7 +123,7 @@ def test_verify_auth_token_valid(live_server, site, user):
     data = json.dumps(payload)
 
     auth_resp = requests.post(auth_url, headers=headers, data=data)
-    auth_token = auth_resp.json()['data']['auth_token']
+    auth_token = get_result(auth_resp)
 
     headers.update({
         'Authorization': 'AuthToken {}:{}'.format(user.email, auth_token)
@@ -136,7 +142,7 @@ def test_valid_auth_token(live_server, user):
     data = json.dumps(payload)
 
     auth_resp = requests.post(auth_url, headers=headers, data=data)
-    auth_token = auth_resp.json()['data']['auth_token']
+    auth_token = get_result(auth_resp)
 
     headers.update({
         'Authorization': 'AuthToken {}:{}'.format(user.email, auth_token)
@@ -146,7 +152,10 @@ def test_valid_auth_token(live_server, user):
     user.is_staff = True
     user.save()
 
+    # We got nothin'!
+    expected = []
+
     assert_success(
         requests.get(site_url, headers=headers),
-        {'sites': [], 'limit': None, 'offset': 0, 'total': 0}
+        expected
     )

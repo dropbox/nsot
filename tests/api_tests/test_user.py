@@ -16,7 +16,7 @@ from rest_framework import status
 from .fixtures import live_server, client, user, site
 from .util import (
     assert_created, assert_error, assert_success, assert_deleted, load_json,
-    Client, load
+    Client, load, get_result
 )
 
 
@@ -32,28 +32,29 @@ def test_user_with_secret_key(live_server):
 
     # Small requests to make user accounts in order.
     user1_resp = user1_client.get(user_uri)
-    user1 = user1_resp.json()['data']['user']
+    user1 = get_result(user1_resp)
     user1_uri = reverse('user-detail', args=(user1['id'],))
 
     user2_resp = user2_client.get(user_uri)
-    user2 = user2_resp.json()['data']['user']
+    user2 = get_result(user2_resp)
     user2_uri = reverse('user-detail', args=(user2['id'],))
 
     # User should be able to get user 0 (self)
     assert_success(
         user1_client.get(user_uri),
-        {'user': user1}
+        user1
     )
 
     # And see their own secret key as user 0
     response = user1_client.get(user_uri + '?with_secret_key')
     expected = copy.deepcopy(user1)
-    expected['secret_key'] = response.json()['data']['user']['secret_key']
-    assert_success(response, {'user': expected})
+    result = get_result(response)
+    expected['secret_key'] = result['secret_key']
+    assert_success(response, expected)
 
     # And their own secret key by their user id 
     response = user1_client.get(user1_uri + '?with_secret_key')
-    assert_success(response, {'user': expected})
+    assert_success(response, expected)
 
     # But not user 2's secret_key.
     response = user1_client.get(user2_uri + '?with_secret_key')
@@ -69,11 +70,11 @@ def test_user_rotate_secret_key(live_server):
 
     # Small requests to make user accounts in order.
     user1_resp = user1_client.get(user_uri)
-    user1 = user1_resp.json()['data']['user']
+    user1 = get_result(user1_resp)
     user1_key_uri = reverse('user-rotate-secret-key', args=(user1['id'],))
 
     user2_resp = user2_client.get(user_uri)
-    user2 = user2_resp.json()['data']['user']
+    user2 = get_result(user2_resp)
     user2_key_uri = reverse('user-rotate-secret-key', args=(user2['id'],))
 
     # User1 should be able to rotate their own secret_key

@@ -12,7 +12,8 @@ from rest_framework import status
 
 from .fixtures import client
 from .util import (
-    assert_created, assert_deleted, assert_error, assert_success, TestSite
+    assert_created, assert_deleted, assert_error, assert_success, TestSite,
+    get_result
 )
 
 
@@ -20,6 +21,7 @@ log = logging.getLogger(__name__)
 
 
 def test_malformed(client):
+    """Test malformed site creation failure."""
     url = reverse('site-list')
     response = client.post(url, data='Non-JSON')
 
@@ -27,18 +29,16 @@ def test_malformed(client):
 
 
 def test_creation(client):
+    """Test creation of Site objects."""
     site_uri = reverse('site-list')
 
-    assert_success(client.get(site_uri), {
-        'sites': [],
-        'limit': None,
-        'offset': 0,
-        'total': 0
-    })
+    # We got nothin'!
+    expected = []
+    assert_success(client.get(site_uri), expected)
 
     # Create a Site
     site1_resp = client.create(site_uri, name='Test Site')
-    site1 = TestSite(site1_resp.json()['data']['site'])
+    site1 = TestSite(site1_resp.json())
     site1_obj_uri = site1.detail_uri()
     assert_created(site1_resp, site1_obj_uri)
 
@@ -52,14 +52,13 @@ def test_creation(client):
 
     # Create another Site with a slightly different name
     site2_resp = client.create(site_uri, name='Test Site 2')
-    site2 = TestSite(site2_resp.json()['data']['site'])
+    site2 = TestSite(site2_resp.json())
     site2_obj_uri = site2.detail_uri()
     assert_created(site2_resp, site2_obj_uri)
 
     # And now retrieve the first Site by name.
-    expected = site1_resp.json()['data']
-    expected['sites'] = [expected.pop('site')]
-    expected.update({'limit': None, 'offset': 0, 'total': 1})
+    payload = get_result(site1_resp)
+    expected = [payload]
 
     assert_success(
         client.retrieve(site_uri, name='Test Site'),
@@ -68,16 +67,17 @@ def test_creation(client):
 
 
 def test_update(client):
+    """Test update of Site objects."""
     site_uri = reverse('site-list')
 
     site_resp = client.create(site_uri, name='Test Site')
-    site = TestSite(site_resp.json()['data']['site'])
+    site = TestSite(site_resp.json())
     site_obj_uri = site.detail_uri()
 
     # Update the Site name
     params = {'name': 'Test Site 2'}
-    expected = site_resp.json()['data']
-    expected['site'].update(params)
+    expected = get_result(site_resp)
+    expected.update(params)
 
     assert_success(
         client.update(site_obj_uri, **params),
@@ -86,7 +86,7 @@ def test_update(client):
 
     # Now add a description and change the name back
     params = {'name': 'Test Site', 'description': 'A description.'}
-    expected['site'].update(params)
+    expected.update(params)
 
     assert_success(
         client.update(site_obj_uri, **params),
@@ -104,9 +104,10 @@ def test_update(client):
 
 
 def test_deletion(client):
+    """Test DELETE of Site objects."""
     site_uri = reverse('site-list')
     site_resp = client.create(site_uri, name='Test Site')
-    site = TestSite(site_resp.json()['data']['site'])
+    site = TestSite(site_resp.json())
 
     # URIs
     site_obj_uri = site.detail_uri()
@@ -115,12 +116,14 @@ def test_deletion(client):
 
     # Create a network Attribute
     attr_resp = client.create(attr_uri, resource_name='Network', name='attr1')
-    attr = attr_resp.json()['data']['attribute']
+    attr = get_result(attr_resp)
     attr_obj_uri = site.detail_uri('attribute', id=attr['id'])
 
     # Create a Network using that Attribute
-    net_resp = client.create(net_uri, cidr='10.0.0.0/24', attributes={'attr1': 'foo'})
-    net = net_resp.json()['data']['network']
+    net_resp = client.create(
+        net_uri, cidr='10.0.0.0/24', attributes={'attr1': 'foo'}
+    )
+    net = get_result(net_resp)
     net_obj_uri = site.detail_uri('network', id=net['id'])
 
     # Don't allow delete when there's an attached network/attribute

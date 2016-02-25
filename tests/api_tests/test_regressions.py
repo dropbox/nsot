@@ -17,7 +17,7 @@ from rest_framework import status
 from .fixtures import live_server, client, user, site
 from .util import (
     assert_created, assert_error, assert_success, assert_deleted, load_json,
-    Client, load, filter_networks, make_mac, TestSite
+    Client, load, filter_networks, make_mac, TestSite, get_result
 )
 
 
@@ -26,7 +26,6 @@ log = logging.getLogger(__name__)
 
 def test_network_bug_issues_34(client, site):
     """Test set queries for Networks."""
-
     # URIs
     attr_uri = site.list_uri('attribute')
     net_uri = site.list_uri('network')
@@ -37,14 +36,11 @@ def test_network_bug_issues_34(client, site):
     # Populate the network objects and retreive them for testing.
     client.post(net_uri, data=load('networks.json'))
     net_resp = client.retrieve(net_uri)
-    net_out = net_resp.json()['data']
-    networks = net_out['networks']
+    networks = get_result(net_resp)
 
     # Filter networks w/ attribute hostname=foo-bar1, excluding IPs
-    expected = copy.deepcopy(net_out)
     wanted = ['192.168.0.0/24', '192.168.0.0/25']
-    expected['networks'] = filter_networks(networks, wanted)
-    expected.update({'limit': None, 'offset': 0, 'total': len(wanted)})
+    expected = filter_networks(networks, wanted)
 
     assert_success(
         client.retrieve(
@@ -55,8 +51,7 @@ def test_network_bug_issues_34(client, site):
 
     # Filter networks w/ attribute hostname=foo-bar1, including IPs
     wanted = ['192.168.0.1/32', '192.168.0.0/24', '192.168.0.0/25']
-    expected['networks'] = filter_networks(networks, wanted)
-    expected.update({'total': len(wanted)})
+    expected = filter_networks(networks, wanted)
 
     assert_success(
         client.retrieve(
@@ -78,14 +73,14 @@ def test_mac_address_bug_issues_111(client, site):
     ifc_uri = site.list_uri('interface')
 
     dev_resp = client.create(dev_uri, hostname='foo-bar1')
-    dev = dev_resp.json()['data']['device']
+    dev = get_result(dev_resp)
 
     # Create the interface w/ an integer
     ifc_resp = client.create(
         ifc_uri, device=dev['id'], name='eth0', parent_id=None,
         mac_address=mac_int
     )
-    ifc = ifc_resp.json()['data']['interface']
+    ifc = get_result(ifc_resp)
     ifc_obj_uri = site.detail_uri('interface', id=ifc['id'])
 
     # Test that integer matches expected
@@ -94,7 +89,7 @@ def test_mac_address_bug_issues_111(client, site):
     # Update the interface w/ a string integer
     updated = copy.deepcopy(ifc)
     updated_resp = client.put(ifc_obj_uri, data=json.dumps(updated))
-    expected = updated_resp.json()['data']['interface']
+    expected = get_result(updated_resp)
 
     # Test that string integer matches expectd
     assert make_mac(expected['mac_address']) == mac_expected
@@ -103,7 +98,7 @@ def test_mac_address_bug_issues_111(client, site):
     # the same.
     updated['mac_address'] = mac_expected
     updated_resp = client.put(ifc_obj_uri, data=json.dumps(updated))
-    expected = updated_resp.json()['data']['interface']
+    expected = get_result(updated_resp)
 
     # Test that expected matches expected
     assert make_mac(expected['mac_address']) == mac_expected
@@ -176,7 +171,7 @@ def test_natural_lookup_without_site(client, site):
 
     # Create 2nd site
     site2_resp = client.create(site_uri, name='Test Site 2')
-    site2 = TestSite(site2_resp.json()['data']['site'])
+    site2 = TestSite(site2_resp.json())
 
     ###########
     # Devices #

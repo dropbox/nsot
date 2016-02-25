@@ -16,7 +16,7 @@ from rest_framework import status
 from .fixtures import live_server, client, user, site
 from .util import (
     assert_created, assert_error, assert_success, assert_deleted, load_json,
-    Client, load
+    Client, load, get_result
 )
 
 
@@ -24,6 +24,7 @@ log = logging.getLogger(__name__)
 
 
 def test_creation(client, site):
+    """Test creation of Attributes."""
 
     attr_uri = site.list_uri('attribute')
 
@@ -38,19 +39,17 @@ def test_creation(client, site):
 
     # Successfully create an Attribute
     attr_resp = client.create(attr_uri, resource_name='Network', name='attr1')
-    attr = attr_resp.json()['data']['attribute']
+    attr = get_result(attr_resp)
     attr_obj_uri = site.detail_uri('attribute', id=attr['id'])
     assert_created(attr_resp, attr_obj_uri)
 
     # Successfully get all Network Attributes
-    expected = attr_resp.json()['data']
-    expected['attributes'] = [expected.pop('attribute')]
-    expected.update({'limit': None, 'offset': 0, 'total': 1})
-
+    payload = get_result(attr_resp)
+    expected = [payload]
     assert_success(client.get(attr_uri), expected)
 
     # Successfully get a single Network Attribute
-    assert_success(client.get(attr_obj_uri), attr_resp.json()['data'])
+    assert_success(client.get(attr_obj_uri), payload)
 
 
 def test_bulk_operations(client, site):
@@ -72,17 +71,16 @@ def test_bulk_operations(client, site):
 
     # Successfully get all created Attributes
     output = collection_response.json()
-    output['data'].update({
-        'limit': None, 'offset': 0, 'total': len(collection)
-    })
+    payload = get_result(output)
 
     assert_success(
         client.get(attr_uri),
-        output['data'],
+        payload
     )
 
     # Test bulk update to add a description to each Attribute
-    updated = output['data']['attributes']
+    updated = copy.deepcopy(payload)
+
     for item in updated:
         item['description'] = 'This is the best attribute ever.'
     updated_resp = client.put(attr_uri, data=json.dumps(updated))
@@ -97,7 +95,7 @@ def test_update(client, site):
     attr_uri = site.list_uri('attribute')
 
     attr_resp = client.create(attr_uri, resource_name='Network', name='attr1')
-    attr = attr_resp.json()['data']['attribute']
+    attr = get_result(attr_resp)
     attr_obj_uri = site.detail_uri('attribute', id=attr['id'])
 
     # Update the description
@@ -107,7 +105,7 @@ def test_update(client, site):
 
     assert_success(
         client.update(attr_obj_uri, **params),
-        {'attribute': attr1}
+        attr1
     )
 
     # Update the required flag; which should also set display=True
@@ -118,13 +116,13 @@ def test_update(client, site):
 
     assert_success(
         client.update(attr_obj_uri, **params),
-        {'attribute': attr2}
+        attr2
     )
 
     # Reset the object back to it's initial state!
     assert_success(
         client.update(attr_obj_uri, **attr),
-        {'attribute': attr}
+        attr
     )
 
 
@@ -133,7 +131,7 @@ def test_partial_update(site, client):
     attr_uri = site.list_uri('attribute')
 
     attr_resp = client.create(attr_uri, resource_name='Network', name='attr1')
-    attr = attr_resp.json()['data']['attribute']
+    attr = get_result(attr_resp)
     attr_pk_uri = site.detail_uri('attribute', id=attr['id'])
 
     # Update display
@@ -143,7 +141,7 @@ def test_partial_update(site, client):
 
     assert_success(
         client.partial_update(attr_pk_uri, **params),
-        {'attribute': payload}
+        payload
     )
 
     # Update constraints
@@ -155,24 +153,26 @@ def test_partial_update(site, client):
     payload.update(params)
     assert_success(
         client.partial_update(attr_pk_uri, **params),
-        {'attribute': payload}
+        payload
     )
 
 
 def test_deletion(client, site):
+    """Test DELETE operations for Attributes."""
 
     attr_uri = site.list_uri('attribute')
     net_uri = site.list_uri('network')
 
     attr_resp = client.create(attr_uri, resource_name='Network', name='attr1')
-    attr = attr_resp.json()['data']['attribute']
+    attr = get_result(attr_resp)
     attr_obj_uri = site.detail_uri('attribute', id=attr['id'])
 
     # Create a Network with an attribute
     net_resp = client.create(
         net_uri, cidr='10.0.0.0/24', attributes={'attr1': 'foo'}
     )
-    net = net_resp.json()['data']['network']
+    net = get_result(net_resp)
+
     net_obj_uri = site.detail_uri('network', id=net['id'])
 
     # Don't allow delete when there's an attached network

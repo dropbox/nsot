@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 from collections import namedtuple, OrderedDict
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db.models import Q
 import logging
@@ -90,6 +91,10 @@ class BaseNsotViewSet(viewsets.ReadOnlyModelViewSet):
         response = super(BaseNsotViewSet, self).create(
             request, *args, **kwargs
         )
+
+        if request.version == settings.NSOT_API_VERSION:
+            return response
+
         return self.success(
             response.data, status=response.status_code,
             headers=dict(response.items()),
@@ -100,6 +105,10 @@ class BaseNsotViewSet(viewsets.ReadOnlyModelViewSet):
         response = super(BaseNsotViewSet, self).update(
             request, *args, **kwargs
         )
+
+        if request.version == settings.NSOT_API_VERSION:
+            return response
+
         return self.success(response.data)
 
     def list(self, request, site_pk=None, queryset=None, *args, **kwargs):
@@ -112,10 +121,19 @@ class BaseNsotViewSet(viewsets.ReadOnlyModelViewSet):
                 queryset = queryset.filter(site=site_pk)
 
         page = self.paginate_queryset(queryset)
-        serializer = self.get_serializer(page, many=True)
-        return self.get_paginated_response(
-            data=serializer.data, result_key=self.result_key_plural
-        )
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            if request.version == settings.NSOT_API_VERSION:
+                return super(BaseNsotViewSet, self).get_paginated_response(
+                    serializer.data
+                )
+
+            return self.get_paginated_response(
+                data=serializer.data, result_key=self.result_key_plural
+            )
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
     def retrieve(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Retrieve a single object optionally filtered by site."""
@@ -129,6 +147,10 @@ class BaseNsotViewSet(viewsets.ReadOnlyModelViewSet):
 
         obj = self.get_object()
         serializer = self.get_serializer(obj, *args, **kwargs)
+
+        if request.version == settings.NSOT_API_VERSION:
+            return Response(serializer.data)
+
         return self.success(serializer.data)
 
     def get_object(self):

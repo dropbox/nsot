@@ -1,3 +1,7 @@
+"""
+Utilities for unit-testsing of API endpoints.
+"""
+
 from django.core.urlresolvers import reverse
 from hashlib import sha1
 import json
@@ -7,6 +11,25 @@ import os
 from rest_framework import status
 import requests
 from urlparse import urlparse
+
+
+'''
+__all__ = (
+    'get_result_key', 'get_result', 'assert_error', 'assert_success',
+    'assert_created', 'assert_deleted', 'Client', 'TestSite', 'load_json',
+    'load', 'filter_devices', 'filter_interfaces', 'filter_networks',
+    'filter_values', 'make_mac', 'mkcidr',
+)
+'''
+
+
+# This is a list of all possible "result_key" values for pre-versioned API.
+ALL_RESULT_KEYS = [
+    'site', 'sites', 'attribute', 'attributes', 'value', 'values',
+    'device', 'devices', 'network', 'networks', 'interface',
+    'interfaces', 'user', 'users', 'change', 'changes', 'auth_token',
+    'addresses',
+]
 
 
 def _deep_sort(obj):
@@ -21,6 +44,49 @@ def _deep_sort(obj):
     return obj
 
 
+def get_result_key(payload, result_keys=None):
+    """
+    Given a paylaod return the result_key (if any) for it.
+
+    This should be depreceted when the API is fully-versioned.
+    """
+    if result_keys is None:
+        result_keys = ALL_RESULT_KEYS
+    try:
+        if payload is True:
+            return None
+        return [k for k in payload if k in result_keys][0]
+    except (IndexError, KeyError):
+        return None
+
+
+def get_result(response):
+    """
+    Get the desired result from an API response.
+
+    :param response:
+        Requests API response object
+    """
+    try:
+        payload = response.json()
+    except AttributeError:
+        payload = response
+
+    # This is a legacy payload. So complex!
+    if 'data' in payload:
+        data = payload['data']
+        result_key = get_result_key(data)
+
+        if result_key is not None:
+            return data[result_key]
+
+        # Or just return the data for real tho.
+        return data
+
+    # Or just return the payload... (next-gen)
+    return payload
+
+
 def assert_error(response, code):
     """Assert a response resulted in an error."""
     output = response.json()
@@ -30,22 +96,22 @@ def assert_error(response, code):
 
 def assert_success(response, data=None, ignore_order=True):
     """Assert a response resulted in an success."""
-    output = response.json()
+    output = get_result(response)
     assert response.status_code == status.HTTP_200_OK
-    assert output['status'] == 'ok'
 
     if data is not None:
-        print 'OUTPUT_DATA = %r' % (output['data'],)
+
+        print 'OUTPUT_DATA = %r' % (output,)
         print 'EXPECTED_DATA = %r' % (data,)
         if ignore_order:
-            assert _deep_sort(output['data']) == _deep_sort(data)
+            assert _deep_sort(output) == _deep_sort(data)
         else:
-            assert output['data'] == data
+            assert output == data
 
 
 def assert_created(response, location, data=None):
     """Assert 201 CREATED."""
-    output = response.json()
+    output = get_result(response)
     assert response.status_code == status.HTTP_201_CREATED
 
     resp_location = response.headers.get('Location')
@@ -54,10 +120,9 @@ def assert_created(response, location, data=None):
         resp_location = url.path
 
     assert resp_location == location
-    assert output['status'] == 'ok'
 
     if data is not None:
-        assert output['data'] == data
+        assert output == data
 
 
 def assert_deleted(response):
@@ -70,10 +135,11 @@ def assert_deleted(response):
 
 
 class Client(object):
-    def __init__(self, live_server, user="admin"):
+    def __init__(self, live_server, user="admin", api_version=None):
         self.live_server = live_server
         self.user = "{}@localhost".format(user)
         self.session = requests.Session()
+        self.api_version = api_version
 
     @property
     def base_url(self):
@@ -82,12 +148,19 @@ class Client(object):
     def request(self, method, url, user="admin", **kwargs):
 
         headers = {
-            "X-NSoT-Email": self.user
+            "X-NSoT-Email": self.user,
         }
 
+        # If api_version is set, let's use that.
+        api_version = kwargs.get('api_version', self.api_version)
+        if api_version is not None:
+            headers["Accept"] = "*/*; version=%s" % api_version
+
+        # If we're updating/creating, set content-type to json
         if method.lower() in ("put", "post", "patch"):
             headers["Content-type"] = "application/json"
 
+        # Record stuff w/ Betamax for some reason.
         from betamax import Betamax
         cassette = sha1(url).hexdigest()  # SHA1 the URI!
         with Betamax(self.session).use_cassette(cassette):
@@ -199,8 +272,9 @@ def filter_networks(networks, wanted):
         list of cidrs you want
     """
     return [
-        n for n in networks if '%s/%s' % (n['network_address'],
-        n['prefix_length']) in wanted
+        n for n in networks if '%s/%s' % (
+            n['network_address'], n['prefix_length']
+        ) in wanted
     ]
 
 
@@ -234,6 +308,8 @@ def make_mac(mac):
 
 class TestSite(object):
     def __init__(self, data):
+        if 'data' in data:
+            data = data['data']['site']
         self._data = data
         self.__dict__.update(**data)
 

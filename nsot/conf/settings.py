@@ -141,6 +141,8 @@ TEMPLATES = [
 ##################
 # REST Framework #
 ##################
+# Release version of the API to publish.
+NSOT_API_VERSION = '1.0'
 
 # Settings for Django REST Framework (DRF)
 REST_FRAMEWORK = {
@@ -151,6 +153,9 @@ REST_FRAMEWORK = {
         # 'rest_framework.renderers.AdminRenderer',
     ],
     'DEFAULT_PAGINATION_CLASS': 'nsot.api.pagination.CustomPagination',
+    'DEFAULT_VERSIONING_CLASS': 'rest_framework.versioning.AcceptHeaderVersioning',
+    'DEFAULT_VERSION': None,  # Change this when we change default e.g. '1.0'
+    # 'DEFAULT_VERSION': NSOT_API_VERSION,  # Change this when we change default e.g. '1.0'
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAdminUser',
     ),
