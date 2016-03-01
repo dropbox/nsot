@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 from collections import OrderedDict
+from django.conf import settings
 from django.template import Context, loader
 import logging
 from rest_framework import pagination
@@ -24,6 +25,13 @@ class CustomPagination(pagination.LimitOffsetPagination):
         self.request = request
         if self.count > self.limit and self.template is not None:
             self.display_page_controls = True
+
+        if request.version == settings.NSOT_API_VERSION:
+            if self.limit is None:
+                return None
+            return super(CustomPagination, self).paginate_queryset(
+                queryset, request, view
+            )
 
         # If we have a limit, slice it
         if self.limit:
@@ -60,6 +68,9 @@ class CustomPagination(pagination.LimitOffsetPagination):
         log.debug('request URI = %s' % self.request.build_absolute_uri())
         log.debug('request path = %s' % self.request.path)
         log.debug('request path_info = %s' % self.request.path_info)
+
+        if self.request.version == settings.NSOT_API_VERSION:
+            return super(CustomPagination, self).get_paginated_response(data)
 
         # If path is '/api/sites/1/attributes/', this is 'attributes'
         if result_key is None:

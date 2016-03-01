@@ -15,7 +15,7 @@ from rest_framework import status
 from .fixtures import live_server, client, user, site
 from .util import (
     assert_created, assert_error, assert_success, assert_deleted, load_json,
-    Client, load, filter_networks, mkcidr
+    Client, load, filter_networks, mkcidr, get_result
 )
 
 
@@ -60,36 +60,35 @@ def test_creation(live_server, user, site):
         net_uri, cidr=cidr, attributes={'attr1': 'foo'},
         state='reserved',
     )
-    net = net_resp.json()['data']['network']
+    net = get_result(net_resp)
     net_obj_uri = site.detail_uri('network', id=net['id'])
 
     assert_created(net_resp, net_obj_uri)
 
     # Verify Successful get of all Networks
-    expected = net_resp.json()['data']
-    expected['networks'] = [expected.pop('network')]
-    expected.update({'limit': None, 'offset': 0, 'total': 1})
+    payload = get_result(net_resp)
+    expected = [payload]
 
     assert_success(admin_client.get(net_uri), expected)
 
     # Verify Successful get of single Network
-    assert_success(admin_client.get(net_obj_uri), {'network': net})
+    assert_success(admin_client.get(net_obj_uri), net)
 
     # Verify successful get of single Network by natural_key
     net_natural_uri = site.detail_uri('network', id=cidr)
-    assert_success(admin_client.get(net_natural_uri), {'network': net})
+    assert_success(admin_client.get(net_natural_uri), net)
 
     # Test creation by network_address, prefix_length
     params = {'network_address': '10.8.0.0', 'prefix_length': 16}
     net2_resp = admin_client.create(net_uri, **params)
-    net2 = net2_resp.json()['data']['network']
+    net2 = get_result(net2_resp)
     net2_obj_uri = site.detail_uri('network', id=net2['id'])
     assert_created(net2_resp, net2_obj_uri)
 
     # Delete it and then re-recreate it w/ the original payload
     assert_deleted(admin_client.delete(net2_obj_uri))
     net2a_resp = admin_client.create(net_uri, **params)
-    net2a = net2a_resp.json()['data']['network']
+    net2a = get_result(net2a_resp)
     net2a_obj_uri = site.detail_uri('network', id=net2a['id'])
     assert_created(net2a_resp, net2a_obj_uri)
 
@@ -114,15 +113,13 @@ def test_bulk_operations(site, client):
 
     # Successfully get all created Networks
     output = collection_response.json()
-    output['data'].update({
-        'limit': None, 'offset': 0, 'total': len(collection)
-    })
+    payload = get_result(output)
 
-    assert_success(client.get(net_uri), output['data'])
+    assert_success(client.get(net_uri), payload)
 
     # Test bulk update to add attributes to each Network
     client.create(attr_uri, resource_name='Network', name='vlan')
-    updated = output['data']['networks']
+    updated = copy.deepcopy(payload)
     for item in updated:
         item['attributes'] = {'vlan': '300'}
     updated_resp = client.put(net_uri, data=json.dumps(updated))
@@ -144,14 +141,11 @@ def test_filters(site, client):
     # Populate the Network objects and retreive them for testing.
     client.post(net_uri, data=load('networks.json'))
     net_resp = client.retrieve(net_uri)
-    net_out = net_resp.json()['data']
-    networks = net_out['networks']
+    networks = get_result(net_resp)
 
     # Test lookup by cidr
-    expected = copy.deepcopy(net_out)
     wanted = ['10.0.0.0/8']
-    expected['networks'] = filter_networks(networks, wanted)
-    expected.update({'limit': None, 'offset': 0, 'total': len(wanted)})
+    expected = filter_networks(networks, wanted)
     assert_success(
         client.retrieve(net_uri, cidr='10.0.0.0/8'),
         expected
@@ -159,8 +153,7 @@ def test_filters(site, client):
 
     # Test lookup by attributes
     wanted = ['192.168.0.0/16', '172.16.0.0/12']
-    expected['networks'] = filter_networks(networks, wanted)
-    expected.update({'total': len(wanted)})
+    expected = filter_networks(networks, wanted)
     assert_success(
         client.retrieve(net_uri, attributes='foo=baz'),
         expected
@@ -168,8 +161,7 @@ def test_filters(site, client):
 
     # Test lookup with multiple attributes
     wanted = ['172.16.0.0/12']
-    expected['networks'] = filter_networks(networks, wanted)
-    expected.update({'total': len(wanted)})
+    expected = filter_networks(networks, wanted)
     assert_success(
         client.retrieve(net_uri, attributes=['foo=baz', 'cluster=lax']),
         expected
@@ -177,8 +169,7 @@ def test_filters(site, client):
 
     # Test lookup by network_address
     wanted = ['169.254.0.0/16']
-    expected['networks'] = filter_networks(networks, wanted)
-    expected.update({'total': len(wanted)})
+    expected = filter_networks(networks, wanted)
     assert_success(
         client.retrieve(net_uri, network_address='169.254.0.0'),
         expected
@@ -186,8 +177,7 @@ def test_filters(site, client):
 
     # Test lookup by prefix_length
     wanted = ['192.168.0.0/16', '169.254.0.0/16']
-    expected['networks'] = filter_networks(networks, wanted)
-    expected.update({'total': len(wanted)})
+    expected = filter_networks(networks, wanted)
     assert_success(
         client.retrieve(net_uri, prefix_length=16),
         expected
@@ -195,8 +185,7 @@ def test_filters(site, client):
 
     # Test lookup by network_address + prefix_length
     wanted = ['10.0.0.0/8']
-    expected['networks'] = filter_networks(networks, wanted)
-    expected.update({'total': len(wanted)})
+    expected = filter_networks(networks, wanted)
     assert_success(
         client.retrieve(net_uri, network_address='10.0.0.0', prefix_length=8),
         expected
@@ -204,10 +193,9 @@ def test_filters(site, client):
 
     # Test lookup by ip_version
     ipv6_resp = client.create(net_uri, cidr='2401:d:d0e::/64')
-    ipv6 = ipv6_resp.json()['data']['network']
+    ipv6 = get_result(ipv6_resp)
     wanted = ['2401:d:d0e::/64']
-    expected['networks'] = [ipv6]
-    expected.update({'total': len(wanted)})
+    expected = [ipv6]
     assert_success(
         client.retrieve(net_uri, ip_version='6'),
         expected
@@ -228,14 +216,11 @@ def test_set_queries(client, site):
     # Populate the network objects and retreive them for testing.
     client.post(net_uri, data=load('networks.json'))
     net_resp = client.retrieve(net_uri)
-    net_out = net_resp.json()['data']
-    networks = net_out['networks']
+    networks = get_result(net_resp)
 
     # INTERSECTION: foo=bar
-    expected = copy.deepcopy(net_out)
     wanted = ['10.0.0.0/8', '169.254.0.0/16']
-    expected['networks'] = filter_networks(networks, wanted)
-    expected.update({'limit': None, 'offset': 0, 'total': len(wanted)})
+    expected = filter_networks(networks, wanted)
     assert_success(
         client.retrieve(query_uri, query='foo=bar'),
         expected
@@ -243,8 +228,7 @@ def test_set_queries(client, site):
 
     # INTERSECTION: foo=bar owner=jathan
     wanted = ['169.254.0.0/16']
-    expected['networks'] = filter_networks(networks, wanted)
-    expected.update({'total': len(wanted)})
+    expected = filter_networks(networks, wanted)
     assert_success(
         client.retrieve(query_uri, query='foo=bar owner=jathan'),
         expected
@@ -253,8 +237,7 @@ def test_set_queries(client, site):
     # DIFFERENCE: -owner=gary, networks only
     wanted = ['192.168.0.0/16', '169.254.0.0/16', '192.168.0.0/24',
               '192.168.0.0/25']
-    expected['networks'] = filter_networks(networks, wanted)
-    expected.update({'total': len(wanted)})
+    expected = filter_networks(networks, wanted)
     assert_success(
         client.retrieve(query_uri, query='-owner=gary', include_ips=False),
         expected
@@ -262,8 +245,7 @@ def test_set_queries(client, site):
 
     # UNION: cluster +foo=baz
     wanted = ['192.168.0.0/16', '172.16.0.0/12']
-    expected['networks'] = filter_networks(networks, wanted)
-    expected.update({'total': len(wanted)})
+    expected = filter_networks(networks, wanted)
     assert_success(
         client.retrieve(query_uri, query='cluster +foo=baz'),
         expected
@@ -271,8 +253,7 @@ def test_set_queries(client, site):
 
     # Single IP result.
     wanted = ['192.168.0.1/32']
-    expected['networks'] = filter_networks(networks, wanted)
-    expected.update({'total': len(wanted)})
+    expected = filter_networks(networks, wanted)
     assert_success(
         client.retrieve(query_uri, query='vlan=300'),
         expected
@@ -297,7 +278,7 @@ def test_update(live_server, user, site):
     )
 
     # Extract the Network object so that we can play w/ it during update tests.
-    net = net_resp.json()['data']['network']
+    net = get_result(net_resp)
     net_obj_uri = site.detail_uri('network', id=net['id'])
 
     # Empty attributes should only clear attributes. Change state to 'allocatd'
@@ -306,7 +287,7 @@ def test_update(live_server, user, site):
 
     assert_success(
         admin_client.update(net_obj_uri, **params),
-        {'network': net}
+        net
     )
 
     # Now put attributes back
@@ -315,7 +296,7 @@ def test_update(live_server, user, site):
 
     assert_success(
         admin_client.update(net_obj_uri, **params),
-        {'network': net}
+        net
     )
 
     # Invalid permissions
@@ -328,7 +309,7 @@ def test_update(live_server, user, site):
     net_natural_uri = site.detail_uri('network', id=cidr)
     assert_success(
         admin_client.update(net_natural_uri, **params),
-        {'network': net}
+        net
     )
 
 
@@ -344,7 +325,7 @@ def test_partial_update(site, client):
     )
 
     # Extract the Network object so that we can play w/ it during update tests.
-    net = net_resp.json()['data']['network']
+    net = get_result(net_resp)
     net_pk_uri = site.detail_uri('network', id=net['id'])
     net_natural_uri = site.detail_uri('network', id=cidr)
 
@@ -355,7 +336,7 @@ def test_partial_update(site, client):
 
     assert_success(
         client.partial_update(net_pk_uri, **params),
-        {'network': net}
+        net
     )
 
     # And just to make sure a PUT with the same payload fails...
@@ -371,11 +352,11 @@ def test_deletion(site, client):
     attr_uri = site.list_uri('attribute')
 
     net1_resp = client.create(net_uri, cidr='10.0.0.0/24')
-    net1 = net1_resp.json()['data']['network']
+    net1 = get_result(net1_resp)
     net1_obj_uri = site.detail_uri('network', id=net1['id'])
 
     net2_resp = client.create(net_uri, cidr='10.0.0.1/32')
-    net2 = net2_resp.json()['data']['network']
+    net2 = get_result(net2_resp)
     net2_obj_uri = site.detail_uri('network', id=net2['id'])
 
     # Don't allow delete when there's an attached subnet/ip
@@ -389,7 +370,7 @@ def test_deletion(site, client):
 
     # Create Network 3 and delete it by natural_key
     net3_resp = client.create(net_uri, cidr='10.0.0.0/8')
-    net3 = net3_resp.json()['data']['network']
+    net3 = get_result(net3_resp)
     net3_natural_uri = site.detail_uri('network', id=mkcidr(net3))
     assert_deleted(client.delete(net3_natural_uri))
 
@@ -406,41 +387,36 @@ def test_mptt_detail_routes(site, client):
     client.create(net_uri, cidr='10.16.2.2/32')
 
     net_8_resp = client.retrieve(net_uri, cidr='10.0.0.0/8')
-    net_8 = net_8_resp.json()['data']['networks'][0]
+    net_8 = get_result(net_8_resp)[0]
     net_8_obj_uri = site.detail_uri('network', id=net_8['id'])
 
     net_12_resp = client.retrieve(net_uri, cidr='10.16.0.0/12')
-    net_12 = net_12_resp.json()['data']['networks'][0]
+    net_12 = get_result(net_12_resp)[0]
     net_12_obj_uri = site.detail_uri('network', id=net_12['id'])
 
     net_14_resp = client.retrieve(net_uri, cidr='10.16.0.0/14')
-    net_14 = net_14_resp.json()['data']['networks'][0]
+    net_14 = get_result(net_14_resp)[0]
     net_14_obj_uri = site.detail_uri('network', id=net_14['id'])
 
     net_25_resp = client.retrieve(net_uri, cidr='10.16.2.0/25')
-    net_25 = net_25_resp.json()['data']['networks'][0]
+    net_25 = get_result(net_25_resp)[0]
     net_25_obj_uri = site.detail_uri('network', id=net_25['id'])
 
     ip1_resp = client.retrieve(net_uri, cidr='10.16.2.1/32')
-    ip1 = ip1_resp.json()['data']['networks'][0]
+    ip1 = get_result(ip1_resp)[0]
     ip1_obj_uri = site.detail_uri('network', id=ip1['id'])
 
     ip2_resp = client.retrieve(net_uri, cidr='10.16.2.2/32')
-    ip2 = ip2_resp.json()['data']['networks'][0]
+    ip2 = get_result(ip2_resp)[0]
     ip2_obj_uri = site.detail_uri('network', id=ip2['id'])
 
     # ancestors
-    expected = {
-        'total': 3,
-        'limit': None,
-        'offset': 0,
-        'networks': [net_8, net_12, net_14]
-    }
+    expected = [net_8, net_12, net_14]
     uri = reverse('network-ancestors', args=(site.id, net_25['id']))
     natural_uri = reverse('network-ancestors', args=(site.id, mkcidr(net_25)))
     assert_success(client.retrieve(uri), expected)
 
-    expected['networks'] = [net_14, net_12, net_8]
+    expected = [net_14, net_12, net_8]
     assert_success(client.retrieve(uri, ascending=True), expected)
     assert_success(client.retrieve(natural_uri, ascending=True), expected)
 
@@ -448,16 +424,14 @@ def test_mptt_detail_routes(site, client):
     uri = reverse('network-children', args=(site.id, net_25['id']))
     natural_uri = reverse('network-children', args=(site.id, mkcidr(net_25)))
     wanted = [ip1, ip2]
-    expected['networks'] = wanted
-    expected['total'] = len(wanted)
+    expected = wanted
     assert_success(client.retrieve(uri), expected)
     assert_success(client.retrieve(natural_uri), expected)
 
     uri = reverse('network-children', args=(site.id, net_12['id']))
     natural_uri = reverse('network-children', args=(site.id, mkcidr(net_12)))
     wanted = [net_14]
-    expected['networks'] = wanted
-    expected['total'] = len(wanted)
+    expected = wanted
     assert_success(client.retrieve(uri), expected)
     assert_success(client.retrieve(natural_uri), expected)
 
@@ -465,8 +439,7 @@ def test_mptt_detail_routes(site, client):
     uri = reverse('network-descendents', args=(site.id, net_8['id']))
     natural_uri = reverse('network-descendents', args=(site.id, mkcidr(net_8)))
     wanted = [net_12, net_14, net_25, ip1, ip2]
-    expected['networks'] = wanted
-    expected['total'] = len(wanted)
+    expected = wanted
     assert_success(client.retrieve(uri), expected)
     assert_success(client.retrieve(natural_uri), expected)
 
@@ -475,29 +448,27 @@ def test_mptt_detail_routes(site, client):
         'network-descendents', args=(site.id, mkcidr(net_14))
     )
     wanted = [net_25, ip1, ip2]
-    expected['networks'] = wanted
-    expected['total'] = len(wanted)
+    expected = wanted
     assert_success(client.retrieve(uri), expected)
     assert_success(client.retrieve(natural_uri), expected)
 
     uri = reverse('network-descendents', args=(site.id, ip2['id']))
     natural_uri = reverse('network-descendents', args=(site.id, mkcidr(ip2)))
-    expected['networks'] = []
-    expected['total'] = 0
+    expected = []
     assert_success(client.retrieve(uri), expected)
     assert_success(client.retrieve(natural_uri), expected)
 
     # parent
     uri = reverse('network-parent', args=(site.id, ip2['id']))
     natural_uri = reverse('network-parent', args=(site.id, mkcidr(ip2)))
-    assert_success(client.retrieve(uri), {'network': net_25})
-    assert_success(client.retrieve(natural_uri), {'network': net_25})
+    assert_success(client.retrieve(uri), net_25)
+    assert_success(client.retrieve(natural_uri), net_25)
 
     # root
     uri = reverse('network-root', args=(site.id, ip1['id']))
     natural_uri = reverse('network-root', args=(site.id, mkcidr(ip1)))
-    assert_success(client.retrieve(uri), {'network': net_8})
-    assert_success(client.retrieve(natural_uri), {'network': net_8})
+    assert_success(client.retrieve(uri), net_8)
+    assert_success(client.retrieve(natural_uri), net_8)
 
     uri = reverse('network-root', args=(site.id, net_8['id']))
     natural_uri = reverse('network-root', args=(site.id, mkcidr(net_8)))
@@ -508,14 +479,12 @@ def test_mptt_detail_routes(site, client):
     uri = reverse('network-siblings', args=(site.id, ip1['id']))
     natural_uri = reverse('network-siblings', args=(site.id, mkcidr(ip1)))
     wanted = [ip2]
-    expected['networks'] = wanted
-    expected['total'] = len(wanted)
+    expected = wanted
     assert_success(client.retrieve(uri), expected)
     assert_success(client.retrieve(natural_uri), expected)
 
     wanted = [ip1, ip2]
-    expected['networks'] = wanted
-    expected['total'] = len(wanted)
+    expected = wanted
     assert_success(client.retrieve(uri, include_self=True), expected)
     assert_success(client.retrieve(natural_uri, include_self=True), expected)
 
@@ -531,23 +500,23 @@ def test_get_next_detail_routes(site, client):
     client.create(net_uri, cidr='10.16.2.17/32')
 
     net_25_resp = client.retrieve(net_uri, cidr='10.16.2.0/25')
-    net_25 = net_25_resp.json()['data']['networks'][0]
+    net_25 = get_result(net_25_resp)[0]
     net_25_obj_uri = site.detail_uri('network', id=net_25['id'])
 
     net_29_resp = client.retrieve(net_uri, cidr='10.16.2.8/29')
-    net_29 = net_29_resp.json()['data']['networks'][0]
+    net_29 = get_result(net_29_resp)[0]
     net_29_obj_uri = site.detail_uri('network', id=net_29['id'])
 
     ip1_resp = client.retrieve(net_uri, cidr='10.16.2.1/32')
-    ip1 = ip1_resp.json()['data']['networks'][0]
+    ip1 = get_result(ip1_resp)[0]
     ip1_obj_uri = site.detail_uri('network', id=ip1['id'])
 
     ip2_resp = client.retrieve(net_uri, cidr='10.16.2.2/32')
-    ip2 = ip2_resp.json()['data']['networks'][0]
+    ip2 = get_result(ip2_resp)[0]
     ip2_obj_uri = site.detail_uri('network', id=ip2['id'])
 
     ip3_resp = client.retrieve(net_uri, cidr='10.16.2.2/32')
-    ip3 = ip3_resp.json()['data']['networks'][0]
+    ip3 = get_result(ip3_resp)[0]
     ip3_obj_uri = site.detail_uri('network', id=ip3['id'])
 
     #
@@ -559,7 +528,7 @@ def test_get_next_detail_routes(site, client):
     )
 
     # A single /28
-    expected = {'networks': [u'10.16.2.16/28']}
+    expected = [u'10.16.2.16/28']
     assert_success(client.retrieve(uri, prefix_length=28), expected)
     assert_success(client.retrieve(natural_uri, prefix_length=28), expected)
 
@@ -567,11 +536,11 @@ def test_get_next_detail_routes(site, client):
     networks = [u'10.16.2.0/27', u'10.16.2.32/27', u'10.16.2.64/27', u'10.16.2.96/27']
     assert_success(
         client.retrieve(uri, prefix_length=27, num=4),
-        {'networks': networks}
+        networks
     )
     assert_success(
         client.retrieve(natural_uri, prefix_length=27, num=4),
-        {'networks': networks}
+        networks
     )
 
     # Missing/invalid prefix_length
@@ -609,13 +578,13 @@ def test_get_next_detail_routes(site, client):
     )
 
     # A single /32
-    assert_success(client.retrieve(uri), {'addresses': [u'10.16.2.18/32']})
-    assert_success(client.retrieve(natural_uri), {'addresses': [u'10.16.2.18/32']})
+    assert_success(client.retrieve(uri), [u'10.16.2.18/32'])
+    assert_success(client.retrieve(natural_uri), [u'10.16.2.18/32'])
 
     # 3x /32
     addresses = [u'10.16.2.18/32', u'10.16.2.19/32', u'10.16.2.20/32']
-    assert_success(client.retrieve(uri, num=3), {'addresses': addresses})
-    assert_success(client.retrieve(natural_uri, num=3), {'addresses': addresses})
+    assert_success(client.retrieve(uri, num=3), addresses)
+    assert_success(client.retrieve(natural_uri, num=3), addresses)
 
     # Invalid num is all we can really test for.
     assert_error(
@@ -634,10 +603,9 @@ def test_reservation_list_route(site, client):
     res_uri = reverse('network-reserved', args=(site.id,))
 
     net_resp = client.create(net_uri, cidr='192.168.3.0/24', state='reserved')
-    net = net_resp.json()['data']['network']
+    net = get_result(net_resp)
 
     # Fetch the reserved networks and make sure they match up.
     networks = [net]
-    expected = {'networks': networks}
-    expected.update({'limit': None, 'offset': 0, 'total': len(networks)})
+    expected = networks
     assert_success(client.retrieve(res_uri), expected)

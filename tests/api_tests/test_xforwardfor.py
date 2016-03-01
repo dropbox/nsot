@@ -21,12 +21,16 @@ from .util import (
 log = logging.getLogger(__name__)
 
 def test_request_xforwardfor(live_server):
+    """Test processing of X-Forwarded-For header."""
     url = '{}/api/sites/'.format(live_server.url)
-    headers = {'X-NSoT-Email': 'gary@localhost',
-    'X-Forward-For':'10.1.1.1'
+    headers = {
+        'X-NSoT-Email': 'gary@localhost',
+        'X-Forward-For': '10.1.1.1'
     }
+
+    expected = []
 
     assert_success(
         requests.get(url, headers=headers),
-        {'sites': [], 'limit': None, 'offset': 0, 'total': 0}
+        expected
     )
