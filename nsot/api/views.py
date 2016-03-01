@@ -3,7 +3,6 @@ from __future__ import unicode_literals
 from collections import namedtuple, OrderedDict
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.db.models import Q
 import logging
 from rest_framework import mixins, viewsets
 from rest_framework.views import APIView
@@ -12,7 +11,7 @@ from rest_framework.response import Response
 from rest_framework_bulk import mixins as bulk_mixins
 from rest_framework_extensions.cache.decorators import cache_response
 
-from . import auth, serializers
+from . import auth, filters, serializers
 from .. import exc, models
 from ..util import cache, qpbool, cidr_to_dict
 
@@ -369,7 +368,8 @@ class ResourceViewSet(NsotBulkUpdateModelMixin, NsotViewSet,
         """Perform a set query."""
         query = request.query_params.get('query', '')
 
-        objects = self.queryset.set_query(query, site_id=site_pk)
+        qs = self.queryset.set_query(query, site_id=site_pk)
+        objects = self.filter_queryset(qs)
         return self.list(request, queryset=objects, *args, **kwargs)
 
     def get_resource_object(self, pk, site_pk):
@@ -397,7 +397,7 @@ class AttributeViewSet(ResourceViewSet):
     """
     queryset = models.Attribute.objects.all()
     serializer_class = serializers.AttributeSerializer
-    filter_fields = ('name', 'resource_name')
+    filter_fields = ('name', 'resource_name', 'required', 'display', 'multi')
 
     def get_serializer_class(self):
         if self.request.method == 'POST':
@@ -406,30 +406,6 @@ class AttributeViewSet(ResourceViewSet):
             return serializers.AttributeUpdateSerializer
         return self.serializer_class
 
-    def get_queryset(self):
-        """
-        Filter the queryset based on query arguments.
-        """
-        # Only do this advanced query filtering when we're listing items.
-        if self.request.method != 'GET':
-            return super(AttributeViewSet, self).get_queryset()
-
-        attributes = self.queryset
-
-        params = self.request.query_params
-        required = params.get('required', None)
-        display = params.get('display', None)
-        multi = params.get('multi', None)
-
-        if required is not None:
-            attributes = attributes.filter(required=qpbool(required))
-        if display is not None:
-            attributes = attributes.filter(display=qpbool(display))
-        if multi is not None:
-            attributes = attributes.filter(multi=qpbool(multi))
-
-        return attributes
-
 
 class DeviceViewSet(ResourceViewSet):
     """
@@ -437,7 +413,7 @@ class DeviceViewSet(ResourceViewSet):
     """
     queryset = models.Device.objects.all()
     serializer_class = serializers.DeviceSerializer
-    filter_fields = ('hostname',)
+    filter_class = filters.DeviceFilter
     natural_key = 'hostname'
 
     def get_serializer_class(self):
@@ -453,33 +429,6 @@ class DeviceViewSet(ResourceViewSet):
     def get_natural_key_kwargs(self, filter_value):
         """Return a dict of kwargs for natural_key lookup."""
         return {self.natural_key: filter_value}
-
-    def get_queryset(self):
-        """This is so we can filter by attribute/value pairs."""
-        # Only do this advanced query filtering when we're listing items.
-        if self.request.method != 'GET':
-            return super(DeviceViewSet, self).get_queryset()
-
-        devices = self.queryset
-
-        params = self.request.query_params
-        attributes = params.getlist('attributes', [])
-
-        # Iterate the attributes and try to look them up as if they are k=v
-        # and naively do an intersection query.
-        log.debug('GOT ATTRIBUTES: %r', attributes)
-        for attribute in attributes:
-            name, _, value = attribute.partition('=')
-            # Retrieve next set of networks using the same arguments as the
-            # initial query.
-            next_set = Q(
-                id__in=models.Value.objects.filter(
-                    name=name, value=value, resource_name='Device'
-                ).values_list('resource_id', flat=True)
-            )
-            devices = devices.filter(next_set)
-
-        return devices
 
     @detail_route(methods=['get'])
     def interfaces(self, request, pk=None, site_pk=None, *args, **kwargs):
@@ -497,7 +446,7 @@ class NetworkViewSet(ResourceViewSet):
     """
     queryset = models.Network.objects.all()
     serializer_class = serializers.NetworkSerializer
-    filter_fields = ('ip_version', 'state')
+    filter_class = filters.NetworkFilter
     lookup_value_regex = '[a-fA-F0-9:.]+(?:\/\d+)?'
     natural_key = 'cidr'
 
@@ -522,75 +471,6 @@ class NetworkViewSet(ResourceViewSet):
         return super(NetworkViewSet, self).query(
             request, site_pk, *args, **kwargs
         )
-
-    def get_queryset(self):
-        """
-        Filter the queryset based on query arguments.
-        """
-        # Only do this advanced query filtering when we're listing items.
-        if self.request.method != 'GET':
-            return super(NetworkViewSet, self).get_queryset()
-
-        networks = self.queryset
-
-        params = self.request.query_params
-        include_networks = qpbool(params.get('include_networks', True))
-        include_ips = qpbool(params.get('include_ips', True))
-        root_only = qpbool(params.get('root_only', False))
-        cidr = params.get('cidr', None)
-        attributes = params.getlist('attributes', [])
-        network_address = params.get('network_address', None)
-        prefix_length = params.get('prefix_length', None)
-
-        if not any([include_networks, include_ips]):
-            return networks.none()
-
-        if not all([include_networks, include_ips]):
-            if include_networks:
-                networks = networks.filter(is_ip=False)
-            if include_ips:
-                networks = networks.filter(is_ip=True)
-
-        if root_only:
-            networks = networks.filter(parent=None)
-
-        # If cidr is provided, use it to populate network_address and
-        # prefix_length
-        if cidr is not None:
-            log.debug('got cidr: %s' % cidr)
-            network_address, _, prefix_length = cidr.partition('/')
-
-        # If network_address is provided, pack it.
-        if network_address is not None:
-            log.debug('got network_address: %s' % network_address)
-            networks = networks.filter(network_address=network_address)
-
-        # If prefix_length is provided, convert it to an int.
-        if prefix_length is not None:
-            log.debug('got prefix_length: %s' % prefix_length)
-            try:
-                prefix_length = int(prefix_length)
-            except ValueError:
-                raise exc.BadRequest(
-                    'Invalid prefix_length: %s' % prefix_length
-                )
-            networks = networks.filter(prefix_length=prefix_length)
-
-        # Iterate the attributes and try to look them up as if they are k=v
-        # and naively do an intersection query.
-        log.debug('GOT ATTRIBUTES: %r', attributes)
-        for attribute in attributes:
-            name, _, value = attribute.partition('=')
-            # Retrieve next set of networks using the same arguments as the
-            # initial query.
-            next_set = Q(
-                id__in=models.Value.objects.filter(
-                    name=name, value=value, resource_name='Network'
-                ).values_list('resource_id', flat=True)
-            )
-            networks = networks.filter(next_set)
-
-        return networks
 
     @detail_route(methods=['get'])
     def subnets(self, request, pk=None, site_pk=None, *args, **kwargs):
