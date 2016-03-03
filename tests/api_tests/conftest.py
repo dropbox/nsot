@@ -17,8 +17,3 @@ with betamax.Betamax.configure() as config:
 
     config.cassette_library_dir = 'tests/api_tests/cassettes'
     config.default_cassette_options['record_mode'] = 'all'
-
-
-def pytest_report_header(config):
-    api_version = os.getenv('NSOT_API_VERSION')
-    return 'Using NSoT API version: %s' % api_version

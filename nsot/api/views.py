@@ -742,6 +742,9 @@ class AuthTokenLoginView(APIView):
             user = serializer.validated_data['user']
             data = {'auth_token': user.generate_auth_token()}
 
+            if request.version == settings.NSOT_API_VERSION:
+                return Response(data)
+
             return Response(
                 OrderedDict([
                     ('status', 'ok'),
@@ -756,6 +759,9 @@ class AuthTokenVerifyView(APIView):
     permission_classes = ()
 
     def post(self, request, *args, **kwargs):
+        if request.version == settings.NSOT_API_VERSION:
+            return Response(True)
+
         return Response(
             OrderedDict([
                 ('status', 'ok'),
