@@ -1,0 +1,86 @@
+# NSoT Docker Image
+
+This Docker image runs NSoT. Perfect for quick developing and even deploying in
+production.
+
+## Using this image
+
+Image tags should correspond with NSoT release version numbers. Basic usage is
+like:
+
+```bash
+
+$ SECRET='YkV0Q0lYT3RpN0ppMGZ2Q0tMVE8wbW55WjQ0QkFpdlBvUWpLbFpBTlVZSW1DVnZmMWFNTWpteDFGVDFKUXg2'
+$ docker run -p -d --name=nsot -e NSOT_SECRET=$SECRET dropbox/nsot:0.15.4
+```
+
+`nsot-server --config=/etc/nsot/nsot.conf.py` is the image entrypoint, so the
+command passed to docker run becomes CLI parameters. This is equivalent to what
+the default is:
+
+```
+$ docker run -p -d --name=nsot dropbox/nsot start --noinput --no-upgrade
+```
+
+If you wanted to do interactive debugging, use the docker run flags `-ti` and
+pass the relevant options:
+
+```bash
+$ docker run -p -ti --rm dropbox/nsot dbshell
+    SQLite version 3.8.2 2013-12-06 14:53:30
+    Enter ".help" for instructions
+    Enter SQL statements terminated with a ";"
+    sqlite> exit
+
+OR
+
+$ docker run -p -ti --rm dropbox/nsot shell_plus
+    # Shell Plus Model Imports
+    from django.contrib.admin.models import LogEntry
+    from django.contrib.auth.models import Group, Permission
+    from django.contrib.contenttypes.models import ContentType
+    from django.contrib.sessions.models import Session
+    from nsot.models import Assignment, Attribute, Change, Device, Interface,
+    Network, Site, User, Value
+    # Shell Plus Django Imports
+    from django.utils import timezone
+    from django.conf import settings
+    from django.core.cache import cache
+    from django.db.models import Avg, Count, F, Max, Min, Sum, Q, Prefetch
+    from django.core.urlresolvers import reverse
+    from django.db import transaction
+    Python 2.7.6 (default, Jun 22 2015, 17:58:13)
+    Type "copyright", "credits" or "license" for more information.
+
+    IPython 3.1.0 -- An enhanced Interactive Python.
+    ?         -> Introduction and overview of IPython's features.
+    %quickref -> Quick reference.
+    help      -> Python's own help system.
+    object?   -> Details about 'object', use 'object??' for extra details.
+
+    In [1]:
+```
+
+If you want to add an entire custom config, volume mount it to
+`/etc/nsot/nsot.conf.py`
+
+## Ports
+
+Only TCP 8990 is exposed
+
+## Environment Variales
+
+Pass these with `-e` to control the configuration. `NSOT_SECRET` should be the
+bare minimum set, setting an external DB if in production or wanting
+persistence should be second.
+
+| Variable            | Default Value    |
+|:--------------------|:-----------------|
+| `DB_ENGINE`         | `django.db.backends.sqlite3` |
+| `DB_NAME`           | `nsot.sqlite3`               |
+| `DB_USER`           | `nsot`                       |
+| `DB_PASSWORD`       | ''                           |
+| `DB_HOST`           | ''                           |
+| `DB_PORT`           | ''                           |
+| `NSOT_EMAIL`        | `X-NSoT-Email`               |
+| `NSOT_SECRET`       | `UGxlYXNlIGNoYW5nZSB0aGlzIQ==` ('Please change this!' base64) |
