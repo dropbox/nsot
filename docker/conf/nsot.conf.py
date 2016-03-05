@@ -13,7 +13,7 @@ from nsot.conf.settings import *  # noqa
 import os
 
 # Path where the config is found.
-CONF_ROOT = os.path.dirname(__file__)
+CONF_ROOT = '/etc/nsot'
 
 # A boolean that turns on/off debug mode. Never deploy a site into production
 # with DEBUG turned on.
@@ -41,7 +41,7 @@ DATABASES = {
 
 # The address on which the application will listen.
 # Default: localhost
-NSOT_HOST = 'localhost'
+NSOT_HOST = '0.0.0.0'
 
 # The port on which the application will be accessed.
 # Default: 8990

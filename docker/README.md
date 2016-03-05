@@ -19,8 +19,11 @@ command passed to docker run becomes CLI parameters. This is equivalent to what
 the default is:
 
 ```
-$ docker run -p -d --name=nsot dropbox/nsot start --noinput --no-upgrade
+$ docker run -p -d --name=nsot dropbox/nsot start --noinput
 ```
+
+If you have an established database and you don't wish to attempt to upgrade it
+then you'll need to specify `--no-upgrade`
 
 If you wanted to do interactive debugging, use the docker run flags `-ti` and
 pass the relevant options:
