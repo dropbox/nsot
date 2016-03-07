@@ -37,11 +37,12 @@ RUN pip install psycopg2
 
 # Try to run this as late as possible for layer caching - this version will be
 # updated every update so let the build not take longer than necessary
-RUN pip install nsot==0.15.1
+RUN pip install nsot==0.15.4
 COPY conf /etc/nsot
 
 ENTRYPOINT ["nsot-server", "--config=/etc/nsot/nsot.conf.py"]
+
+# If using --no-upgrade then the database won't be built for first run. Use
+# should specify --no-upgrade manually if they don't want it
 CMD ["start", "--noinput"]
 # CMD ["start", "--noinput", "--no-upgrade"]
-# If using --no-upgrade then the database won't be built for first run. User
-# should specify --no-upgrade manually if they don't want it

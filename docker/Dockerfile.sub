@@ -41,4 +41,8 @@ RUN pip install nsot=={{ NSOT_VERSION }}
 COPY conf /etc/nsot
 
 ENTRYPOINT ["nsot-server", "--config=/etc/nsot/nsot.conf.py"]
-CMD ["start", "--noinput", "--no-upgrade"]
+
+# If using --no-upgrade then the database won't be built for first run. Use
+# should specify --no-upgrade manually if they don't want it
+CMD ["start", "--noinput"]
+# CMD ["start", "--noinput", "--no-upgrade"]
