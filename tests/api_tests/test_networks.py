@@ -191,7 +191,42 @@ def test_filters(site, client):
         expected
     )
 
-    # Test lookup by ip_version
+    # Test include_ips=True, include_networks=False
+    wanted = ['192.168.0.1/32']
+    expected = filter_networks(networks, wanted)
+    assert_success(
+        client.retrieve(net_uri, include_ips=True, include_networks=False),
+        expected
+    )
+
+    # Test include_ips=False, include_networks=True
+    wanted = ['192.168.0.0/16', '10.0.0.0/8', '172.16.0.0/12',
+              '169.254.0.0/16', '192.168.0.0/24', '192.168.0.0/25']
+    expected = filter_networks(networks, wanted)
+    assert_success(
+        client.retrieve(net_uri, include_ips=False, include_networks=True),
+        expected
+    )
+
+    # Test include_ips=True, include_networks=True
+    wanted = ['192.168.0.0/16', '10.0.0.0/8', '172.16.0.0/12',
+              '169.254.0.0/16', '192.168.0.1/32', '192.168.0.0/24',
+              '192.168.0.0/25']
+    expected = filter_networks(networks, wanted)
+    assert_success(
+        client.retrieve(net_uri, include_ips=True, include_networks=True),
+        expected
+    )
+
+    # Test include_ips=False, include_networks=False
+    wanted = []
+    expected = filter_networks(networks, wanted)
+    assert_success(
+        client.retrieve(net_uri, include_ips=False, include_networks=False),
+        expected
+    )
+
+    # Test lookup by ip_version (against ipv6)
     ipv6_resp = client.create(net_uri, cidr='2401:d:d0e::/64')
     ipv6 = get_result(ipv6_resp)
     wanted = ['2401:d:d0e::/64']

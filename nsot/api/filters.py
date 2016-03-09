@@ -58,17 +58,29 @@ class NetworkFilter(ResourceFilter):
 
     def filter_include_networks(self, queryset, value):
         """Converts ``include_networks`` to queryset filters."""
-        if qpbool(value):
-            return queryset.filter(is_ip=False)
-        else:
-            return queryset.exclude(is_ip=False)
+        include_ips = qpbool(self.form.cleaned_data['include_ips'])
+        include_networks = qpbool(value)
+
+        if not all([include_networks, include_ips]):
+            if include_networks:
+                return queryset.filter(is_ip=False)
+            else:
+                return queryset.exclude(is_ip=False)
+
+        return queryset
 
     def filter_include_ips(self, queryset, value):
         """Converts ``include_ips`` to queryset filters."""
-        if qpbool(value):
-            return queryset.filter(is_ip=True)
-        else:
-            return queryset.exclude(is_ip=True)
+        include_ips = qpbool(value)
+        include_networks = qpbool(self.form.cleaned_data['include_networks'])
+
+        if not all([include_networks, include_ips]):
+            if include_ips:
+                return queryset.filter(is_ip=True)
+            else:
+                return queryset.exclude(is_ip=True)
+
+        return queryset
 
     def filter_cidr(self, queryset, value):
         """Converts ``cidr`` to network/prefix filter."""

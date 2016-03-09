@@ -1,4 +1,4 @@
-#!/usr/bin/bash
+#!/bin/bash
 
 USAGE=`cat <<EOF
 Usage: bump [OPTIONS]...
@@ -12,7 +12,7 @@ EOF
 `
 
 function proceed() {
-    echo "Replace ${CURVER} with ${VERSION}? [Y\\n]"
+    echo -n "Replace ${CURVER} with ${VERSION}? [Y/n] "
     read confirm
     case ${confirm} in
         y|Y|'' ) replace;;
