@@ -424,3 +424,9 @@ HOST_PREFIXES = (32, 128)
 
 # Valid IP versions
 IP_VERSIONS = ('4', '6')
+
+# Whether to compress IPv6 for display purposes, for example:
+# - Exploded (default): 2620:0100:6000:0000:0000:0000:0000:0000/40 
+# - Compressed: 2620:100:6000::/40
+# Default: True
+NSOT_COMPRESS_IPV6 = True

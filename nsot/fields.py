@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
+from django.conf import settings
 from django.db.backends.sqlite3.base import DatabaseWrapper
 from django.db import models
 from django.utils.datastructures import DictWrapper
@@ -69,6 +70,10 @@ class BinaryIPAddressField(models.Field):
             obj = ipaddress.ip_address(unicode(value))
         except ValueError:
             obj = ipaddress.ip_address(bytes(value))
+
+        # Display IPv6 as compressed or not? This is a no-op vor IPv4.
+        if settings.NSOT_COMPRESS_IPV6:
+            return obj.compressed
 
         return obj.exploded
 

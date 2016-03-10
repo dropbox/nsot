@@ -99,3 +99,9 @@ MACADDRESS_DEFAULT_DIALECT = 'macaddress.mac_linux'
 # The default speed in Mbps for newly device interfaces if not otherwise
 # specified.
 INTERFACE_DEFAULT_SPEED = 1000  # In Mbps (e.g. 1Gbps)
+
+# Whether to compress IPv6 for display purposes, for example:
+# - Default: 2620:0100:6000:0000:0000:0000:0000:0000/40
+# - Compressed: 2620:100:6000::/40
+# Default: True
+NSOT_COMPRESS_IPV6 = True

@@ -37,7 +37,7 @@ RUN pip install psycopg2
 
 # Try to run this as late as possible for layer caching - this version will be
 # updated every update so let the build not take longer than necessary
-RUN pip install nsot==0.15.5
+RUN pip install nsot==0.15.6
 COPY conf /etc/nsot
 
 ENTRYPOINT ["nsot-server", "--config=/etc/nsot/nsot.conf.py"]

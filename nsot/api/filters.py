@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+from django.db.models import Q
 import django_filters  # django-filters is NOT optional for NSoT
 import logging
 from rest_framework import filters
@@ -21,14 +22,22 @@ class ResourceFilter(filters.FilterSet):
         intersection set query.
         """
         attributes = self.data.getlist('attributes', [])
+        resource_name = queryset.model.__name__
 
         # Iterate the attributes and try to look them up as if they are k=v
         # and naively do an intersection query.
         log.debug('GOT ATTRIBUTES: %r', attributes)
 
-        set_query = ' '.join(attributes)
-        if set_query:
-            queryset = queryset.set_query(set_query)
+        for attribute in attributes:
+            name, _, value = attribute.partition('=')
+            # Retrieve next set of objects using the same arguments as the
+            # initial query.
+            next_set = Q(
+                id__in=models.Value.objects.filter(
+                    name=name, value=value, resource_name=resource_name
+                ).values_list('resource_id', flat=True)
+            )
+            queryset = queryset.filter(next_set)
 
         return queryset
 
