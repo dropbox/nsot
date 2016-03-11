@@ -224,3 +224,51 @@ def test_natural_lookup_without_site(client, site):
         client.get(root_net_detail_uri),
         status.HTTP_400_BAD_REQUEST
     )
+
+
+def test_attribute_lookup_list_view_issues_169(client, site):
+    """
+    Test that filtering by attributes in list view if multiple sites have
+    matching objects returns a result for the current site and does not crash.
+
+    Ref: https://github.com/dropbox/nsot/issues/169
+    """
+    site1 = site  # For comparison against site2
+
+    # Top-level URIs (e.g. /api/:resource_name/)
+    site_uri = reverse('site-list')
+    attr_uri = reverse('attribute-list')
+    net_uri = reverse('network-list')
+    dev_uri = reverse('device-list')
+
+    # Create 2nd site
+    site2_resp = client.create(site_uri, name='Test Site 2')
+    site2 = TestSite(site2_resp.json())
+
+    # Attributes
+    site1_attr_uri = site1.list_uri('attribute')
+    site2_attr_uri = site2.list_uri('attribute')
+    client.create(site1_attr_uri, name='owner', resource_name='Device')
+    client.create(site2_attr_uri, name='owner', resource_name='Device')
+
+    # Devices
+    hostname = 'foo-bar1'
+    site1_dev_uri = site1.list_uri('device')
+    site2_dev_uri = site2.list_uri('device')
+
+    # Create a Device in each site w/ the same hostname
+    dev1_resp = client.create(
+        site1_dev_uri, hostname=hostname, attributes={'owner': 'jathan'}
+    )
+    dev2_resp = client.create(
+        site2_dev_uri, hostname=hostname, attributes={'owner': 'jathan'}
+    )
+
+    # Search devices for site_id 1 and filtering by attributes should succeed
+    # and return a single-item list containing dev1.
+    dev1 = get_result(dev1_resp)
+    expected = [dev1]
+    assert_success(
+        client.retrieve(site1_dev_uri, attributes='owner=jathan'),
+        expected
+    )
