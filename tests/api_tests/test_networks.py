@@ -644,3 +644,56 @@ def test_reservation_list_route(site, client):
     networks = [net]
     expected = networks
     assert_success(client.retrieve(res_uri), expected)
+
+
+def test_closest_parent_detail_route(site, client):
+    """
+    Test the detail route for looking up the closest parent for a
+    Network.
+
+    GET /api/sites/1/networks/10.250.0.1/32/closest_parent/
+    """
+    net_uri = site.list_uri('network')
+
+    # Create networks
+    root_resp = client.create(net_uri, cidr='10.250.0.0/16')
+    root = get_result(root_resp)
+    parent_resp = client.create(net_uri, cidr='10.250.0.0/24')
+    parent = get_result(parent_resp)
+
+    # Closest parent for non-existent /32 should be ``parent``
+    closest_uri = reverse(
+        'network-closest-parent', args=(site.id, '10.250.0.1/32')
+    )
+    expected = parent
+    assert_success(client.retrieve(closest_uri), expected)
+
+    # Matching ip with shorter prefix_length should 404
+    assert_error(
+        client.retrieve(closest_uri, prefix_length=27),
+        status.HTTP_404_NOT_FOUND
+    )
+
+    # Invalid prefix_length should 400
+    assert_error(
+        client.retrieve(closest_uri, prefix_length='shoe'),
+        status.HTTP_400_BAD_REQUEST
+    )
+
+    # Invalid cidr should 400
+    bad_closest_uri = reverse(
+        'network-closest-parent', args=(site.id, 1)
+    )
+    assert_error(client.retrieve(bad_closest_uri), status.HTTP_400_BAD_REQUEST)
+
+    # Alpha cidr should 404
+    abc_closest_uri = reverse(
+        'network-closest-parent', args=(site.id, 'bogus')
+    )
+    assert_error(client.retrieve(abc_closest_uri), status.HTTP_404_NOT_FOUND)
+
+    # If a closest parent isn't found it should 404
+    no_closest_uri = reverse(
+        'network-closest-parent', args=(site.id, '1.0.0.1/32')
+    )
+    assert_error(client.retrieve(no_closest_uri), status.HTTP_404_NOT_FOUND)

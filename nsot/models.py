@@ -12,6 +12,7 @@ from django.utils import timezone
 import ipaddress
 import json
 import logging
+import netaddr
 from operator import attrgetter
 import re
 
@@ -553,6 +554,71 @@ class NetworkManager(ResourceManager):
         address = Network.objects.get(**lookup_kwargs)
         return address
 
+    def get_closest_parent(self, cidr, prefix_length=0, site=None):
+        """
+        Return the closest matching parent Network for a ``cidr`` even if it
+        doesn't exist in the database.
+
+        :param cidr:
+            IPv4/IPv6 CIDR string
+
+        :param prefix_length:
+            Maximum prefix length depth for closest parent lookup
+
+        :param site:
+            ``Site`` instance or ``site_id``
+        """
+        # Validate that it's a real CIDR
+        cidr = validators.validate_cidr(cidr)
+        leaf = netaddr.IPNetwork(str(cidr))
+        ip_version = leaf.version
+
+        try:
+            prefix_length = int(prefix_length)
+        except ValueError:
+            raise exc.ValidationError({
+                'prefix_length': 'Invalid prefix_length: %r' %
+                prefix_length
+            })
+
+        # Walk the supernets backwrds from smallest to largest prefix.
+        try:
+            supernets = leaf.supernet(prefixlen=prefix_length)
+        except ValueError as err:
+            raise exc.ValidationError({
+                'prefix_length': err.message
+            })
+        else:
+            supernets.reverse()
+
+        # Enumerate all unique networks and prefixes
+        network_addresses = {unicode(s.network) for s in supernets}
+        prefix_lengths = {s.prefixlen for s in supernets}
+        del supernets  # Free the memory because DevOps.
+
+        # Prepare the queryset filter
+        lookup_kwargs = {
+            'network_address__in': network_addresses,
+            'prefix_length__in': prefix_lengths,
+            'ip_version': ip_version,
+        }
+        if site is not None:
+            lookup_kwargs['site'] = site
+
+        # Search for possible ancestors by network/prefix, returning them in
+        # reverse order, so that we can choose the first one.
+        possible_ancestors = Network.objects.filter(
+            **lookup_kwargs
+        ).order_by('-prefix_length')
+
+        # If we've got any matches, the first one is our closest parent.
+        try:
+            return possible_ancestors[0]
+        except IndexError:
+            raise Network.DoesNotExist(
+                'Network matching query does not exist.'
+            )
+
     def reserved(self):
         return Network.objects.filter(state=Network.RESERVED)
 
@@ -605,7 +671,7 @@ class Network(Resource):
         help_text='The allocation state of the Network.'
     )
 
-    # Implements .objects.get_by_address()
+    # Implements .objects.get_by_address() and .get_closest_parent()
     objects = NetworkManager()
 
     def __init__(self, *args, **kwargs):
