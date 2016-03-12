@@ -272,6 +272,10 @@ def test_filters(site, client):
     dev_uri = site.list_uri('device')
     net_uri = site.list_uri('network')
 
+    # Create vlan Attribute
+    client.create(attr_uri, name='vlan', resource_name='Interface')
+
+    # Create Devices
     dev1_resp = client.create(dev_uri, hostname='foo-bar1')
     dev2_resp = client.create(dev_uri, hostname='foo-bar2')
 
@@ -279,19 +283,25 @@ def test_filters(site, client):
     dev2 = get_result(dev2_resp)
 
     # Create Interfaces
-    dev1_eth0_resp = client.create(ifc_uri, device=dev1['id'], name='eth0')
+    # foo-bar1:eth0
+    dev1_eth0_resp = client.create(
+        ifc_uri, device=dev1['id'], name='eth0', attributes={'vlan': '100'}
+    )
     dev1_eth0 = get_result(dev1_eth0_resp)
 
+    # foo-bar1:eth1
     dev1_eth1_resp = client.create(
         ifc_uri, device=dev1['id'], name='eth1', speed=40000, type=161
     )
     dev1_eth1 = get_result(dev1_eth1_resp)
 
+    # foo-bar2:eth0
     dev2_eth0_resp = client.create(
         ifc_uri, device=dev2['id'], name='eth0', description='foo-bar2:eth0'
     )
     dev2_eth0 = get_result(dev2_eth0_resp)
 
+    # foo-bar2:eth1
     dev2_eth1_resp = client.create(
         ifc_uri, device=dev2['id'], name='eth1', type=161,
         parent_id=dev2_eth0['id']
@@ -316,6 +326,14 @@ def test_filters(site, client):
     expected = filter_interfaces(interfaces, wanted)
     assert_success(
         client.retrieve(ifc_uri, device=dev1['id']),
+        expected
+    )
+
+    # Test filter by device__hostname
+    wanted = [dev1_eth0, dev1_eth1]
+    expected = filter_interfaces(interfaces, wanted)
+    assert_success(
+        client.retrieve(ifc_uri, device__hostname=dev1['hostname']),
         expected
     )
 
@@ -348,6 +366,14 @@ def test_filters(site, client):
     expected = filter_interfaces(interfaces, wanted)
     assert_success(
         client.retrieve(ifc_uri, parent_id=dev2_eth0['id']),
+        expected
+    )
+
+    # Test filter by attributes
+    wanted = [dev1_eth0]
+    expected = filter_interfaces(interfaces, wanted)
+    assert_success(
+        client.retrieve(ifc_uri, attributes=['vlan=100']),
         expected
     )
 

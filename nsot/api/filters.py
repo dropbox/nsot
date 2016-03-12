@@ -108,3 +108,13 @@ class NetworkFilter(ResourceFilter):
         if qpbool(value):
             return queryset.filter(parent=None)
         return queryset
+
+
+class InterfaceFilter(ResourceFilter):
+    """Filter for Interface objects."""
+    class Meta:
+        model = models.Interface
+        fields = [
+            'device', 'device__hostname', 'name', 'speed', 'type',
+            'description', 'parent_id', 'attributes'
+        ]
