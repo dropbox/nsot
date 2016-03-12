@@ -612,8 +612,7 @@ class InterfaceViewSet(ResourceViewSet):
     """
     queryset = models.Interface.objects.all()
     serializer_class = serializers.InterfaceSerializer
-    filter_fields = ('device', 'name', 'speed', 'type', 'description',
-                     'parent_id')
+    filter_class = filters.InterfaceFilter
 
     @cache_response(cache_errors=False, key_func=cache.list_key_func)
     def list(self, *args, **kwargs):
