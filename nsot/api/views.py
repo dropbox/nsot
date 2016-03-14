@@ -473,6 +473,26 @@ class NetworkViewSet(ResourceViewSet):
         )
 
     @detail_route(methods=['get'])
+    def closest_parent(self, request, pk=None, site_pk=None, *args, **kwargs):
+        """
+        Return the closest matching parent of this Network even if it doesn't
+        exist in the database.
+        """
+        prefix_length = request.query_params.get('prefix_length', 0)
+
+        # Get closest parent or 404
+        try:
+            network = models.Network.objects.get_closest_parent(
+                pk, prefix_length=prefix_length, site=site_pk
+            )
+        except models.Network.DoesNotExist:
+            self.not_found(pk, site_pk)
+        else:
+            pk = network.id  # Use the id of the network we found
+
+        return self.retrieve(request, pk, site_pk, *args, **kwargs)
+
+    @detail_route(methods=['get'])
     def subnets(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return subnets of this Network."""
         network = self.get_resource_object(pk, site_pk)

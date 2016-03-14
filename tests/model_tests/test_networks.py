@@ -110,6 +110,7 @@ def test_ip_address_no_network(site):
 
 
 def test_retrieve_networks(site):
+    """Test lookup of Network objects."""
     models.Attribute.objects.create(
         site=site, resource_name='Network', name='test'
     )
@@ -146,6 +147,29 @@ def test_retrieve_networks(site):
 
     # Get by address
     assert site.networks.get_by_address(u'10.0.0.0/8') == net_8
+
+    #
+    # .get_closest_parent()
+    #
+    # Get closest parent for non-existent 10.0.0.2/32 network
+    assert site.networks.get_closest_parent(u'10.0.0.2/32') == net_24
+
+    # Matching ip with shorter prefix_length should not match
+    with pytest.raises(models.Network.DoesNotExist):
+        site.networks.get_closest_parent(u'10.0.0.2/32', prefix_length=27)
+
+    # Non-existent closest parent should error
+    with pytest.raises(models.Network.DoesNotExist):
+        site.networks.get_closest_parent(u'1.0.0.2/32')
+
+    # Invalid prefix_length
+    with pytest.raises(exc.ValidationError):
+        site.networks.get_closest_parent(u'10.0.0.2/32', prefix_length='shoe')
+
+    # Invalid CIDR
+    with pytest.raises(exc.ValidationError):
+        site.networks.get_closest_parent(u'1')
+
 
 def test_mptt_methods(site):
     """Test ancestor/children/descendents/root model methods."""
