@@ -310,8 +310,9 @@ class ResourceManager(models.Manager):
     Manager for Resource objects that adds a special resource methods:
 
     + ``.set_query()`` - For performing set theory lookups by attribute-value
-    string patterns
+      string patterns
     + ``.by_attribute()`` - For looking up objects by attribute name/value.
+
     """
     queryset_class = ResourceSetTheoryQuerySet
 

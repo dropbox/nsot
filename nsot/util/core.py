@@ -27,6 +27,9 @@ def qpbool(arg):
     """
     Convert "truthy" strings into Booleans.
 
+    >>> qpbool('true')
+    True
+
     :param arg:
         Truthy string
     """
@@ -37,6 +40,9 @@ def normalize_auth_header(header):
     """
     Normalize a header name into WSGI-compatible format.
 
+    >>> normalize_auth_header('X-NSoT-Email')
+    'HTTP_X_NSOT_EMAIL'
+
     :param header:
         Header name
     """
@@ -44,7 +50,12 @@ def normalize_auth_header(header):
 
 
 def generate_secret_key():
-    """Return a secret key suitable for use w/ Fernet."""
+    """
+    Return a secret key suitable for use w/ Fernet.
+
+    >>> generate_secret_key()
+    '1BpuqeM5d5pi-U2vIsqeQ8YnTrXRRUAfqV-hu6eQ5Gw='
+    """
     return Fernet.generate_key()
 
 
@@ -62,6 +73,9 @@ def get_field_attr(model, field_name, attr):
 def cidr_to_dict(cidr):
     """
     Take a cidr and return it as a dictionary.
+
+    >>> cidr_to_dict('192.168.0.0/16')
+    {'network_address': '192.168.0.0', 'prefix_length': 16}
 
     :param cidr:
         IPv4/IPv6 CIDR string
@@ -215,7 +229,12 @@ ALLOWED_HOSTS = ['*']
 
 
 def generate_settings(config_template=None):
-    """Used to emit a config template."""
+    """
+    Used to emit a generated configuration from ``config_template``.
+
+    :param config_template:
+        Config template
+    """
     if config_template is None:
         config_template = CONFIG_TEMPLATE.strip()
 
@@ -224,7 +243,12 @@ def generate_settings(config_template=None):
 
 
 def initialize_app(config):
-    """Actions to be performed prior to creating the Application object."""
+    """
+    Actions to be performed prior to creating the Application object.
+
+    :param config:
+        Config object
+    """
     USE_GEVENT = True  # Hard-coding gevent for now.
 
     if USE_GEVENT:

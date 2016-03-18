@@ -8,7 +8,7 @@ idna==2.0
 cryptography==1.0.2
 certifi==2016.2.28
 dj-static==0.0.6
-Django==1.8.7
+Django==1.8.11
 django-custom-user==0.5
 django-extensions==1.5.7
 django-filter==0.11.0

@@ -16,11 +16,16 @@ import sys
 import os
 import sphinx_rtd_theme
 
-
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
+# sys.path.insert(0, os.path.abspath('../tests'))
 sys.path.insert(0, os.path.abspath('..'))
+
+# Setup Django so it's ready to be imported by autodoc.
+os.environ['DJANGO_SETTINGS_MODULE'] = 'tests.test_settings'
+from django.core.wsgi import get_wsgi_application
+application = get_wsgi_application()
 
 # -- General configuration ------------------------------------------------
 
@@ -82,7 +87,7 @@ exclude_patterns = ['_build']
 #default_role = None
 
 # If true, '()' will be appended to :func: etc. cross-reference text.
-#add_function_parentheses = True
+add_function_parentheses = True
 
 # If true, the current module name will be prepended to all description
 # unit titles (such as .. function::).
