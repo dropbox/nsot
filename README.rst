@@ -18,3 +18,8 @@ Resources
 + `Documentation <http://nsot.readthedocs.org/>`_
 + `Python API client/CLI utility <http://pynsot.readthedocs.org/>`_
 + IRC: ``#nsot`` on ``irc.freenode.net``
+
+.. |Build Status| image:: https://travis-ci.org/dropbox/nsot.png?branch=master
+   :target: https://travis-ci.org/dropbox/nsot
+.. |Documentation Status| image:: https://readthedocs.org/projects/nsot/badge/?version=latest
+   :target: https://readthedocs.org/projects/nsot/?badge=latest
