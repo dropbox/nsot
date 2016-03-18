@@ -1,16 +1,17 @@
-###################################
-NSoT on SuSe Install Instructions 
-###################################
+####
+SuSe
+####
 
-This installation guide assumes that you have installed SuSe 13 on your machine, and are wanting to install NSoT.
-This guide will help you install NSoT and then run it locally from a browser window.
+This installation guide assumes that you have installed SuSe 13 on your
+machine, and are wanting to install NSoT. This guide will help you install NSoT
+and then run it locally from a browser window.
 
+Installation
+============
 
-1. Install Python, Dependencies, PIP, and NSOT
-==============================================
-
-To ensure your SuSe installation is up to date, please update it.
-We'll begin by opening a command prompt. Make sure your certificates are properly installed, or use this certificate::
+To ensure your SuSe installation is up to date, please update it. We'll begin
+by opening a command prompt. Make sure your certificates are properly
+installed, or use this certificate::
 
     $ wget --no-check-certificate 'https://raw.githubusercontent.com/mitchellh/vagrant/master/keys/vagrant.pub' -O /home/vagrant/.ssh/authorized_keys
 
@@ -24,7 +25,8 @@ Next you'll need to upgrade Pip and add some features::
     $ sudo pip install --upgrade pip
     $ sudo pip install requests[security]
 
-Now we are ready to Pip install NSoT and MrProxy. MrProxy is there to handle the proxy connections NSoT will require::
+Now we are ready to Pip install NSoT and MrProxy. MrProxy is there to handle
+the proxy connections NSoT will require::
 
     $ sudo pip install nsot mrproxy
 
@@ -32,19 +34,22 @@ Finally we'll download the NSoT repository, via Git, to the /tmp/nsot directory:
 
     $ git clone https://github.com/dropbox/nsot /tmp/nsot
 
-At this point NSoT is installed, the repository should be downloaded, Python and all dependencies are
-working, and you can go poke around in the /tmp/nsot directory.
+At this point NSoT is installed, the repository should be downloaded, Python
+and all dependencies are working, and you can go poke around in the /tmp/nsot
+directory.
 
-SuSe Firewall:
---------------
+SuSe Firewall
+-------------
+
 To access NSoT from a local browser we'll need to turn off the security for this demo::
 
     $  sudo /sbin/service SuSEfirewall2_setup stop 
 
-For production installations we reccomend adding a rule to your iptables for NSoT on ports 8990 and 8991.
+For production installations we reccomend adding a rule to your iptables for
+NSoT on ports 8990 and 8991.
 
-2. Start NSoT
-=============
+Start NSoT
+===========
 
 To Run NSoT, we start the server at the command line::
 
@@ -53,8 +58,9 @@ To Run NSoT, we start the server at the command line::
 
 The server should come up, and begin listening for requests from the web browser.
 
-3. Login Via Web Interface
-==========================
+
+Login Via Web Interface
+=======================
 
 Now you may view NSoT from your local browser of your choice. Open the
 following URL, which will automatically log you in as the user

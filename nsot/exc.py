@@ -79,25 +79,31 @@ class ModelError(Error):
 
 
 class BaseHttpError(Error):
+    """Base HTTP error."""
     pass
 
 
 class BadRequest(BaseHttpError):
+    """HTTP 400 error."""
     status_code = 400
 
 
 class Unauthorized(BaseHttpError):
+    """HTTP 401 error."""
     status_code = 401
 
 
 class Forbidden(BaseHttpError):
+    """HTTP 403 error."""
     status_code = 403
 
 
 class NotFound(BaseHttpError):
+    """HTTP 404 error."""
     status_code = 404
     default_detail = 'Endpoint not found.'
 
 
 class Conflict(BaseHttpError, IntegrityError):
+    """HTTP 409 error."""
     status_code = 409

@@ -1,8 +1,13 @@
 .. _configuration:
 
-=============
+#############
 Configuration
-=============
+#############
+
+.. contents::
+    :local:
+    :depth: 2
+
 
 Configuring NSoT
 ================
@@ -42,6 +47,26 @@ Advanced Configuration
 
 This section covers additional configuration options available
 to the NSoT server and advanced configuration topics.
+
+Database
+--------
+
+NSoT defaults to utilizing SQLite as a database backend, but supports any database
+backend supported by Django. The default backends available are SQLite, MySQL,
+PostgreSQL, and Oracle.
+
+.. code:: python
+
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': 'nsot.sqlite3',
+        }
+    }
+
+For more information on configuring the database, please see the `official
+Django database documentation
+<https://docs.djangoproject.com/en/1.8/ref/settings/#databases>`_.
 
 Caching
 -------

@@ -1,0 +1,4 @@
+Updated and restructured documentation for readthedocs.org
+
+- Moved relevant docs out of README and moved them to docs/ tree
+- Moved `vagrant-files` -> `vagrant`
