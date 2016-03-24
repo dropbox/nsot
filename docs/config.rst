@@ -8,7 +8,6 @@ Configuration
     :local:
     :depth: 2
 
-
 Configuring NSoT
 ================
 
@@ -33,6 +32,13 @@ alternate location::
 
     nsot-server --config=/etc/nsot.conf.py start
 
+You may also set the ``NSOT_CONF`` enviroment variable to the location of your
+configuration file so that you don't have to provide the ``--config``
+argument::
+
+    $ export NSOT_CONF=/etc/nsot.conf.py
+    $ nsot-server start
+
 Sample Configuration
 --------------------
 
@@ -45,8 +51,8 @@ care about, and their default values.
 Advanced Configuration
 ======================
 
-This section covers additional configuration options available
-to the NSoT server and advanced configuration topics.
+This section covers additional configuration options available to the NSoT
+server and advanced configuration topics.
 
 Database
 --------

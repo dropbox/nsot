@@ -12,11 +12,12 @@ NSoT is an API-first application that provides a REST API and a web application
 front-end for managing IP addresses (IPAM), network devices, and network
 interfaces.
 
-Contents:
+**Contents:**
 
 .. toctree::
    :maxdepth: 2
 
+   quickstart
    installation
    config
    models
