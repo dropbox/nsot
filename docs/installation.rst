@@ -2,19 +2,22 @@
 Installation
 ############
 
-Quick Install
-=============
+Dependencies
+============
 
-Network Source of Truth (NSoT) should run on any Unix-like platform so long
-as the dependencies are met. Provided the host is properly configured, NSoT can
-be installed with a single command line entry::
+Network Source of Truth (NSoT) should run on any Unix-like platform that has:
 
-    $ pip install nsot
++ Python 2.7
++ `pip <https://pip.pypa.io>`_
 
-However, we understand not all machines are already configured for NSoT. Below
-we have outlined instructions for clean installs, Vagrantfiles for
-single file virtual server installations, and instructions for isolating NSoT
-inside Mac OS X.
+Python dependencies
+-------------------
+
+If you install using pip, which you should, these will be installed for you
+automatically. For now, here is the contents of ``requirements.txt``:
+
+.. literalinclude::
+    ../requirements.txt
 
 Platform-Specific Installation Instructions
 ===========================================
@@ -39,14 +42,6 @@ might be like running on a platform relevant to your environment.
     :glob:
 
     vagrant/*
-
-Dependencies
-============
-
-Coming soon. For now, here is the contents of ``requirements.txt``:
-
-.. literalinclude::
-    ../requirements.txt
 
 Demo
 ====
