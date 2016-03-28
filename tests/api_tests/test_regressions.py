@@ -272,3 +272,74 @@ def test_attribute_lookup_list_view_issues_169(client, site):
         client.retrieve(site1_dev_uri, attributes='owner=jathan'),
         expected
     )
+
+
+def test_interface_assign_address_500_issues_168(client, site):
+    """
+    Test that when assigning an addresses that already exists in multiple sites
+    succeeds.
+
+    Test conditions:
+
+    - Multiple sites with Network objects w/ same cidr
+    - Assign cidr to interface in a single site
+    - Matching Network object for that site should be assigned
+
+    Ref: https://github.com/dropbox/nsot/issues/168
+    """
+    site1 = site  # For comparison against site2
+
+    # Top-level URIs (e.g. /api/:resource_name/)
+    site_uri = reverse('site-list')
+
+    # Create 2nd site
+    site2_resp = client.create(site_uri, name='Test Site 2')
+    site2 = TestSite(site2_resp.json())
+
+    ############
+    # Networks #
+    ############
+    site1_net_uri = site1.list_uri('network')
+    site2_net_uri = site2.list_uri('network')
+
+    # Create a parent and a leaft in each site w/ the same cidrs
+    parent = '10.250.0.0/24'
+    leaf = '10.250.0.1/32'
+    client.create(site1_net_uri, cidr=parent)
+    client.create(site1_net_uri, cidr=leaf)
+    client.create(site2_net_uri, cidr=parent)
+    client.create(site2_net_uri, cidr=leaf)
+
+    ###########
+    # Devices #
+    ###########
+    hostname = 'foo-bar1'
+    site1_dev_uri = site1.list_uri('device')
+    site2_dev_uri = site2.list_uri('device')
+
+    # Create a Device in each site w/ the same hostname. We're only capturing
+    # output for dev2 tho.
+    client.create(site1_dev_uri, hostname=hostname)
+    dev2_resp = client.create(site2_dev_uri, hostname=hostname)
+    dev2 = get_result(dev2_resp)
+
+    #############
+    # Interface #
+    #############
+
+    # We're only going to create an interface on dev2
+    site2_ifc_uri = site2.list_uri('interface')
+    ifc_resp = client.create(site2_ifc_uri, device=dev2['id'], name='eth0')
+    ifc = get_result(ifc_resp)
+    ifc_detail_uri = site2.detail_uri('interface', id=ifc['id'])
+
+    # Assign the /32 to the interface
+    ifc['addresses'] = ['10.250.0.1/32']
+
+    # Expected payload should also include the parent network in ``networks``
+    expected = copy.deepcopy(ifc)
+    expected['networks'] = ['10.250.0.0/24']
+    assert_success(
+        client.put(ifc_detail_uri, data=json.dumps(ifc)),
+        expected
+    )
