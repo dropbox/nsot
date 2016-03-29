@@ -1177,7 +1177,7 @@ class Interface(Resource):
         """
         cidr = validators.validate_host_address(cidr)
         try:
-            address = Network.objects.get_by_address(cidr)
+            address = Network.objects.get_by_address(cidr, site=self.site)
         except Network.DoesNotExist:
             address = Network.objects.create(cidr=cidr, site=self.site)
             created = True
