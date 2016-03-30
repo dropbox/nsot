@@ -23,12 +23,18 @@
         // Return a collection of objects
         var collectionTransform = appendTransform(
             $http.defaults.transformResponse, function(response) {
-                return {
-                    limit: response.data.limit,
-                    offset: response.data.offset,
-                    total: response.data.total,
-                    data: response.data[collectionName]
-                };
+                // FIXME(jathan): `response.status` will no longer be a thign
+                // with API version 1.0, so we'll have to check whether
+                // response is undefined instead.
+                if (response.status == 'ok') {
+                    return {
+                        limit: response.data.limit,
+                        offset: response.data.offset,
+                        total: response.data.total,
+                        data: response.data[collectionName]
+                    };
+                }
+                return response;
             }
         );
 
