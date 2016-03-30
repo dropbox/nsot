@@ -1,30 +1,30 @@
+###########
 Quick Start
-===========
+###########
 
-This quick start assumes a lot. If it doesn't work for you, please skip this
-and read the :doc:`installation` guide.
+Network Source of Truth is super easy to get running. If you just can't wait to
+skip ahead, this guide is for you.
 
-.. note:: 
-    For now you must also install mrproxy because we don't yet have a login
-    page for NSoT, so to get up and running quickly you'll need to also run the
-    authenticating reverse proxy.
+.. note::
+    This quick start assumes a lot. If it doesn't work for you, please skip
+    this and read the :doc:`installation` guide.
 
-    This is a work-in-progress and will be updated very soon!
+1. Install NSoT::
 
-1. Install NSoT and mrproxy::
+   $ pip install nsot
 
-   $ pip install nsot mrproxy
+2. Initialize the config (this will create a default config in
+   ``~/.nsot/nsot.conf.py``)::
 
-2. Initialize the config::
+    $ nsot-server init
 
-   $ nsot-server init
-
-3. Start the server on ``localhost:8990`` and create a superuser when prompted::
+3. Start the server on ``localhost:8990`` (the default) and create a superuser
+   when prompted::
 
    $ nsot-server start
 
-4. In another terminal, start the reverse proxy on ``localhost:8991``::
+4. Now fire up your browser and visit http://localhost:8990!
 
-   $ nsot-server user_proxy
+5. Use the username/password created in step 3 to login.
 
-Now fire up your browser and visit http://localhost:8991!
+Now, head over to the :doc:`tutorial` to start getting acquainted with NSoT!

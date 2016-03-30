@@ -20,6 +20,7 @@ interfaces.
    quickstart
    installation
    config
+   tutorial
    models
    api/index
    development
