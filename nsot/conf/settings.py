@@ -149,13 +149,11 @@ REST_FRAMEWORK = {
     'DEFAULT_FILTER_BACKENDS': ('rest_framework.filters.DjangoFilterBackend',),
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',
-        'rest_framework.renderers.BrowsableAPIRenderer',
-        # 'rest_framework.renderers.AdminRenderer',
+        'nsot.api.renderers.FilterlessBrowsableAPIRenderer',
     ],
-    'DEFAULT_PAGINATION_CLASS': 'nsot.api.pagination.CustomPagination',
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
     'DEFAULT_VERSIONING_CLASS': 'rest_framework.versioning.AcceptHeaderVersioning',
-    'DEFAULT_VERSION': None,  # Change this when we change default e.g. '1.0'
-    # 'DEFAULT_VERSION': NSOT_API_VERSION,  # Change this when we change default e.g. '1.0'
+    'DEFAULT_VERSION': NSOT_API_VERSION,
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAdminUser',
     ),
@@ -167,7 +165,7 @@ REST_FRAMEWORK = {
     ),
     'EXCEPTION_HANDLER': 'nsot.exc.custom_exception_handler',
     'TEST_REQUEST_DEFAULT_FORMAT': 'json',
-    'PAGE_SIZE': None,
+    'PAGE_SIZE': None,  # No default pagination.
 }
 
 ############

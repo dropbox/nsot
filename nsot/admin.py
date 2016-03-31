@@ -21,7 +21,6 @@ class UserAdmin(EmailUserAdmin):
         }),
         (_('Permissions'), {
             'fields': ('is_active', 'is_staff', 'is_superuser'),
-                       #  'groups', 'user_permissions'),
         }),
         (_('Important dates'), {
             'fields': ('last_login', 'date_joined')
@@ -37,8 +36,8 @@ admin.site.register(models.Site, SiteAdmin)
 
 
 class AttributeAdmin(admin.ModelAdmin):
-    list_display = ('name', 'resource_name', 'description', 'required', 'display',
-                    'multi', 'site')
+    list_display = ('name', 'resource_name', 'description', 'required',
+                    'display', 'multi', 'site')
     list_filter = ('name', 'resource_name', 'required', 'multi', 'site')
 admin.site.register(models.Attribute, AttributeAdmin)
 

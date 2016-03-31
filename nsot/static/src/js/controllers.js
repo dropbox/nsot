@@ -19,7 +19,8 @@
 
     app.controller("IndexController", function($location, Site) {
 
-        Site.query(function(response){
+        // Hack the planet. Get all sites w/ limit=500 to force pagination.
+        Site.query({limit: 500}, function(response){
             var sites = response.data;
             if (!sites.length || sites.length > 1) {
                 $location.path("/sites");
@@ -48,9 +49,10 @@
         $scope.site = new Site();
         $scope.error = null;
 
+        // Again get all sites w/ limit=500 to force pagination. This sucks.
         $q.all([
             User.get({id: 0}).$promise,
-            Site.query().$promise
+            Site.query({limit: 500}).$promise
         ]).then(function(results){
             $scope.user = results[0];
             $scope.sites = results[1].data;
@@ -152,16 +154,16 @@
         ]).then(function(results){
             $scope.user = results[0];
             $scope.site = results[1];
-            $scope.total_devices = results[2].total;
-            $scope.total_networks = results[3].total;
-            $scope.total_ipv4 = results[4].total;
-            $scope.total_ipv6 = results[5].total;
-            $scope.total_reserved = results[6].total;
-            $scope.total_allocated = results[7].total;
-            $scope.total_assigned = results[8].total;
-            $scope.total_orphaned = results[9].total;
+            $scope.total_devices = results[2].count;
+            $scope.total_networks = results[3].count;
+            $scope.total_ipv4 = results[4].count;
+            $scope.total_ipv6 = results[5].count;
+            $scope.total_reserved = results[6].count;
+            $scope.total_allocated = results[7].count;
+            $scope.total_assigned = results[8].count;
+            $scope.total_orphaned = results[9].count;
             $scope.changes = results[10].data;
-            $scope.total_interfaces = results[11].total;
+            $scope.total_interfaces = results[11].count;
             $scope.admin = $scope.user.isAdmin(siteId, ["admin"]);
             $scope.loading = false;
 
@@ -287,7 +289,7 @@
         });
 
         $("body").on("show.bs.modal", "#createNetworkModal", function(e){
-            Attribute.query({siteId: siteId, resource_name: "Network"}, function(response){
+            Attribute.query({siteId: siteId, limit: 500, resource_name: "Network"}, function(response){
                 $scope.attributes = response.data;
                 $scope.attributesByName = _.reduce(
                         $scope.attributes, function(acc, value, key){
@@ -377,7 +379,7 @@
         });
 
         $("body").on("show.bs.modal", "#updateNetworkModal", function(e){
-            Attribute.query({siteId: siteId, resource_name: "Network"}, function(response){
+            Attribute.query({siteId: siteId, limit: 500, resource_name: "Network"}, function(response){
                 $scope.attributes = response.data;
                 $scope.attributesByName = _.reduce(
                         $scope.attributes, function(acc, value, key){
@@ -461,7 +463,7 @@
         });
 
         $("body").on("show.bs.modal", "#createDeviceModal", function(e){
-            Attribute.query({siteId: siteId, resource_name: "Device"}, function(response){
+            Attribute.query({siteId: siteId, limit: 500, resource_name: "Device"}, function(response){
                 $scope.attributes = response.data;
                 $scope.attributesByName = _.reduce(
                         $scope.attributes, function(acc, value, key){
@@ -551,7 +553,7 @@
         });
 
         $("body").on("show.bs.modal", "#updateDeviceModal", function(e){
-            Attribute.query({siteId: siteId, resource_name: "Device"}, function(response){
+            Attribute.query({siteId: siteId, limit: 500, resource_name: "Device"}, function(response){
                 $scope.attributes = response.data;
                 $scope.attributesByName = _.reduce(
                         $scope.attributes, function(acc, value, key){
@@ -664,7 +666,7 @@
         });
 
         $("body").on("show.bs.modal", "#createInterfaceModal", function(e){
-            Attribute.query({siteId: siteId, resource_name: "Interface"}, function(response){
+            Attribute.query({siteId: siteId, limit: 500, resource_name: "Interface"}, function(response){
                 $scope.attributes = response.data;
                 $scope.attributesByName = _.reduce(
                         $scope.attributes, function(acc, value, key){
@@ -757,7 +759,7 @@
         });
 
         $("body").on("show.bs.modal", "#updateInterfaceModal", function(e){
-            Attribute.query({siteId: siteId, resource_name: "Interface"}, function(response){
+            Attribute.query({siteId: siteId, limit: 500, resource_name: "Interface"}, function(response){
                 $scope.attributes = response.data;
                 $scope.attributesByName = _.reduce(
                         $scope.attributes, function(acc, value, key){
@@ -816,7 +818,7 @@
 
         $q.all([
             User.get({id: 0}).$promise,
-            Attribute.query({siteId: siteId}).$promise
+            Attribute.query({siteId: siteId, limit: 1000}).$promise
         ]).then(function(results){
             $scope.user = results[0];
             $scope.attributes = results[1].data;

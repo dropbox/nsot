@@ -123,7 +123,7 @@ def test_verify_auth_token_valid(live_server, site, user):
     data = json.dumps(payload)
 
     auth_resp = requests.post(auth_url, headers=headers, data=data)
-    auth_token = get_result(auth_resp)
+    auth_token = get_result(auth_resp)['auth_token']
 
     headers.update({
         'Authorization': 'AuthToken {}:{}'.format(user.email, auth_token)
@@ -142,7 +142,7 @@ def test_valid_auth_token(live_server, user):
     data = json.dumps(payload)
 
     auth_resp = requests.post(auth_url, headers=headers, data=data)
-    auth_token = get_result(auth_resp)
+    auth_token = get_result(auth_resp)['auth_token']
 
     headers.update({
         'Authorization': 'AuthToken {}:{}'.format(user.email, auth_token)

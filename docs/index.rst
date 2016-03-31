@@ -24,6 +24,7 @@ interfaces.
    models
    api/index
    development
+   changelog
    support
 
 .. |Build Status| image:: https://travis-ci.org/dropbox/nsot.png?branch=master

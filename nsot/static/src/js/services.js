@@ -13,9 +13,6 @@
         // Return a single object
         var resourceTransform = appendTransform(
             $http.defaults.transformResponse, function(response) {
-                if (response.status == "ok") {
-                    return response.data[resourceName];
-                }
                 return response;
             }
         );
@@ -23,15 +20,12 @@
         // Return a collection of objects
         var collectionTransform = appendTransform(
             $http.defaults.transformResponse, function(response) {
-                // FIXME(jathan): `response.status` will no longer be a thign
-                // with API version 1.0, so we'll have to check whether
-                // response is undefined instead.
-                if (response.status == 'ok') {
+                if (response != undefined) {
                     return {
-                        limit: response.data.limit,
-                        offset: response.data.offset,
-                        total: response.data.total,
-                        data: response.data[collectionName]
+                        previous: response.previous,
+                        next: response.next,
+                        count: response.count,
+                        data: response.results
                     };
                 }
                 return response;
@@ -351,11 +345,12 @@
 
     app.factory("Paginator", function($location){
         return function(obj) {
+            obj.limit = obj.data.length;  // Item count doubles as limit
 
             this.pager = new nsot.Pager(
-                obj.offset,
-                obj.limit,
-                obj.total,
+                obj.previous,
+                obj.next,
+                obj.count,
                 $location
             );
             this.limiter = new nsot.Limiter(

@@ -1,9 +1,9 @@
 from __future__ import unicode_literals
-
 from collections import namedtuple, OrderedDict
+import logging
+
 from django.conf import settings
 from django.contrib.auth import get_user_model
-import logging
 from rest_framework import mixins, viewsets
 from rest_framework.views import APIView
 from rest_framework.decorators import detail_route, list_route
@@ -23,9 +23,6 @@ class BaseNsotViewSet(viewsets.ReadOnlyModelViewSet):
     """
     Default viewset for Nsot objects with the following defaults:
 
-    + Successful responses are in format ``{"status": "ok", "data": DATA}``
-    + Error responses are in format ``{"status": "error", "error": ERROR}``
-    + All list results always display pagination controls
     + Objects are designed to be nested under site resources, but can also be
       top-level resources.
     """
@@ -33,14 +30,9 @@ class BaseNsotViewSet(viewsets.ReadOnlyModelViewSet):
     #: Natural key for the resource. If not defined, defaults to pk-only.
     natural_key = None
 
-    def __init__(self, *args, **kwargs):
-        super(BaseNsotViewSet, self).__init__(*args, **kwargs)
-
-        # This is the model's human-readable name for results and error
-        # messages.
-        self.result_key = self.queryset.model._meta.model_name
-        self.result_key_plural = self.result_key + 's'
-        self.model_name = self.result_key.title()
+    @property
+    def model_name(self):
+        return self.queryset.model.__name__
 
     def get_natural_key_kwargs(self, filter_value):
         """
@@ -63,52 +55,8 @@ class BaseNsotViewSet(viewsets.ReadOnlyModelViewSet):
             )
         raise exc.NotFound(msg)
 
-    def success(self, data, result_key=None, status=200, headers=None):
-        if result_key is None:
-            # If there are multiple objects, use the plural result_key
-            if isinstance(data, list):
-                result_key = self.result_key_plural
-            else:
-                result_key = self.result_key
-
-        return Response(
-            OrderedDict([
-                ('status', 'ok'),
-                ('data', {result_key: data}),
-            ]),
-            status=status,
-            headers=headers,
-        )
-
-    def get_paginated_response(self, data, result_key=None):
-        """Overload default pagination to customize `result_key`."""
-        assert self.paginator is not None
-        return self.paginator.get_paginated_response(data, result_key)
-
-    def create(self, request, *args, **kwargs):
-        """Return objects that have just been created."""
-        response = super(BaseNsotViewSet, self).create(
-            request, *args, **kwargs
-        )
-
-        if request.version == settings.NSOT_API_VERSION:
-            return response
-
-        return self.success(
-            response.data, status=response.status_code,
-            headers=dict(response.items()),
-        )
-
-    def update(self, request, *args, **kwargs):
-        """Return objects that have just been updated."""
-        response = super(BaseNsotViewSet, self).update(
-            request, *args, **kwargs
-        )
-
-        if request.version == settings.NSOT_API_VERSION:
-            return response
-
-        return self.success(response.data)
+    def success(self, data, status=200, headers=None):
+        return Response(data, status=status, headers=headers)
 
     def list(self, request, site_pk=None, queryset=None, *args, **kwargs):
         """List objects optionally filtered by site."""
@@ -122,17 +70,12 @@ class BaseNsotViewSet(viewsets.ReadOnlyModelViewSet):
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
-            if request.version == settings.NSOT_API_VERSION:
-                return super(BaseNsotViewSet, self).get_paginated_response(
-                    serializer.data
-                )
-
-            return self.get_paginated_response(
-                data=serializer.data, result_key=self.result_key_plural
+            return super(BaseNsotViewSet, self).get_paginated_response(
+                serializer.data
             )
 
         serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
+        return self.success(serializer.data)
 
     def retrieve(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Retrieve a single object optionally filtered by site."""
@@ -146,9 +89,6 @@ class BaseNsotViewSet(viewsets.ReadOnlyModelViewSet):
 
         obj = self.get_object()
         serializer = self.get_serializer(obj, *args, **kwargs)
-
-        if request.version == settings.NSOT_API_VERSION:
-            return Response(serializer.data)
 
         return self.success(serializer.data)
 
@@ -435,7 +375,6 @@ class DeviceViewSet(ResourceViewSet):
         """Return all interfaces for this Device."""
         device = self.get_resource_object(pk, site_pk)
         interfaces = device.interfaces.all()
-        self.result_key_plural = 'interfaces'
 
         return self.list(request, queryset=interfaces, *args, **kwargs)
 
@@ -534,7 +473,7 @@ class NetworkViewSet(ResourceViewSet):
             prefix_length, num, as_objects=False
         )
 
-        return self.success(networks, result_key='networks')
+        return self.success(networks)
 
     @detail_route(methods=['get'])
     def next_address(self, request, pk=None, site_pk=None, *args, **kwargs):
@@ -544,7 +483,7 @@ class NetworkViewSet(ResourceViewSet):
         num = request.query_params.get('num')
         addresses = network.get_next_address(num, as_objects=False)
 
-        return self.success(addresses, result_key='addresses')
+        return self.success(addresses)
 
     @detail_route(methods=['get'])
     def ancestors(self, request, pk=None, site_pk=None, *args, **kwargs):
@@ -615,7 +554,6 @@ class NetworkViewSet(ResourceViewSet):
         """
         network = self.get_resource_object(pk, site_pk)
         assignments = network.assignments.all()
-        self.result_key_plural = 'assignments'
 
         return self.list(request, queryset=assignments, *args, **kwargs)
 
@@ -659,7 +597,6 @@ class InterfaceViewSet(ResourceViewSet):
         """Return a list of addresses for this Interface."""
         interface = self.get_resource_object(pk, site_pk)
         addresses = interface.addresses.all()
-        self.result_key_plural = 'addresses'
 
         return self.list(request, queryset=addresses, *args, **kwargs)
 
@@ -668,7 +605,6 @@ class InterfaceViewSet(ResourceViewSet):
         """Return a list of information about my assigned addresses."""
         interface = self.get_resource_object(pk, site_pk)
         assignments = interface.assignments.all()
-        self.result_key_plural = 'assignments'
 
         return self.list(request, queryset=assignments, *args, **kwargs)
 
@@ -676,7 +612,6 @@ class InterfaceViewSet(ResourceViewSet):
     def networks(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return all the containing Networks for my assigned addresses."""
         interface = self.get_resource_object(pk, site_pk)
-        self.result_key_plural = 'networks'
 
         return self.list(request, queryset=interface.networks, *args, **kwargs)
 
@@ -736,7 +671,7 @@ class UserViewSet(BaseNsotViewSet, mixins.CreateModelMixin):
             )
 
         user.rotate_secret_key()
-        return self.success(user.secret_key, 'secret_key')
+        return self.success(user.secret_key)
 
 
 class NotFoundViewSet(viewsets.GenericViewSet):

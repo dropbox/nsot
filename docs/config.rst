@@ -18,7 +18,9 @@ Initializing the Configuration
 
 You may generate an initial configuration by executing ``nsot-server init``. By
 default the file will be created at ``~/.nsot/nsot.conf.py``. You may specify a
-different location for the configuration as the argument to ``init``::
+different location for the configuration as the argument to ``init``:
+
+.. code-block:: bash
 
     nsot-server init /etc/nsot.conf.py
 
@@ -28,13 +30,17 @@ Specifying your Configuration
 If you do not wish to utilize the default location, you must provide the
 ``--config`` argument when executing ``nsot-server`` so that it knows where to
 find it. For example, to start the server with the configuration in an
-alternate location::
+alternate location:
+
+.. code-block:: bash
 
     nsot-server --config=/etc/nsot.conf.py start
 
 You may also set the ``NSOT_CONF`` enviroment variable to the location of your
 configuration file so that you don't have to provide the ``--config``
-argument::
+argument:
+
+.. code-block:: bash
 
     $ export NSOT_CONF=/etc/nsot.conf.py
     $ nsot-server start
@@ -61,7 +67,7 @@ NSoT defaults to utilizing SQLite as a database backend, but supports any databa
 backend supported by Django. The default backends available are SQLite, MySQL,
 PostgreSQL, and Oracle.
 
-.. code:: python
+.. code-block:: python
 
     DATABASES = {
         'default': {
@@ -83,7 +89,7 @@ NSoT includes built-in support for caching of API results. The default is to
 use to the "dummy" cache that doesn't actually cache -- it just implements the
 cache interface without doing anything.
 
-.. code:: python
+.. code-block:: python
 
     CACHES = {
         'default': {

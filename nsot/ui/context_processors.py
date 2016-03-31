@@ -11,6 +11,7 @@ Put me in ``settings.py`` like so::
 Credit: http://stackoverflow.com/a/4256485/194311
 """
 
+
 def app_version(request):
     """A template variable to display current version."""
     from nsot import __version__
