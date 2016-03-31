@@ -9,19 +9,25 @@ skip ahead, this guide is for you.
     This quick start assumes a lot. If it doesn't work for you, please skip
     this and read the :doc:`installation` guide.
 
-1. Install NSoT::
+1. Install NSoT:
 
-   $ pip install nsot
+   .. code-block:: bash
+
+       $ pip install nsot
 
 2. Initialize the config (this will create a default config in
-   ``~/.nsot/nsot.conf.py``)::
+   ``~/.nsot/nsot.conf.py``):
 
-    $ nsot-server init
+   .. code-block:: bash
+
+       $ nsot-server init
 
 3. Start the server on ``localhost:8990`` (the default) and create a superuser
-   when prompted::
+   when prompted:
 
-   $ nsot-server start
+   .. code-block:: bash
+
+       $ nsot-server start
 
 4. Now fire up your browser and visit http://localhost:8990!
 

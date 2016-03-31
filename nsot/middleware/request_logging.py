@@ -1,10 +1,10 @@
-
 """
 Middleware to log HTTP requests.
 """
 
-from django.utils.log import getLogger
 from time import time
+
+from django.utils.log import getLogger
 
 
 class LoggingMiddleware(object):
@@ -16,8 +16,11 @@ class LoggingMiddleware(object):
         return None
 
     def process_response(self, request, response):
-        if 'HTTP_X_FORWARDED_FOR' in request.META: #If
-            request_ip_path = '%s, %s' % (request.META.get('REMOTE_ADDR'), request.META.get('HTTP_X_FORWARDED_FOR'))
+        if 'HTTP_X_FORWARDED_FOR' in request.META:
+            request_ip_path = '%s, %s' % (
+                request.META.get('REMOTE_ADDR'),
+                request.META.get('HTTP_X_FORWARDED_FOR')
+            )
         else:
             request_ip_path = request.META.get('REMOTE_ADDR')
         self.logger.info(

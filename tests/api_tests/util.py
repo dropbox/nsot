@@ -2,34 +2,26 @@
 Utilities for unit-testsing of API endpoints.
 """
 
-from django.core.urlresolvers import reverse
 from hashlib import sha1
 import json
+import os
+from urlparse import urlparse
+
+from django.core.urlresolvers import reverse
 import macaddress
 import netaddr
-import os
 from rest_framework import status
 import requests
-from urlparse import urlparse
 
 
 '''
 __all__ = (
-    'get_result_key', 'get_result', 'assert_error', 'assert_success',
-    'assert_created', 'assert_deleted', 'Client', 'TestSite', 'load_json',
-    'load', 'filter_devices', 'filter_interfaces', 'filter_networks',
-    'filter_values', 'make_mac', 'mkcidr',
+    'get_result', 'assert_error', 'assert_success', 'assert_created',
+    'assert_deleted', 'Client', 'TestSite', 'load_json', 'load',
+    'filter_devices', 'filter_interfaces', 'filter_networks', 'filter_values',
+    'make_mac', 'mkcidr',
 )
 '''
-
-
-# This is a list of all possible "result_key" values for pre-versioned API.
-ALL_RESULT_KEYS = [
-    'site', 'sites', 'attribute', 'attributes', 'value', 'values',
-    'device', 'devices', 'network', 'networks', 'interface',
-    'interfaces', 'user', 'users', 'change', 'changes', 'auth_token',
-    'addresses',
-]
 
 
 def _deep_sort(obj):
@@ -44,22 +36,6 @@ def _deep_sort(obj):
     return obj
 
 
-def get_result_key(payload, result_keys=None):
-    """
-    Given a paylaod return the result_key (if any) for it.
-
-    This should be depreceted when the API is fully-versioned.
-    """
-    if result_keys is None:
-        result_keys = ALL_RESULT_KEYS
-    try:
-        if payload is True:
-            return None
-        return [k for k in payload if k in result_keys][0]
-    except (IndexError, KeyError):
-        return None
-
-
 def get_result(response):
     """
     Get the desired result from an API response.
@@ -72,16 +48,12 @@ def get_result(response):
     except AttributeError:
         payload = response
 
-    # This is a legacy payload. So complex!
-    if 'data' in payload:
-        data = payload['data']
-        result_key = get_result_key(data)
+    # If it's a Bool, return it.
+    if payload in (True, False):
+        return payload
 
-        if result_key is not None:
-            return data[result_key]
-
-        # Or just return the data for real tho.
-        return data
+    elif 'results' in payload:
+        return payload['results']
 
     # Or just return the payload... (next-gen)
     return payload
@@ -90,7 +62,6 @@ def get_result(response):
 def assert_error(response, code):
     """Assert a response resulted in an error."""
     output = response.json()
-    assert output['status'] == 'error'
     assert output['error']['code'] == code
 
 

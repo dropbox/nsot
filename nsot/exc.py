@@ -1,19 +1,20 @@
 from __future__ import unicode_literals
-
 from collections import OrderedDict
+import logging
+
 from django.core.exceptions import (
     ValidationError as DjangoValidationError, ObjectDoesNotExist,
     MultipleObjectsReturned
 )
 from django.db import IntegrityError
 from django.db.models import ProtectedError
-import logging
 from rest_framework.exceptions import ValidationError
 from rest_framework.exceptions import APIException
 from rest_framework.views import exception_handler
 
 
 log = logging.getLogger(__name__)
+
 
 __all__ = (
     'Error', 'ModelError', 'BaseHttpError', 'BadRequest', 'Unauthorized',
@@ -32,7 +33,6 @@ def custom_exception_handler(exc, context):
     # Now add the HTTP status code and message to the response.
     # We want an error response to look like this:
     # {
-    #     "status": "error",
     #     "error": {
     #         "message": "Endpoint not found",
     #         "code": 404
@@ -54,7 +54,6 @@ def custom_exception_handler(exc, context):
             message = orig_data[0]
 
         data = OrderedDict([
-            ('status', 'error'),
             ('error', {
                 'message': message,
                 'code': response.status_code,

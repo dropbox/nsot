@@ -1,8 +1,8 @@
 from __future__ import unicode_literals
+import logging
 
 from django.db.models import Q
 import django_filters  # django-filters is NOT optional for NSoT
-import logging
 from rest_framework import filters
 
 from .. import models
@@ -116,5 +116,5 @@ class InterfaceFilter(ResourceFilter):
         model = models.Interface
         fields = [
             'device', 'device__hostname', 'name', 'speed', 'type',
-            'description', 'parent_id', 'attributes'
+            'mac_address', 'description', 'parent_id', 'attributes'
         ]

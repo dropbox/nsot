@@ -30,9 +30,14 @@ urlpatterns = [
     url(r'^admin/', include(admin.site.urls)),
 
     # Favicon redirect for when people insist on fetching it from /favicon.ico
-    url(r'^favicon\.ico$',
-        RedirectView.as_view(url='%sbuild/images/favicon/favicon.ico' %
-        settings.STATIC_URL, permanent=True), name='favicon'),
+    url(
+        r'^favicon\.ico$',
+        RedirectView.as_view(
+            url='%sbuild/images/favicon/favicon.ico' % settings.STATIC_URL,
+            permanent=True
+        ),
+        name='favicon'
+    ),
 
     # Smart selects chaining
     url(r'^chaining/', include('smart_selects.urls')),

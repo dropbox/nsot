@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
+
 from __future__ import unicode_literals
+import logging
 
 from django.core.handlers.wsgi import STATUS_CODE_TEXT as status_text
 from django.shortcuts import render
 from django.views.generic import TemplateView
-import logging
 
 
 log = logging.getLogger(__name__)
@@ -13,8 +14,9 @@ log = logging.getLogger(__name__)
 class FeView(TemplateView):
     """
     Front-end UI view that hands-off rendering to Angular.js.
-    Any additional context needed to be passed to the templates, should be added
-    in ``nsot.ui.context_processors``
+
+    Any additional context needed to be passed to the templates, should be
+    added in ``nsot.ui.context_processors``
     """
     template_name = 'ui/app.html'
 

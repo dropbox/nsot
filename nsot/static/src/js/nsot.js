@@ -15,14 +15,36 @@
         return false;
     };
 
-    nsot.Pager = function(offset, limit, total, $location) {
-        this.offset = offset;
-        this.limit = limit;
-        this.total = total;
+    nsot.Pager = function(previous, next, count, $location) {
+        this.previous = previous;
+        this.next = next;
+        this.count = count;
         this.$location = $location;
 
-        this.page = (offset + limit) / limit;
-        this.numPages = Math.ceil(total/limit);
+        // Use an 'a' element as a URL parser. How novel.
+        var parser = document.createElement('a');
+        parser.href = (this.next || this.previous);  // This is a hack.
+
+        // Given "search" params; parse them into an object.
+        // Ref: https://css-tricks.com/snippets/jquery/get-query-params-object/
+        this.parse_query_params = function(str) {
+            /// I have no idea WTF this hackery even is. Kill me.
+            return str.replace(/(^\?)/, '')
+                .split("&")
+                .map(function(n) {
+                    return n = n.split("="), this[n[0]] = n[1], this
+                }.bind({}))[0];
+        }
+
+        // Use pager_params to calculate limit/offset/pages, etc.
+        var pager_params = this.parse_query_params(parser.search);
+        var limit = parseInt(pager_params.limit);
+        var offset = parseInt(pager_params.offset);
+
+        this.page = ((offset + limit) / limit) - 1;  // Another hack
+        this.numPages = Math.ceil(count / limit);
+        this.limit = limit;
+        this.offset = offset - limit;
 
         this.hasFirst = function(){
             return this.offset !== 0;
@@ -33,11 +55,11 @@
         };
 
         this.hasNext = function(){
-            return this.offset + this.limit < this.total;
+            return this.offset + this.limit < this.count;
         };
 
         this.hasLast = function(){
-            return this.offset + this.limit < this.total;
+            return this.offset + this.limit < this.count;
         };
 
         this.firstPage = function(){

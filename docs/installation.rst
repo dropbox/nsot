@@ -67,6 +67,6 @@ to the ``demo`` directory and run:
     It is being cleaned up as we prepare for the 1.0 release! Proceed with
     caution!
 
-.. code:: bash
+.. code-block:: bash
 
    $ ./run_demo.sh

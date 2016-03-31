@@ -1,10 +1,10 @@
 from __future__ import unicode_literals
-
 import ast
-from django.contrib.auth import get_user_model
 from collections import OrderedDict
 import json
 import logging
+
+from django.contrib.auth import get_user_model
 from rest_framework import fields, serializers
 from rest_framework_bulk import BulkSerializerMixin, BulkListSerializer
 import six
@@ -333,7 +333,8 @@ class DeviceUpdateSerializer(BulkSerializerMixin, DeviceCreateSerializer):
         fields = ('id', 'hostname', 'attributes')
 
 
-class DevicePartialUpdateSerializer(BulkSerializerMixin, DeviceCreateSerializer):
+class DevicePartialUpdateSerializer(BulkSerializerMixin,
+                                    DeviceCreateSerializer):
     """Used for PATCH on Devices."""
     class Meta:
         model = models.Device
@@ -363,8 +364,12 @@ class NetworkCreateSerializer(NetworkSerializer):
     network_address = fields.ModelField(
         model_field=models.Network._meta.get_field('network_address'),
         required=False,
-        label=get_field_attr(models.Network, 'network_address', 'verbose_name'),
-        help_text=get_field_attr(models.Network, 'network_address', 'help_text'),
+        label=get_field_attr(
+            models.Network, 'network_address', 'verbose_name'
+        ),
+        help_text=get_field_attr(
+            models.Network, 'network_address', 'help_text'
+        ),
     )
     prefix_length = fields.IntegerField(
         required=False,
@@ -392,7 +397,8 @@ class NetworkUpdateSerializer(BulkSerializerMixin, NetworkCreateSerializer):
         fields = ('id', 'attributes', 'state')
 
 
-class NetworkPartialUpdateSerializer(BulkSerializerMixin, NetworkCreateSerializer):
+class NetworkPartialUpdateSerializer(BulkSerializerMixin,
+                                     NetworkCreateSerializer):
     """Used for PATCH on Networks."""
     class Meta:
         model = models.Network
@@ -506,7 +512,6 @@ class InterfacePartialUpdateSerializer(BulkSerializerMixin,
         list_serializer_class = BulkListSerializer
         fields = ('id', 'name', 'description', 'type', 'mac_address', 'speed',
                   'parent_id', 'addresses', 'attributes')
-
 
 
 ###########

@@ -11,7 +11,7 @@ version tested is ``1.3.24``)
 We suggest setting up your test environment in a Python `virtualenv
 <https://virtualenv.pypa.io>`_:
 
-.. code:: bash
+.. code-block:: bash
 
     $ virtualenv nsot
     $ source nsot/bin/activate
@@ -19,7 +19,7 @@ We suggest setting up your test environment in a Python `virtualenv
 Or, if you use `virtualenvwrapper
 <https://virtualenvwrapper.readthedocs.org>`_:
 
-.. code:: bash
+.. code-block:: bash
 
     $ mkvirtualenv nsot
 
@@ -31,7 +31,7 @@ proceeding!
 After that, clone the repository into whichever directory you use for
 development and install the dependencies:
 
-.. code:: bash
+.. code-block:: bash
 
     $ git clone git@github.com:dropbox/nsot.git
     $ cd nsot
@@ -42,13 +42,13 @@ Running a Test Instance
 -----------------------
 
 For developement and testing, it's easiest to run NSoT behind a reverse proxy
-that handles authentication and sends a username via a `special HTTP header
-<http://nsot.readthedocs.org/en/latest/api.html#user-authentication-header>`_.
-We've included a test proxy for running on development instances.
+that handles authentication and sends a username via a :ref:`special HTTP
+header <api-auth_header>`. We've included a test proxy for running on
+development instances.
 
 To get started, follow these steps:
 
-.. code:: bash
+.. code-block:: bash
 
     # Initialize the config
     $ nsot-server init
@@ -75,7 +75,7 @@ Running Unit Tests
 All tests will automatically be run on Travis CI when pull requests are sent.
 However, it's beneficial to run the tests often during development:
 
-.. code:: bash
+.. code-block:: bash
 
     $ py.test -v tests/
 
@@ -86,14 +86,14 @@ If you make any changes to the database models you'll need to generate a new
 migration. We use Django's built-in support for database migrations underneath,
 so for general schema changes is should be sufficient to just run:
 
-.. code:: bash
+.. code-block:: bash
 
     $ nsot-server makemigrations
 
 This will generate a new schema version. You can then sync to the latest
 version:
 
-.. code:: bash
+.. code-block:: bash
 
     $ nsot-server migrate
 
@@ -107,7 +107,7 @@ run ``make html``. Then point your browser | to
 
 If you're actively modifying the docs it's useful to run the autobuild server:
 
-.. code:: bash
+.. code-block:: bash
 
     $ sphinx-autobuild docs docs/_build/html/
 
@@ -134,7 +134,7 @@ For the most part you shouldn't need to care about these details though if you
 want to add new build dependencies, for example `gulp-concat
 <https://github.com/contra/gulp-concat>`_, you would run the followiing:
 
-.. code:: bash
+.. code-block:: bash
 
     # Install gulp-concat, updating package.json with a new devDependency
     $ npm install gulp-concat --save-dev
@@ -148,7 +148,7 @@ Adding New Web Dependencies
 
 Adding new web dependencies are done through bower:
 
-.. code:: bash
+.. code-block:: bash
 
     # Install lodaash, updating bower.json with the new dependency
     $ bower install lodash --save

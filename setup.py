@@ -1,16 +1,16 @@
 #!/usr/bin/env python
 
-import os
-import sys
-from subprocess import check_output
-
 from distutils import log
 from distutils.core import Command
+import os
+from subprocess import check_output
+import sys
 
 from setuptools import setup, find_packages
 from setuptools.command.test import test as TestCommand
 from setuptools.command.develop import develop as DevelopCommand
 from setuptools.command.sdist import sdist as SDistCommand
+
 
 ROOT = os.path.realpath(os.path.join(os.path.dirname(__file__)))
 
@@ -33,7 +33,7 @@ class PyTest(TestCommand):
         self.test_suite = True
 
     def run_tests(self):
-        #import here, cause outside the eggs aren't loaded
+        # Import here, cause outside the eggs aren't loaded
         log.info('Running python tests...')
         import pytest
         errno = pytest.main(self.pytest_args)
@@ -66,15 +66,21 @@ class BuildStatic(Command):
         check_output(['npm', 'install', '--quiet'], cwd=ROOT)
 
         log.info('running [gulp clean]')
-        check_output([os.path.join(ROOT, 'node_modules', '.bin', 'gulp'), 'clean'], cwd=ROOT)
+        check_output(
+            [os.path.join(ROOT, 'node_modules', '.bin', 'gulp'), 'clean'],
+            cwd=ROOT
+        )
 
         log.info('running [gulp build]')
-        check_output([os.path.join(ROOT, 'node_modules', '.bin', 'gulp'), 'build'], cwd=ROOT)
+        check_output(
+            [os.path.join(ROOT, 'node_modules', '.bin', 'gulp'), 'build'],
+            cwd=ROOT
+        )
 
 
 kwargs = {
     'name': 'nsot',
-    'version': str(__version__),
+    'version': str(__version__),  # noqa
     'packages': find_packages(exclude=['tests*']),
     'include_package_data': True,
     'description': 'Network Source of Truth (IP Address Management).',
