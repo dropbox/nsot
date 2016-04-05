@@ -11,10 +11,10 @@ important to be familiar with. This document describes each object type.
 Sites
 -----
 
-Sites function as unique namespaces that can contain all other objects Sites
+Sites function as unique namespaces that can contain all other objects. Sites
 allow an organization to have multiple instances of potentially conflicting
-objects This could be beneficial for isolating corporate vs. production
-environments, or pulling in the IP space of an acquisition.
+objects. For example, this could be beneficial for isolating corporate vs.
+production environments, or pulling in the IP space of an acquisition.
 
 Attributes
 ----------

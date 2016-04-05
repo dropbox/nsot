@@ -218,8 +218,14 @@ class ResourceSetTheoryQuerySet(models.query.QuerySet):
 
         try:
             attributes = parse_set_query(query)
-        except (ValueError, TypeError):
-            attributes = []
+        except (ValueError, TypeError) as err:
+            raise exc.ValidationError({
+                'query': err.message
+            })
+
+        # If there aren't any parsed attributes, don't return anything.
+        if not attributes:
+            return objects.none()
 
         resource_name = self.model.__name__
 
@@ -248,8 +254,10 @@ class ResourceSetTheoryQuerySet(models.query.QuerySet):
                 attr = Attribute.objects.get(
                     **params
                 )
-            except Attribute.DoesNotExist:
-                return objects.none()
+            except Attribute.DoesNotExist as err:
+                raise exc.ValidationError({
+                    'query': '%s: %r' % (err.message.rstrip('.'), name)
+                })
 
             # Set lookup params
             next_set_params = {

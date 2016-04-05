@@ -5,6 +5,22 @@ Changelog
 Version History
 ===============
 
+.. _v0.17.1:
+
+0.17.1 (2016-04-07)
+-------------------
+
+- Fixed a bug that would cause set queries lookups of attributes values
+  containing spaces to always fail. When performing a set queries for an
+  ``attribute=value`` pair, if a value contains a space, it must be quoted, and
+  it will be properly parsed.
+- When performing a set query for an attribute that does not exist, an error is
+  raised.
+- When performing a set query, if no attribute pairs are found, an empty set is
+  returned.
+- Docs: Fixed a typo in data model doc
+- Docs: Fixed incorrect year for a bunch of entries in changelog
+
 .. _v0.17:
 
 0.17 (2016-03-31)
@@ -33,14 +49,14 @@ Version History
 
 .. _v0.15.10:
 
-0.15.10 (2015-03-28)
+0.15.10 (2016-03-28)
 --------------------
 
 * Fix #168 - Fix a 500 when assigning address that is in multiple sites
 
 .. _v0.15.9:
 
-0.15.9 (2015-03-17)
+0.15.9 (2016-03-17)
 -------------------
 
 * Bring a lot of documentation up to speed for readthedocs.org
@@ -50,7 +66,7 @@ Version History
 
 .. _v0.15.8:
 
-0.15.8 (2015-03-12)
+0.15.8 (2016-03-12)
 -------------------
 
 * Fixes #171: Implemented API support for lookup by closest parent
@@ -63,7 +79,7 @@ Version History
 
 .. _v0.15.7:
 
-0.15.7 (2015-03-12)
+0.15.7 (2016-03-12)
 -------------------
 
 * Migrated to built-in filtering of Interface objects in API.
@@ -73,7 +89,7 @@ Version History
 
 .. _v0.15.6:
 
-0.15.6 (2015-03-10)
+0.15.6 (2016-03-10)
 -------------------
 
 * Fixes #169: Bugfix when filtering objects by 'attributes' in list view
@@ -84,7 +100,7 @@ Version History
 
 .. _v0.15.5:
 
-0.15.5 (2015-03-08)
+0.15.5 (2016-03-08)
 -------------------
 
 * Bugfix to filtering networks in API and bump.sh and update requirements.
@@ -98,7 +114,7 @@ Version History
 
 .. _v0.15.4:
 
-0.15.4 (2015-03-02)
+0.15.4 (2016-03-02)
 -------------------
 
 * Made authentication API endpoints version-aware.
@@ -112,7 +128,7 @@ Version History
 
 .. _v0.15.3:
 
-0.15.3 (2015-02-29)
+0.15.3 (2016-02-29)
 -------------------
 
 * Complete overhaul of API filtering to use DRF built-in filtering.
@@ -125,7 +141,7 @@ Version History
 
 .. _v0.15.2:
 
-0.15.2 (2015-02-24)
+0.15.2 (2016-02-24)
 -------------------
 
 * Fixes #118 - Network objects are now round-trippable in API.
@@ -140,7 +156,7 @@ Version History
 
 .. _v0.15.1:
 
-0.15.1 (2015-02-23)
+0.15.1 (2016-02-23)
 -------------------
 
 * Added X-Forward-For into request logging.
@@ -148,7 +164,7 @@ Version History
 
 .. _v0.15:
 
-0.15 (2015-02-22)
+0.15 (2016-02-22)
 -----------------
 
 * Full support for PATCH in the API and some resultant bug fixes to PUT.
@@ -191,7 +207,7 @@ Version History
 
 .. _v0.14.2:
 
-0.14.2 (2015-02-19)
+0.14.2 (2016-02-19)
 -------------------
 
 * Bugfixes w/ natural_key lookups that would result in a 500 error.
@@ -207,7 +223,7 @@ Version History
 
 .. _v0.14.1:
 
-0.14.1 (2015-02-19)
+0.14.1 (2016-02-19)
 -------------------
 
 * Issue #50 - Adds better device name validation
@@ -216,7 +232,7 @@ Version History
 
 .. _v0.14:
 
-0.14 (2015-02-17)
+0.14 (2016-02-17)
 -----------------
 
 * Implement GET/PUT objects by natural_key and minor fixes.
@@ -251,7 +267,7 @@ Version History
 
 .. _v0.13.2:
 
-0.13.2 (2015-02-16)
+0.13.2 (2016-02-16)
 -------------------
 
 * Fix #142 - Properly catch non-serializer errors in API views.
@@ -260,7 +276,7 @@ Version History
 
 .. _v0.13.1:
 
-0.13.1 (2015-02-11)
+0.13.1 (2016-02-11)
 -------------------
 
 * Fixes #82: Implemented for regex-based attribute lookups via the API.
@@ -269,7 +285,7 @@ Version History
 
 .. _v0.13:
 
-0.13 (2015-02-02)
+0.13 (2016-02-02)
 -----------------
 
 * Implement API filtering for value objects & perf. tweaks (Fixes #137)

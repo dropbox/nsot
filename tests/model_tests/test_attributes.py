@@ -206,6 +206,8 @@ def test_constraints(site):
 def test_set_query(site):
     """Test backend functionality of set queries."""
     site2 = models.Site.objects.create(name='Site 2')
+
+    # Attributes
     models.Attribute.objects.create(
         name='owner', site=site, resource_name='Device'
     )
@@ -216,6 +218,7 @@ def test_set_query(site):
         name='role', site=site, resource_name='Device'
     )
 
+    # Devices
     device1 = models.Device.objects.create(
         hostname='foo-bar1', attributes={'owner': 'jathan', 'role': 'br'},
         site=site
@@ -224,7 +227,6 @@ def test_set_query(site):
         hostname='foo-bar2', attributes={'owner': 'gary', 'role': 'dr'},
         site=site
     )
-
 
     # Since we have two attributes named 'owner' in 2 different sites, this
     # should raise an error. (Fix #66)
@@ -235,9 +237,18 @@ def test_set_query(site):
     devices = models.Device.objects.set_query('owner=jathan', site_id=site.id)
     assert list(devices) == [device1]
 
-    # Make sure that a bogus set query doesn't raise an error and instead
-    # returns an empty queryset. (Fix #67)
-    empty = models.Device.objects.set_query('role=[ab, bb, cb]')
+    # Bad set queries raises an error.
+    bad_queries = [None, {}, 3.14, object()]
+    for bad_q in bad_queries:
+        with pytest.raises(exc.ValidationError):
+            models.Network.objects.set_query(bad_q)
+
+    # Make sure that a bogus set query raises a ValidationError
+    with pytest.raises(exc.ValidationError):
+        models.Device.objects.set_query('role=[ab, bb, cb]')
+
+    # Empty set query is empty result
+    empty = models.Network.objects.set_query('')
     assert list(empty) == []
 
     # Test regex set query matches a union set query.

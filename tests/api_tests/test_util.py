@@ -1,8 +1,10 @@
-from __future__ import unicode_literals, print_function
-
 """
 Test NSoT utilities.
 """
+
+from __future__ import unicode_literals, print_function
+
+import pytest
 
 from nsot.util import SetQuery, parse_set_query
 from nsot.util import stats
@@ -13,7 +15,7 @@ def test_parse_set_query():
     Parse a bunch of set queries and make sure that the expected result
     matches.
     """
-    # List of 2-tuples of (query, expected_result)
+    # Dict of tuples of (query: expected_result)
     set_tests = {
         'foo=bar': [
             ('intersection', 'foo', 'bar'),
@@ -34,12 +36,28 @@ def test_parse_set_query():
             ('intersection', 'cluster', 'lax'),
             ('union', 'foo', 'baz'),
         ],
+        # Single-quoted value w/ a space in it
+        "usage='Internal Network'": [
+            ('intersection', 'usage', 'Internal Network'),
+        ],
+        # Double-quoted value w/ a space in it
+        'usage="Internal Network"': [
+            ('intersection', 'usage', 'Internal Network'),
+        ],
     }
 
     # Make sure that result matches expected_result
     for query, expected_result in set_tests.iteritems():
         result = parse_set_query(query)
         assert result == expected_result
+
+    # Test bogus stuff
+    with pytest.raises(TypeError):
+        parse_set_query(None)
+
+    # Test a bad string
+    with pytest.raises(ValueError):
+        parse_set_query('foo="bar')  # Unbalanced quotes
 
 
 PARENT = '10.47.216.0/22'

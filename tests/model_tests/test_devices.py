@@ -69,7 +69,6 @@ def test_retrieve_device(site):
     assert list(site.devices.by_attribute('test', 'foo')) == [device1]
 
 
-
 def test_validation(site, transactional_db):
     with pytest.raises(exc.ValidationError):
         models.Device.objects.create(
@@ -95,5 +94,3 @@ def test_validation(site, transactional_db):
 
     device.hostname = 'newtesthostname'
     device.save()
-
-

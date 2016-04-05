@@ -204,6 +204,12 @@ def test_set_queries(client, site):
         expected
     )
 
+    # ERROR: bad query
+    assert_error(
+        client.retrieve(query_uri, query='chop=suey'),
+        status.HTTP_400_BAD_REQUEST
+    )
+
 
 def test_update(client, user_client, user, site):
     """Test updating a device using pk."""

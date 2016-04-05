@@ -294,6 +294,12 @@ def test_set_queries(client, site):
         expected
     )
 
+    # ERROR: bad query
+    assert_error(
+        client.retrieve(query_uri, query='fake=bad'),
+        status.HTTP_400_BAD_REQUEST
+    )
+
 
 def test_update(live_server, user, site):
     """Test updating Networks by pk and natural_key."""
