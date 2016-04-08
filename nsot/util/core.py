@@ -3,9 +3,11 @@ Project-wide utilities.
 """
 
 import collections
+import logging
+import shlex
+
 from cryptography.fernet import Fernet
 from django.core.exceptions import FieldDoesNotExist
-import logging
 from logan.runner import run_app
 
 
@@ -118,7 +120,11 @@ def parse_set_query(query):
         Set query string
     """
     log.debug('Incoming query = %r' % (query,))
-    queries = query.split()
+
+    if not isinstance(query, basestring):
+        raise TypeError('Query must be a string.')
+
+    queries = shlex.split(query)
 
     attributes = []
     for q in queries:

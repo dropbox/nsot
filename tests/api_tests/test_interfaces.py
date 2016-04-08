@@ -455,6 +455,12 @@ def test_set_queries(client, site):
         expected
     )
 
+    # ERROR: bad query
+    assert_error(
+        client.retrieve(query_uri, query='bacon=delicious'),
+        status.HTTP_400_BAD_REQUEST
+    )
+
 
 def test_deletion(site, client):
     """Test deletion of Interfaces."""
