@@ -31,6 +31,9 @@ skip ahead, this guide is for you.
 
 4. Now fire up your browser and visit http://localhost:8990!
 
+.. image:: _static/web_login.png
+   :alt: NSoT Login
+
 5. Use the username/password created in step 3 to login.
 
 Now, head over to the :doc:`tutorial` to start getting acquainted with NSoT!
