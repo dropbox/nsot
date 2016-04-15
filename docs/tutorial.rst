@@ -12,5 +12,6 @@ Here's how to use NSoT. There's not much here right now. For now do this:
        $ pip install pynsot
 
 2. Check out the :doc:`models`.
+3. Play with the :ref:`demo`.
 
 More detail coming soon!

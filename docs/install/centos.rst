@@ -2,7 +2,7 @@
 CentOS
 ######
 
-This installation guide assumes that you have installed CentOS 12.4 on your
+This installation guide assumes that you have installed CentOS 6.4 on your
 machine, and are wanting to install NSoT. This guide will help you install NSoT
 and then run it locally from a browser window.
 
@@ -10,54 +10,25 @@ Installation
 ============
 
 To ensure your CentOS installation is up to date, please update it. 
-Once complete, open a command prompt and run the following::
+Once complete, open a command prompt and run the following:
 
-    $ sudo yum install -y  nodejs mod_ssl openssl git
-    $ sudo yum install -y  python-devel
-    $ sudo yum install -y  libffi-devel openssl-devel
-    $ sudo yum install -y  epel-release
-    $ sudo yum install -y  python-pip
+.. code-block:: bash
 
-Next you'll need to upgrade Pip to the latest version::
+    $ sudo yum install -y openssl-devel python-devel libffi-devel gcc-plugin-devel
+    $ sudo yum install -y epel-release
+    $ sudo yum install -y python-pip
+
+Next you'll need to upgrade Pip to the latest version with some security addons:
+
+.. code-block:: bash
 
     $ sudo pip install --upgrade pip
-
-To complete the prerequisites, we'll need some more Python Compilers and dev tool::
-
-    $ sudo yum install -y  gcc-plugin-devel python-devel
     $ sudo pip install requests[security]
 
-Now we are ready to Pip install NSoT and MrProxy. MrProxy is there to handle
-the proxy connections NSoT will require:: 
+Now we are ready to Pip install NSoT:
 
-    $ sudo pip install nsot mrproxy
+.. code-block:: bash
 
-Finally we'll download the NSoT repository, via Git, to the /tmp/nsot directory::
+    $ sudo pip install nsot
 
-    $ git clone https://github.com/dropbox/nsot /tmp/nsot
-
-At this point NSoT is installed, the repository should be downloaded, Python
-and all dependencies are working, and you can go poke around in the /tmp/nsot
-directory.
-
-Start NSoT
-==========
-
-To Run NSoT, we start the server at the command line::
-
-    $ cd /tmp/nsot/demo
-    $ ./run_demo.sh
-
-The server should come up, and begin listening for requests from the web browser.
-
-Login Via Web Interface
-=======================
-
-Now you may view NSoT from your local browser of your choice. Open the
-following URL, which will automatically log you in as the user
-``admin@localhost``:
-
-http://192.168.33.11:8991
-
-(Note that you you may need to disable some internal software firewalls to
-allow a connection to this virtual machine.)
+Now you are ready to follow the :doc:`../quickstart` starting at step 2!

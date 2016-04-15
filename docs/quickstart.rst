@@ -22,7 +22,7 @@ skip ahead, this guide is for you.
 
        $ nsot-server init
 
-3. Start the server on ``localhost:8990`` (the default) and create a superuser
+3. Start the server on ``8990/tcp`` (the default) and create a superuser
    when prompted:
 
    .. code-block:: bash
