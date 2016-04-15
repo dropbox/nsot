@@ -21,52 +21,49 @@ Platform-Specific Installation Instructions
 
 These guides go into detail on how to install NSoT on a given platform.
 
-.. important::
-    These instructions are still a work in progress and might mention Vagrant.
-    If that's confusing, please run the basic install steps for your platform
-    of choice, and then refer back to the :doc:`quickstart` guide.
+.. toctree::
+    :maxdepth: 1
+    :glob:
+
+    install/centos
+    install/fedora
+    install/macosx
+    install/suse
+    install/ubuntu
+
+Virtual Machine Install Instructions
+====================================
+
+These guides go into detail on how to get running NSoT on virtual machines.
 
 .. toctree::
     :maxdepth: 1
     :glob:
 
-    install/*
+    install/docker
+    install/vagrant
 
-Vagrant Install Instructions
-============================
-
-These guides go into detail on how to get running NSoT using Vagrant. There are
-Vagrantfiles for a variety of platforms, in case you want to see what NSoT
-might be like running on a platform relevant to your environment.
-
-.. warning::
-    These are being cleaned up as we prepare for the 1.0 release! Proceed with
-    caution!
-
-.. toctree::
-    :maxdepth: 1
-    :glob:
-
-    vagrant/*
-
-Docker Install Instructions
-===========================
-
-Want to use Docker? More on this later. For now you may look at the ``docker``
-directory at the top of the repository on GitHub, or if you're feeling plucky,
-check out the contents of :doc:`dockerfile`.
+.. _demo:
 
 Demo
 ====
 
-If you would like to run the demo, make sure you've got NSoT installed, change
-to the ``demo`` directory and run:
+If you would like to run the demo, make sure you've got NSoT installed and that
+you have a fresh clone of the NSoT repository from GitHub.
 
-.. warning::
-    This demo is a little bit out of date, but still technically works.
-    It is being cleaned up as we prepare for the 1.0 release! Proceed with
-    caution!
+If you don't already have a clone, clone it and change into the ``nsot``
+directory:
 
 .. code-block:: bash
 
+    $ git clone https://github.com/dropbox/nsot
+    $ cd nsot
+
+Then to switch to the  ``demo`` directory and fire up the demo:
+
+.. code-block:: bash
+
+   $ cd nsot/demo
    $ ./run_demo.sh
+
+The demo will be available at http://localhost:8990/

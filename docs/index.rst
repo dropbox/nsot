@@ -21,6 +21,7 @@ interfaces.
    installation
    config
    tutorial
+   admin
    models
    api/index
    development

@@ -12,7 +12,7 @@ Vagrant.configure(2) do |config|
 
   # Every Vagrant development environment requires a box. You can search for
   # boxes at https://atlas.hashicorp.com/search.
-  config.vm.box = "box-cutter/fedora22"
+  config.vm.box = "hashicorp/precise32"
 
   # Disable automatic box update checking. If you disable this, then
   # boxes will only be checked for updates when the user runs
@@ -22,11 +22,11 @@ Vagrant.configure(2) do |config|
   # Create a forwarded port mapping which allows access to a specific port
   # within the machine from a port on the host machine. In the example below,
   # accessing "localhost:8080" will access port 80 on the guest machine.
-  # config.vm.network "forwarded_port", guest: 80, host: 8080
+  config.vm.network "forwarded_port", guest: 80, host: 8080
 
   # Create a private network, which allows host-only access to the machine
   # using a specific IP.
-   config.vm.network "private_network", ip: "192.168.33.11"
+  config.vm.network "private_network", ip: "192.168.33.11"
 
   # Create a public network, which generally matched to bridged network.
   # Bridged networks make the machine appear as another physical device on
@@ -65,24 +65,16 @@ Vagrant.configure(2) do |config|
   # Puppet, Chef, Ansible, Salt, and Docker are also available. Please see the
   # documentation for more information about their specific syntax and use.
    config.vm.provision "shell", inline: <<-SHELL
-
-sudo dnf -y install nodejs git gcc gcc-c++ libffi libffi-devel python-devel openssl-devel gcc-plugin-devel make automake kernel kernel-devel psmisc
- sudo dnf -y install python2-devel  
-#sudo dnf -y install nodejs git
-#sudo dnf -y install gcc gcc-c++ 
-#sudo dnf -y install libffi 
-#sudo dnf -y install libffi-devel
-#sudo dnf -y install python-devel openssl-devel gcc-plugin-devel
-#sudo dnf -y install make automake kernel-devel
-#sudo dnf -y install psmisc
-
-sudo pip install --upgrade pip
-#sudo pip install --upgrade requests[security]
+export DEBIAN_FRONTEND=noninteractive
+sudo apt-get -y update
+sudo apt-get -y install build-essential python-dev libffi-dev libssl-dev
+sudo apt-get -y install python-pip
 sudo pip install nsot mrproxy
+mkdir /home/vagrant/.nsot
+nsot-server init /home/vagrant/.nsot/nsot.conf.py
+chown -R vagrant:vagrant /home/vagrant/.nsot
+sed -i "s/localhost/0.0.0.0/" /home/vagrant/.nsot/nsot.conf.py
+nsot-server --config=/home/vagrant/.nsot/nsot.conf.py collectstatic --noinput
+   SHELL
 
-git clone https://github.com/dropbox/nsot /tmp/nsot
-chown -R vagrant /tmp/nsot
-
-
-    SHELL
 end
