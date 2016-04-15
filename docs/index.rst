@@ -2,8 +2,6 @@
 Network Source of Truth
 #######################
 
-|Build Status| |Documentation Status|
-
 Network Source of Truth (NSoT) a source of truth database and repository for tracking
 inventory and metadata of network entities to ease management and automation of
 network infrastructure.
@@ -11,6 +9,8 @@ network infrastructure.
 NSoT is an API-first application that provides a REST API and a web application
 front-end for managing IP addresses (IPAM), network devices, and network
 interfaces.
+
+|Build Status| |Documentation Status| |PyPI Status|
 
 **Contents:**
 
@@ -27,7 +27,12 @@ interfaces.
    changelog
    support
 
-.. |Build Status| image:: https://travis-ci.org/dropbox/nsot.png?branch=master
+.. |Build Status| image:: https://img.shields.io/travis/dropbox/nsot/master.svg?style=flat
    :target: https://travis-ci.org/dropbox/nsot
-.. |Documentation Status| image:: https://readthedocs.org/projects/nsot/badge/?version=latest
+   :width: 88px
+.. |Documentation Status| image:: https://readthedocs.org/projects/nsot/badge/?version=latest&style=flat
    :target: https://readthedocs.org/projects/nsot/?badge=latest
+   :width: 76px
+.. |PyPI Status| image:: https://img.shields.io/pypi/v/nsot.svg?style=flat
+   :target: https://pypi.python.org/pypi/nsot
+   :width: 86px

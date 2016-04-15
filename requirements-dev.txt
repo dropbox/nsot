@@ -13,6 +13,6 @@ pathtools==0.1.2
 requests==2.7.0
 Sphinx==1.2.3
 sphinx-autobuild==0.5.2
-sphinx-rtd-theme==0.1.6
+sphinx-rtd-theme==0.1.9
 tornado==4.2.1
 watchdog==0.8.3
