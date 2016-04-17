@@ -5,6 +5,15 @@ Changelog
 Version History
 ===============
 
+.. _v0.17.2:
+
+0.17.2 (2016-04-17)
+-------------------
+
+- Filtering of Interfaces by ``mac_address`` can now be done using either the
+  string (e.g. ``'00:00:00:00:00:01'``) or integer (e.g. ``1``)
+  representations.
+
 .. _v0.17.1:
 
 0.17.1 (2016-04-07)
