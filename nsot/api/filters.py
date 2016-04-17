@@ -111,10 +111,26 @@ class NetworkFilter(ResourceFilter):
 
 
 class InterfaceFilter(ResourceFilter):
-    """Filter for Interface objects."""
+    """
+    Filter for Interface objects.
+
+    Includes a custom override for filtering on mac_address because this is not
+    a Django built-in field.
+    """
+    mac_address = django_filters.MethodFilter()
+
     class Meta:
         model = models.Interface
         fields = [
             'device', 'device__hostname', 'name', 'speed', 'type',
             'mac_address', 'description', 'parent_id', 'attributes'
         ]
+
+    def filter_mac_address(self, queryset, value):
+        """
+        Overloads queryset filtering to use built-in.
+
+        Doesn't work by default because MACAddressField is not a Django
+        built-in field type.
+        """
+        return queryset.filter(mac_address=value)

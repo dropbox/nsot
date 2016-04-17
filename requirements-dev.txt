@@ -10,7 +10,6 @@ pytest-django==2.9.1
 pytest-pythonpath==0.6
 Pygments==2.0.1
 pathtools==0.1.2
-requests==2.7.0
 Sphinx==1.2.3
 sphinx-autobuild==0.5.2
 sphinx-rtd-theme==0.1.9
