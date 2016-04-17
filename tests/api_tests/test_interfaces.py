@@ -285,29 +285,31 @@ def test_filters(site, client):
     # Create Interfaces
     # foo-bar1:eth0
     dev1_eth0_resp = client.create(
-        ifc_uri, device=dev1['id'], name='eth0', attributes={'vlan': '100'}
+        ifc_uri, device=dev1['id'], name='eth0', attributes={'vlan': '100'},
+        mac_address=0
     )
     dev1_eth0 = get_result(dev1_eth0_resp)
 
     # foo-bar1:eth1
     dev1_eth1_resp = client.create(
-        ifc_uri, device=dev1['id'], name='eth1', speed=40000, type=161
+        ifc_uri, device=dev1['id'], name='eth1', speed=40000, type=161,
+        mac_address=1
     )
     dev1_eth1 = get_result(dev1_eth1_resp)
 
     # foo-bar2:eth0
     dev2_eth0_resp = client.create(
-        ifc_uri, device=dev2['id'], name='eth0', description='foo-bar2:eth0'
+        ifc_uri, device=dev2['id'], name='eth0', description='foo-bar2:eth0',
+        mac_address=3
     )
     dev2_eth0 = get_result(dev2_eth0_resp)
 
     # foo-bar2:eth1
     dev2_eth1_resp = client.create(
         ifc_uri, device=dev2['id'], name='eth1', type=161,
-        parent_id=dev2_eth0['id']
+        parent_id=dev2_eth0['id'], mac_address=4
     )
     dev2_eth1 = get_result(dev2_eth1_resp)
-
 
     # Populate the Interface objects and retreive them for testing.
     interfaces_resp = client.get(ifc_uri)
@@ -376,6 +378,16 @@ def test_filters(site, client):
         client.retrieve(ifc_uri, attributes=['vlan=100']),
         expected
     )
+
+    # Test filter by mac_address using various representations
+    wanted = [dev1_eth1]
+    expected = filter_interfaces(interfaces, wanted)
+    mac_tests = (
+        1,  # Integer
+        '00:00:00:00:00:01',  # String
+    )
+    for mac in mac_tests:
+        assert_success(client.retrieve(ifc_uri, mac_address=mac), expected)
 
 
 def test_set_queries(client, site):
