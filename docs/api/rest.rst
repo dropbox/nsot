@@ -1,5 +1,6 @@
+########
 REST API
-========
+########
 
 NSoT is designed as an API-first application so that all possible actions are
 published as API endpoints.
@@ -7,22 +8,34 @@ published as API endpoints.
 .. _api-ref:
 
 API Reference
--------------
+=============
 
 Interactive API reference documentation can be found by browsing to ``/docs/``
 on a running NSoT server instance.
 
+.. _browsable-api:
+
+Browsable API
+=============
+
+Because NSoT is an API-first application, the REST API is central to the
+experience. The REST API can support JSON or can also be used directly from
+your web browser. This version is called the "browsable API" and while it
+doesn't facilitate automation, it can be very useful.
+
+Visit ``/api/`` in your browser on your installed instance. How cool is that?!
+
 .. _api-auth:
 
 Authentication
---------------
+==============
 
 Two methods of authentication are currently supported.
 
 .. _api-auth_header:
 
 User Authentication Header
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+--------------------------
 
 This is referred to internally as **auth_header** authentication.
 
@@ -40,7 +53,7 @@ so:
 .. _api-auth_token:
 
 AuthToken
-~~~~~~~~~
+---------
 
 This is referred to internally as **auth_token** authentication.
 
@@ -62,7 +75,7 @@ that is formatted like so:
     Authorization: AuthToken {email}:{secret_key}
 
 Requests
---------
+========
 
 In addition to the authentication header above all ``POST``, ``PUT``, and
 ``PATCH``, requests will be sent as ``JSON`` rather than form data and should
@@ -75,8 +88,11 @@ fields may revert to their default values, depending on the object type.
 ``PATCH`` allows for partial update of objects for most fields, depending on
 the object type.
 
+``OPTIONS`` will provide the schema for any endpoint.
+
 Responses
----------
+=========
+
 All responses will be in format along with the header ``Content-Type:
 application/json`` set.
 
@@ -105,7 +121,7 @@ will contain an error ``code`` and ``message``.
     }
 
 Pagination
-----------
+==========
 
 All responses that return a list of resources will support pagination. If the
 ``results`` object on the response has a ``count`` attribute then the endpoint
@@ -141,3 +157,86 @@ An example response for querying the ``sites`` endpoint might look like:
         ]
     }
 
+Schemas
+=======
+
+By performing an ``OPTIONS`` query on any endpoint, you can obtain the schema
+of the resource for that endpoint. This includes supported content-types, HTTP
+actions, the fields allowed for each action, and their attributes.
+
+An example response for the schema for the ``devices`` endpoint might look like:
+
+**Request**:
+
+.. code-block:: http
+
+    OPTIONS http://localhost:8990/api/devices/
+
+**Response**:
+
+.. code-block:: javascript
+
+    HTTP 200 OK
+    Allow: GET, POST, PUT, PATCH, HEAD, OPTIONS
+    Content-Type: application/json
+    Vary: Accept
+
+    {
+        "name": "Device List",
+        "description": "API endpoint that allows Devices to be viewed or edited.",
+        "renders": [
+            "application/json",
+            "text/html"
+        ],
+        "parses": [
+            "application/json",
+            "application/x-www-form-urlencoded",
+            "multipart/form-data"
+        ],
+        "actions": {
+            "PUT": {
+                "id": {
+                    "type": "integer",
+                    "required": false,
+                    "read_only": true,
+                    "label": "ID"
+                },
+                "hostname": {
+                    "type": "string",
+                    "required": true,
+                    "read_only": false,
+                    "label": "Hostname",
+                    "max_length": 255
+                },
+                "attributes": {
+                    "type": "field",
+                    "required": true,
+                    "read_only": false,
+                    "label": "Attributes",
+                    "help_text": "Dictionary of attributes to set."
+                }
+            },
+            "POST": {
+                "hostname": {
+                    "type": "string",
+                    "required": true,
+                    "read_only": false,
+                    "label": "Hostname",
+                    "max_length": 255
+                },
+                "attributes": {
+                    "type": "field",
+                    "required": false,
+                    "read_only": false,
+                    "label": "Attributes",
+                    "help_text": "Dictionary of attributes to set."
+                },
+                "site_id": {
+                    "type": "integer",
+                    "required": true,
+                    "read_only": false,
+                    "label": "Site id"
+                }
+            }
+        }
+    }

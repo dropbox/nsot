@@ -37,3 +37,9 @@ interfaces.
 .. |PyPI Status| image:: https://img.shields.io/pypi/v/nsot.svg?style=flat
    :target: https://pypi.python.org/pypi/nsot
    :width: 86px
+
+Logo_ by Vecteezy_ is licensed under `CC BY-SA 3.0`_
+
+.. _Logo: https://www.iconfinder.com/icons/532251
+.. _Vecteezy: https://www.iconfinder.com/Vecteezy
+.. _CC BY-SA 3.0: http://creativecommons.org/licenses/by-sa/3.0/
