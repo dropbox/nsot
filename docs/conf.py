@@ -36,7 +36,10 @@ application = get_wsgi_application()
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    "sphinx.ext.autodoc"
+    'sphinx.ext.autodoc',
+    'sphinx.ext.todo',
+    'sphinx.ext.coverage',
+    'sphinx.ext.viewcode',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -53,7 +56,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'Network Source of Truth'
-copyright = u'2014-2015, Dropbox, Inc.'
+copyright = u'2014-2016, Dropbox, Inc.'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
