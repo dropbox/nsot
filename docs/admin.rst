@@ -21,7 +21,16 @@ To see all available commands:
 Generate a secret_key
 =====================
 
-Used in ``settings.py`` to do encrypt/decrypt API keys and secure cookies.
+Generate a URL-safe base64-encoded 36-byte secret key suitable for use inside
+of ``settings.py``. This key is used for encryption/decryption of sessions and
+API auth tokens. 
+
+.. note::
+    A unique key is randomly generated for you when you utilize ``nsot-server
+    init``.
+
+This must be kept secret! Anyone with this key is able to create and read
+messages. 
 
 .. code-block:: bash
 
