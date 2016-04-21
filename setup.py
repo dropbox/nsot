@@ -101,6 +101,7 @@ kwargs = {
     'entry_points': """
         [console_scripts]
         nsot-server=nsot.util:main
+        snot-server=nsot.util:main
     """,
     'classifiers': [
         'Programming Language :: Python',

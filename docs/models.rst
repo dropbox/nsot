@@ -2,12 +2,8 @@
 Data Model
 ##########
 
-The Network Source of Truth is composed of various object types that it is
-important to be familiar with. This document describes each object type.
-
-.. contents::
-    :local:
-    :depth: 2
+The Network Source of Truth is composed of various object types with which it is
+important to be familiarized. This document describes each object type.
 
 Sites
 =====
@@ -44,7 +40,10 @@ Attributes with the same name bound to different resource types.
 
 When assigned to objects, think of an Attribute as an instance of of an
 Attribute object with a Value object assigned to it. Objects may be looked up
-by their attribute/value pairs
+by their attribute/value pairs using set queries.
+
+Attribute/value pairs are cached locally on on the containing object on write
+to improve read performance.
 
 A typical Attribute object might look like this:
 
@@ -123,6 +122,45 @@ allow_empty
 valid_values
     Valid values for this attribute. This causes the attribute to behave like
     an enum.
+
+.. _set-queries:
+
+Set Queries
+-----------
+
+All Resource types support set query operations. Set queries are a powerful
+part of the data model that allow you to perform complex lookups of objects by
+attribute/value pairs.
+
+Set queries can be performed using a simple string-based syntax. 
+
+The operations are evaluated from left-to-right, where the first character
+indicates the set operation:
+
++ ``+`` indicates a set *union*
++ ``-`` indicates a set *difference*
++ no marker indicates a set *intersection*
+
+For example, when using set queries to lookup Device objects:
+
++ ``"vendor=juniper"`` would return the set intersection of objects with
+  ``vendor=juniper``.
++ ``"vendor=juniper -metro=iad"`` would return the set difference of all
+  objects with ``vendor=juniper`` (that is all ``vendor=juniper`` where
+  ``metro`` is not ``iad``).
++ ``"vendor=juniper +vendor=cisco`` would return the set union of all
+  objects with ``vendor=juniper`` or ``vendor=cisco`` (that is all objects
+  matching either).
+
+The ordering of these operations is important. If you are not familiar with set
+operations, please check out `Basic set theory concepts and notation
+<http://en.wikipedia.org/wiki/Set_theory#Basic_concepts_and_notation>`_
+(Wikipedia).
+
+For how set queries can be performed, please see the REST API
+documentation on :ref:`api-set-queries`.
+
+.. _resources:
 
 Resources
 =========
@@ -307,7 +345,7 @@ The following constraints are enforced:
 * An address may not be assigned to a to more than one Interface on any given
   Device.
 * Only a Network containing a host address with a prefix of ``/32`` (IPv4) or
-  ``/128`` (IPv6) may be assigned to an address.
+  ``/128`` (IPv6) may be assigned to an Interface.
 
 Networks
 ~~~~~~~~

@@ -548,10 +548,7 @@ class NetworkViewSet(ResourceViewSet):
 
     @detail_route(methods=['get'])
     def assignments(self, request, pk=None, site_pk=None, *args, **kwargs):
-        """
-        Return Networks with the same parent. Root nodes are
-        siblings to other root nodes.
-        """
+        """Return the interface assignments for this Network."""
         network = self.get_resource_object(pk, site_pk)
         assignments = network.assignments.all()
 

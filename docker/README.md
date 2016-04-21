@@ -71,7 +71,7 @@ If you want to add an entire custom config, volume mount it to
 
 Only TCP 8990 is exposed
 
-## Environment Variales
+## Environment Variables
 
 Pass these with `-e` to control the configuration. `NSOT_SECRET` should be the
 bare minimum set, setting an external DB if in production or wanting

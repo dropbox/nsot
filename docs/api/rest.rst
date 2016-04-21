@@ -240,3 +240,57 @@ An example response for the schema for the ``devices`` endpoint might look like:
             }
         }
     }
+
+.. _api-set-queries:
+
+Performing Set Queries
+======================
+
+:ref:`set-queries` allow you to perform complex lookups of objects by
+attribute/value pairs and are available on all :ref:`resources` at the
+``/api/:resource/query/`` list endpoint for a given resource type.
+
+To perform a set query you must perform a ``GET`` request to the query endpoint
+providing the set query string as a value to the ``query`` argument.
+
+For example:
+
+**Request**:
+
+.. code-block:: http
+
+   GET /api/devices/query/?query=vendor=juniper
+
+**Response**:
+
+.. code-block:: javascript
+
+    HTTP 200 OK
+    Allow: GET, HEAD, OPTIONS
+    Content-Type: application/json
+    Vary: Accept
+
+    [
+        {
+            "attributes": {
+                "owner": "jathan",
+                "vendor": "juniper",
+                "hw_type": "router",
+                "metro": "lax"
+            },
+            "hostname": "lax-r2",
+            "site_id": 1,
+            "id": 2
+        },
+        {
+            "attributes": {
+                "owner": "jathan",
+                "vendor": "juniper",
+                "hw_type": "router",
+                "metro": "iad"
+            },
+            "hostname": "iad-r1",
+            "site_id": 1,
+            "id": 5
+        }
+    ]
