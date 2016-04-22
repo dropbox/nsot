@@ -538,6 +538,7 @@ def test_get_next_detail_routes(site, client):
     client.create(net_uri, cidr='10.16.2.8/29')
     client.create(net_uri, cidr='10.16.2.1/32')
     client.create(net_uri, cidr='10.16.2.2/32')
+    client.create(net_uri, cidr='10.16.2.4/32')
     client.create(net_uri, cidr='10.16.2.17/32')
 
     net_25_resp = client.retrieve(net_uri, cidr='10.16.2.0/25')
@@ -569,7 +570,7 @@ def test_get_next_detail_routes(site, client):
     )
 
     # A single /28
-    expected = [u'10.16.2.16/28']
+    expected = [u'10.16.2.0/28']
     assert_success(client.retrieve(uri, prefix_length=28), expected)
     assert_success(client.retrieve(natural_uri, prefix_length=28), expected)
 
@@ -619,11 +620,11 @@ def test_get_next_detail_routes(site, client):
     )
 
     # A single /32
-    assert_success(client.retrieve(uri), [u'10.16.2.18/32'])
-    assert_success(client.retrieve(natural_uri), [u'10.16.2.18/32'])
+    assert_success(client.retrieve(uri), [u'10.16.2.3/32'])
+    assert_success(client.retrieve(natural_uri), [u'10.16.2.3/32'])
 
     # 3x /32
-    addresses = [u'10.16.2.18/32', u'10.16.2.19/32', u'10.16.2.20/32']
+    addresses = [u'10.16.2.3/32', u'10.16.2.5/32', u'10.16.2.6/32']
     assert_success(client.retrieve(uri, num=3), addresses)
     assert_success(client.retrieve(natural_uri, num=3), addresses)
 

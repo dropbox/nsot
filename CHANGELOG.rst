@@ -5,12 +5,33 @@ Changelog
 Version History
 ===============
 
+.. _v0.17.4:
+
+0.17.4 (2016-04-22)
+-------------------
+
+* Fixed a bug in ``Network.next_address()`` and ``Network.next_network()``
+  where children w/ busy states were mistakenly being excluded from the
+  filter and therefore causing them to be offered as free. This also
+  addressed a related bug where networks were not offered unless they
+  came after the last prefix of the last matching child.
+
+.. _v0.17.3:
+
+0.17.3 (2016-04-21)
+-------------------
+
++ Added documentation for set queries for both how they work and for how to use
+  them.
++ Fixed a typo in Docker readme
++ Added an entry-point for ``snot-server`` because reasons
+
 .. _v0.17.2:
 
 0.17.2 (2016-04-17)
 -------------------
 
-- Filtering of Interfaces by ``mac_address`` can now be done using either the
+* Filtering of Interfaces by ``mac_address`` can now be done using either the
   string (e.g. ``'00:00:00:00:00:01'``) or integer (e.g. ``1``)
   representations.
 
@@ -19,16 +40,16 @@ Version History
 0.17.1 (2016-04-07)
 -------------------
 
-- Fixed a bug that would cause set queries lookups of attributes values
+* Fixed a bug that would cause set queries lookups of attributes values
   containing spaces to always fail. When performing a set queries for an
   ``attribute=value`` pair, if a value contains a space, it must be quoted, and
   it will be properly parsed.
-- When performing a set query for an attribute that does not exist, an error is
+* When performing a set query for an attribute that does not exist, an error is
   raised.
-- When performing a set query, if no attribute pairs are found, an empty set is
+* When performing a set query, if no attribute pairs are found, an empty set is
   returned.
-- Docs: Fixed a typo in data model doc
-- Docs: Fixed incorrect year for a bunch of entries in changelog
+* Docs: Fixed a typo in data model doc
+* Docs: Fixed incorrect year for a bunch of entries in changelog
 
 .. _v0.17:
 

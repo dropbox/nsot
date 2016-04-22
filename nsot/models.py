@@ -793,7 +793,7 @@ class Network(Resource):
         subnets = cidr.subnets(new_prefix=prefix_length)
 
         # Exclude children that are in busy states.
-        children = self.get_children().exclude(state__in=self.BUSY_STATES)
+        children = self.get_children()
 
         # FIXME(jathan): This can potentially be very slow if the gap between
         # parent and child networks is large, say, on the order of /8.
@@ -823,28 +823,47 @@ class Network(Resource):
                         cidr.broadcast_address)):
                 continue
 
+            log.debug('>> NEXT SUBNET: %s', next_subnet)
+
             # Iterate the children and if we make it to the end, we've found a
             # keeper!
             for child in children:
+                # This child is busy; mark it as seen.
+                if child.state in self.BUSY_STATES:
+                    log.debug('Child %s is BUSY (%s)', child, child.state)
+                    children_seen.append(child.ip_network)
+                    pass
+
                 # Network is already wanted; skip it!
                 if next_subnet in wanted:
+                    log.debug('Network %s already wanted; skipping',
+                              next_subnet)
                     break
 
                 # This child has already been seen; skip it!
                 if child.ip_network in children_seen:
+                    log.debug('Child %s already seen; skipping',
+                              child.ip_network)
                     continue
 
                 # This network is already in use/allocated; skip it!
+                # TODO(jathan): Decide if we want 'allocated' to also be a busy
+                # state for the purpose of allocation? Yes, that's confusing,
+                # but why not just treat this as a busy state? What about
+                # orphaned state?
                 if child.ip_network.overlaps(next_subnet):
+                    log.debug('Child %s network overlaps w/ next_subnet %s',
+                              child.ip_network, next_subnet)
                     children_seen.append(child.ip_network)
                     continue
-                else:
-                    break
 
             # We want this one; keep it!!
             else:
                 if next_subnet not in children_seen:
+                    log.info('>> NEXT_SUBNET %s is now wanted!', next_subnet)
                     wanted.append(next_subnet)
+
+        log.info('>> WANTED = %s', wanted)
 
         return wanted if as_objects else [unicode(w) for w in wanted]
 
