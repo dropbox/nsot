@@ -10,8 +10,8 @@ like:
 
 ```bash
 
-$ SECRET='YkV0Q0lYT3RpN0ppMGZ2Q0tMVE8wbW55WjQ0QkFpdlBvUWpLbFpBTlVZSW1DVnZmMWFNTWpteDFGVDFKUXg2'
-$ docker run -p 8990:8990 -d --name=nsot -e NSOT_SECRET=$SECRET dropbox/nsot:0.15.4
+$ NSOT_SECRET='X9HqplzM_0E3Ghf3QOPDnO2k5VpVHkfzsZsVer4OeKA='
+$ docker run -p 8990:8990 -d --name=nsot -e NSOT_SECRET=$NSOT_SECRET dropbox/nsot:0.15.4
 ```
 
 `nsot-server --config=/etc/nsot/nsot.conf.py` is the image entrypoint, so the
@@ -77,6 +77,13 @@ Pass these with `-e` to control the configuration. `NSOT_SECRET` should be the
 bare minimum set, setting an external DB if in production or wanting
 persistence should be second.
 
+Note that the `NSOT_SECRET` must be 32 url-safe base64-encoded bytes. You may
+generate one by executing this:
+
+```
+python -c "import base64, os; print base64.urlsafe_b64encode(os.urandom(32))"
+```
+
 | Variable            | Default Value    |
 |:--------------------|:-----------------|
 | `DB_ENGINE`         | `django.db.backends.sqlite3` |
@@ -86,8 +93,7 @@ persistence should be second.
 | `DB_HOST`           | ''                           |
 | `DB_PORT`           | ''                           |
 | `NSOT_EMAIL`        | `X-NSoT-Email`               |
-| `NSOT_SECRET`       | `UGxlYXNlIGNoYW5nZSB0aGlzIQ==` ('Please change this!' base64) |
-
+| `NSOT_SECRET`       | `nJvyRB8tckUWvquJZ3ax4QnhpmqTgVX2k3CDY13yK9E=` |
 
 ## Contributing
 
