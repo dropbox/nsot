@@ -27,3 +27,6 @@ NSOT_HOST = '0.0.0.0'
 # The port on which the application will be accessed.
 # Default: 8990
 NSOT_PORT = 8990
+
+# Enable DEBUG logging to console
+LOGGING['loggers']['nsot']['level'] = 'DEBUG'

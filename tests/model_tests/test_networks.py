@@ -234,6 +234,7 @@ def test_get_next_methods(site):
     net_29 = models.Network.objects.create(site=site, cidr=u'10.16.2.8/29')
     ip1 = models.Network.objects.create(site=site, cidr=u'10.16.2.1/32')
     ip2 = models.Network.objects.create(site=site, cidr=u'10.16.2.2/32')
+    ip2 = models.Network.objects.create(site=site, cidr=u'10.16.2.4/32')
     ip3 = models.Network.objects.create(site=site, cidr=u'10.16.2.17/32')
 
     for obj in (net_25, net_29, ip1, ip2, ip3):
@@ -244,7 +245,7 @@ def test_get_next_methods(site):
     #
 
     # A single /28
-    assert net_25.get_next_network(28) == [ipaddress.ip_network(u'10.16.2.16/28')]
+    assert net_25.get_next_network(28) == [ipaddress.ip_network(u'10.16.2.0/28')]
 
     # 4x /27
     slash27 = [u'10.16.2.0/27', u'10.16.2.32/27', u'10.16.2.64/27', u'10.16.2.96/27']
@@ -277,10 +278,10 @@ def test_get_next_methods(site):
     #
 
     # A single /32
-    assert net_25.get_next_address() == [ipaddress.ip_network(u'10.16.2.18/32')]
+    assert net_25.get_next_address() == [ipaddress.ip_network(u'10.16.2.3/32')]
 
     # 3x /32
-    slash32 = [u'10.16.2.18/32', u'10.16.2.19/32', u'10.16.2.20/32']
+    slash32 = [u'10.16.2.3/32', u'10.16.2.5/32', u'10.16.2.6/32']
     objects = [ipaddress.ip_network(s) for s in slash32]
     assert net_25.get_next_address(num=3) == objects
 

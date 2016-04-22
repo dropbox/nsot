@@ -58,7 +58,9 @@ SERVE_STATIC_FILES = True
 # A URL-safe base64-encoded 32-byte key. This must be kept secret. Anyone with
 # this key is able to create and read messages. This key is used for
 # encryption/decryption of sessions and auth tokens.
-SECRET_KEY = os.environ.get('NSOT_SECRET', 'nJvyRB8tckUWvquJZ3ax4QnhpmqTgVX2k3CDY13yK9E=')
+SECRET_KEY = os.environ.get(
+    'NSOT_SECRET', 'nJvyRB8tckUWvquJZ3ax4QnhpmqTgVX2k3CDY13yK9E='
+)
 
 # Header to check for Authenticated Email. This is intended for use behind an
 # authenticating reverse proxy.
