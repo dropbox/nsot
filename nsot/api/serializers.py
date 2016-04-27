@@ -195,8 +195,15 @@ class AttributeSerializer(NsotSerializer):
 
 class AttributeCreateSerializer(AttributeSerializer):
     """Used for POST on Attributes."""
-    constraints = JSONDictField(required=False)
-    site_id = fields.IntegerField()
+    constraints = JSONDictField(
+        required=False,
+        label=get_field_attr(models.Attribute, 'constraints', 'verbose_name'),
+        help_text=get_field_attr(models.Attribute, 'constraints', 'help_text')
+    )
+    site_id = fields.IntegerField(
+        label=get_field_attr(models.Attribute, 'site', 'verbose_name'),
+        help_text=get_field_attr(models.Attribute, 'site', 'help_text')
+    )
 
     class Meta:
         model = models.Attribute
@@ -313,7 +320,10 @@ class DeviceSerializer(ResourceSerializer):
 
 class DeviceCreateSerializer(DeviceSerializer):
     """Used for POST on Devices."""
-    site_id = fields.IntegerField()
+    site_id = fields.IntegerField(
+        label=get_field_attr(models.Device, 'site', 'verbose_name'),
+        help_text=get_field_attr(models.Device, 'site', 'help_text')
+    )
 
     class Meta:
         model = models.Device
@@ -376,7 +386,10 @@ class NetworkCreateSerializer(NetworkSerializer):
         label=get_field_attr(models.Network, 'prefix_length', 'verbose_name'),
         help_text=get_field_attr(models.Network, 'prefix_length', 'help_text'),
     )
-    site_id = fields.IntegerField()
+    site_id = fields.IntegerField(
+        label=get_field_attr(models.Network, 'site', 'verbose_name'),
+        help_text=get_field_attr(models.Network, 'site', 'help_text')
+    )
 
     class Meta:
         model = models.Network
@@ -521,8 +534,10 @@ class AuthTokenSerializer(serializers.Serializer):
     """
     AuthToken authentication serializer to validate username/secret_key inputs.
     """
-    email = serializers.CharField()
-    secret_key = serializers.CharField()
+    email = serializers.CharField(help_text='Email address of the user.')
+    secret_key = serializers.CharField(
+        label='Secret Key', help_text='Secret key of the user.'
+    )
 
     def validate(self, attrs):
         email = attrs.get('email')
