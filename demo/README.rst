@@ -55,7 +55,7 @@ CLI
 ---
 
 The CLI utility is maintained in a separate project called pynsot. Read more
-about it at https://pynsot.readthedocs.org.
+about it at https://pynsot.readthedocs.io.
 
 You may install it by running::
 

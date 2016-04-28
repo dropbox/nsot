@@ -31,12 +31,15 @@ interfaces.
 .. |Build Status| image:: https://img.shields.io/travis/dropbox/nsot/master.svg?style=flat
    :target: https://travis-ci.org/dropbox/nsot
    :width: 88px
+   :height: 20px
 .. |Documentation Status| image:: https://readthedocs.org/projects/nsot/badge/?version=latest&style=flat
    :target: https://readthedocs.org/projects/nsot/?badge=latest
    :width: 76px
+   :height: 20px
 .. |PyPI Status| image:: https://img.shields.io/pypi/v/nsot.svg?style=flat
    :target: https://pypi.python.org/pypi/nsot
-   :width: 86px
+   :width: 68px
+   :height: 20px
 
 Logo_ by Vecteezy_ is licensed under `CC BY-SA 3.0`_
 

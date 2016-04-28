@@ -49,7 +49,7 @@ Official Client
 ===============
 
 We maintain the official NSoT client under a separate project called `pyNSoT
-<https://pynsot.readthedocs.org>`_. PyNSoT provides a Python API client and an
+<https://pynsot.readthedocs.io>`_. PyNSoT provides a Python API client and an
 excellent CLI utility.
 
 If you wish to utilize NSoT from the command-line, or follow along in the
@@ -57,7 +57,7 @@ If you wish to utilize NSoT from the command-line, or follow along in the
 
 Installing the client is as easy as running ``pip install pynsot``. Setup is a
 breeze, too. If you run into any issues, please refer to the `official pyNSoT
-documentation <https://pynsot.readthedocs.org>`_.
+documentation <https://pynsot.readthedocs.io>`_.
 
 Demo
 ====

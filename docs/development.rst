@@ -17,7 +17,7 @@ We suggest setting up your test environment in a Python `virtualenv
     $ source nsot/bin/activate
 
 Or, if you use `virtualenvwrapper
-<https://virtualenvwrapper.readthedocs.org>`_:
+<https://virtualenvwrapper.readthedocs.io>`_:
 
 .. code-block:: bash
 
@@ -67,7 +67,7 @@ To get started, follow these steps:
 your local system (aka `localhost`).
 
 Now, point your web browser to http://localhost:8991 and explore the
-`documentation <https://nsot.readthedocs.org>`_!
+`documentation <https://nsot.readthedocs.io>`_!
 
 Running Unit Tests
 ------------------

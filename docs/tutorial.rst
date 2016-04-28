@@ -21,7 +21,7 @@ Install the Client
 ------------------
 
 First things first, you'll need to install `pyNSoT
-<https://pynsot.readthedocs.org>`_, the official Python API client and CLI
+<https://pynsot.readthedocs.io>`_, the official Python API client and CLI
 utility:
 
 .. code-block:: bash
@@ -32,14 +32,14 @@ Configure the Client
 --------------------
 
 After you've installed the client, please follow the `pyNSoT Configuration
-<http://pynsot.readthedocs.org/en/latest/config.html>`_ guide to establish a
+<http://pynsot.readthedocs.io/en/latest/config.html>`_ guide to establish a
 ``.pynsotrc`` file.
 
 Using the Command-Line
 ======================
 
 Once you've got a working ``nsot`` CLI setup, please follow the `pyNSoT
-Command-Line <http://pynsot.readthedocs.org/en/latest/cli.html>`_ guide. This
+Command-Line <http://pynsot.readthedocs.io/en/latest/cli.html>`_ guide. This
 will get you familiarized with the basics of how NSoT works.
 
 Understanding the Data Model
