@@ -7,6 +7,9 @@ Version History
 
 .. _v1.0:
 
+1.0 (2016-04-27)
+----------------
+
 * OFFICIAL VERSION 1.0!!
 * Completely documented all object fields including help_text, verbose_names,
   labels, default values, etc. for every field so that is cascades to
