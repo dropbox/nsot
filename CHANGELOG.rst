@@ -5,6 +5,13 @@ Changelog
 Version History
 ===============
 
+.. _v1.0:
+
+* OFFICIAL VERSION 1.0!!
+* Completely documented all object fields including help_text, verbose_names,
+  labels, default values, etc. for every field so that is cascades to
+  serializers and form fields.
+
 .. _v0.17.4:
 
 0.17.4 (2016-04-22)

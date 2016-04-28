@@ -54,8 +54,12 @@ INTERFACE_TYPES = [t[0] for t in settings.INTERFACE_TYPE_CHOICES]
 
 class Site(models.Model):
     """A namespace for attribtues, devices, and networks."""
-    name = models.CharField(max_length=255, unique=True)
-    description = models.TextField(default='', blank=True)
+    name = models.CharField(
+        max_length=255, unique=True, help_text='The name of the Site.'
+    )
+    description = models.TextField(
+        default='', blank=True, help_text='A helpful description for the Site.'
+    )
 
     def __unicode__(self):
         return self.name
@@ -80,7 +84,10 @@ class Site(models.Model):
 
 class User(AbstractEmailUser):
     """A custom user object that utilizes email as the username."""
-    secret_key = models.CharField(max_length=44, default=generate_secret_key)
+    secret_key = models.CharField(
+        max_length=44, default=generate_secret_key,
+        help_text="The user's secret_key used for API authentication."
+    )
 
     @property
     def username(self):
@@ -367,7 +374,10 @@ class ResourceManager(models.Manager):
 
 class Resource(models.Model):
     """Base for heirarchial Resource objects that may have attributes."""
-    _attributes_cache = fields.JSONField(null=False, blank=True)
+    _attributes_cache = fields.JSONField(
+        null=False, blank=True,
+        help_text='Local cache of attributes. (Internal use only)'
+    )
 
     def __init__(self, *args, **kwargs):
         self._set_attributes = kwargs.pop('attributes', None)
@@ -505,9 +515,14 @@ class Resource(models.Model):
 
 class Device(Resource):
     """Represents a network device."""
-    hostname = models.CharField(max_length=255, null=False, db_index=True)
+    hostname = models.CharField(
+        max_length=255, null=False, db_index=True,
+        help_text='The hostname of the Device.'
+    )
     site = models.ForeignKey(
-        Site, db_index=True, related_name='devices', on_delete=models.PROTECT
+        Site, db_index=True, related_name='devices', on_delete=models.PROTECT,
+        verbose_name='Site',
+        help_text='Unique ID of the Site this Device is under.'
     )
 
     def __unicode__(self):
@@ -651,28 +666,35 @@ class Network(Resource):
         max_length=16, null=False, db_index=True,
         verbose_name='Network Address',
         help_text=(
-            'The network address for the network. The network address and '
+            'The network address for the Network. The network address and '
             'the prefix length together uniquely define a network.'
         )
     )
     broadcast_address = fields.BinaryIPAddressField(
         max_length=16, null=False, db_index=True,
+        help_text='The broadcast address for the Network. (Internal use only)'
     )
     prefix_length = models.IntegerField(
         null=False, db_index=True, verbose_name='Prefix Length',
-        help_text='Length of the network prefix, in bits.'
+        help_text='Length of the Network prefix, in bits.'
     )
     ip_version = models.CharField(
         max_length=1, null=False, db_index=True,
         choices=IP_VERSION_CHOICES
     )
-    is_ip = models.BooleanField(null=False, default=False, db_index=True)
+    is_ip = models.BooleanField(
+        null=False, default=False, db_index=True,
+        help_text='Whether the Network is a host address or not.'
+    )
     site = models.ForeignKey(
-        Site, db_index=True, related_name='networks', on_delete=models.PROTECT
+        Site, db_index=True, related_name='networks', on_delete=models.PROTECT,
+        verbose_name='Site',
+        help_text='Unique ID of the Site this Network is under.'
     )
     parent = models.ForeignKey(
         'self', blank=True, null=True, related_name='children', default=None,
         db_index=True, on_delete=models.PROTECT,
+        help_text='The parent Network of the Network.'
     )
     state = models.CharField(
         max_length=20, null=False, db_index=True,
@@ -1079,7 +1101,8 @@ class Interface(Resource):
     # if_addr
     # m2m Network object /32 or /128
     addresses = models.ManyToManyField(
-        Network, db_index=True, related_name='addresses', through='Assignment'
+        Network, db_index=True, related_name='addresses', through='Assignment',
+        help_text='Network addresses assigned to this Interface'
     )
 
     # if_alias - String of interface description
@@ -1139,7 +1162,8 @@ class Interface(Resource):
     # simplifies managing them this way.
     site = models.ForeignKey(
         Site, db_index=True, related_name='interfaces',
-        on_delete=models.PROTECT
+        on_delete=models.PROTECT,
+        help_text='Unique ID of the Site this Interface is under.'
     )
 
     # Where list of assigned addresses is cached.
@@ -1394,10 +1418,12 @@ class Assignment(models.Model):
     of new address assignments.
     """
     address = models.ForeignKey(
-        Network, related_name='assignments', db_index=True
+        Network, related_name='assignments', db_index=True,
+        help_text='Network to which this assignment is bound.'
     )
     interface = models.ForeignKey(
-        Interface, related_name='assignments', db_index=True
+        Interface, related_name='assignments', db_index=True,
+        help_text='Interface to which this assignment is bound.'
     )
     created = models.DateTimeField(auto_now_add=True)
 
@@ -1443,31 +1469,52 @@ class Assignment(models.Model):
 class Attribute(models.Model):
     """Represents a flexible attribute for Resource objects."""
     # This is purposely not unique as there is a compound index with site_id.
-    name = models.CharField(max_length=64, null=False, db_index=True)
+    name = models.CharField(
+        max_length=64, null=False, db_index=True,
+        help_text='The name of the Attribute.'
+    )
     description = models.CharField(
-        max_length=255, default='', blank=True, null=False
+        max_length=255, default='', blank=True, null=False,
+        help_text='A helpful description of the Attribute.'
     )
 
     # The resource must contain a key and value
-    required = models.BooleanField(default=False, null=False)
+    required = models.BooleanField(
+        default=False, null=False,
+        help_text='Whether the Attribute should be required.'
+    )
 
     # In UIs this attribute will be displayed by default. Required implies
     # display.
-    display = models.BooleanField(default=False, null=False)
+    display = models.BooleanField(
+        default=False, null=False,
+        help_text=(
+            'Whether the Attribute should be be displayed by default in '
+            'UIs. If required is set, this is also set.'
+        )
+    )
 
     # Attribute values are expected as lists of strings.
-    multi = models.BooleanField(default=False, null=False)
+    multi = models.BooleanField(
+        default=False, null=False,
+        help_text='Whether the Attribute should be treated as a list type.'
+    )
 
-    constraints = fields.JSONField(null=False, blank=True)
+    constraints = fields.JSONField(
+        'Constraints', null=False, blank=True,
+        help_text='Dictionary of Attribute constraints.'
+    )
 
     site = models.ForeignKey(
         Site, db_index=True, related_name='attributes',
-        on_delete=models.PROTECT
+        on_delete=models.PROTECT, verbose_name='Site',
+        help_text='Unique ID of the Site this Attribute is under.'
     )
 
     resource_name = models.CharField(
         'Resource Name', max_length=20, null=False, db_index=True,
-        choices=RESOURCE_CHOICES
+        choices=RESOURCE_CHOICES,
+        help_text='The name of the Resource to which this Attribute is bound.'
     )
 
     def __unicode__(self):
@@ -1627,24 +1674,37 @@ class Value(models.Model):
     """Represents a value for an attribute attached to a Resource."""
     attribute = models.ForeignKey(
         Attribute, related_name='values', db_index=True,
-        on_delete=models.PROTECT
+        on_delete=models.PROTECT,
+        help_text='The Attribute to which this Value is assigned.'
     )
     value = models.CharField(
-        max_length=255, null=False, blank=True, db_index=True
+        max_length=255, null=False, blank=True, db_index=True,
+        help_text='The Attribute value.'
     )
-    resource_id = models.IntegerField('Resource ID', null=False)
+    resource_id = models.IntegerField(
+        'Resource ID', null=False,
+        help_text='The unique ID of the Resource to which the Value is bound.',
+    )
     resource_name = models.CharField(
         'Resource Type', max_length=20, null=False, db_index=True,
-        choices=CHANGE_RESOURCE_CHOICES
+        choices=CHANGE_RESOURCE_CHOICES,
+        help_text='The name of the Resource type to which the Value is bound.',
     )
-    name = models.CharField('Name', max_length=64, null=False, blank=True)
+    name = models.CharField(
+        'Name', max_length=64, null=False, blank=True,
+        help_text=(
+            'The name of the Attribute to which the Value is bound. '
+            '(Internal use only)'
+        )
+    )
 
     # We are currently inferring the site_id from the parent Attribute in
     # .save() method. We don't want to even care about the site_id, but it
     # simplifies managing them this way.
     site = models.ForeignKey(
         Site, db_index=True, related_name='values',
-        on_delete=models.PROTECT
+        on_delete=models.PROTECT, verbose_name='Site',
+        help_text='Unique ID of the Site this Value is under.'
     )
 
     def __init__(self, *args, **kwargs):
@@ -1709,20 +1769,35 @@ class Value(models.Model):
 
 class Change(models.Model):
     """Record of all changes in NSoT."""
-    site = models.ForeignKey(Site, db_index=True, related_name='changes')
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, related_name='changes', db_index=True
+    site = models.ForeignKey(
+        Site, db_index=True, related_name='changes', verbose_name='Site',
+        help_text='Unique ID of the Site this Change is under.'
     )
-    change_at = models.DateTimeField(auto_now_add=True, null=False)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, related_name='changes', db_index=True,
+        help_text='The User that initiated this Change.'
+    )
+    change_at = models.DateTimeField(
+        auto_now_add=True, null=False,
+        help_text='The timestamp of this Change.'
+    )
     event = models.CharField(
         max_length=10, null=False, choices=EVENT_CHOICES,
+        help_text='The type of event this Change represents.'
     )
-    resource_id = models.IntegerField('Resource ID', null=False)
+    resource_id = models.IntegerField(
+        'Resource ID', null=False,
+        help_text='The unique ID of the Resource for this Change.'
+    )
     resource_name = models.CharField(
         'Resource Type', max_length=20, null=False, db_index=True,
-        choices=CHANGE_RESOURCE_CHOICES
+        choices=CHANGE_RESOURCE_CHOICES,
+        help_text='The name of the Resource for this Change.'
     )
-    _resource = fields.JSONField('Resource', null=False, blank=True)
+    _resource = fields.JSONField(
+        'Resource', null=False, blank=True,
+        help_text='Local cache of the changed Resource. (Internal use only)'
+    )
 
     def __init__(self, *args, **kwargs):
         self._obj = kwargs.pop('obj', None)
