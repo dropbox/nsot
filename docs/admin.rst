@@ -18,24 +18,26 @@ To see all available commands:
 
    $ nsot-server help
 
-Generate a secret_key
-=====================
+Additionally, all commands have a ``-h/--help`` flag for all available options
+and arguments.
 
-Generate a URL-safe base64-encoded 36-byte secret key suitable for use inside
-of ``settings.py``. This key is used for encryption/decryption of sessions and
-API auth tokens. 
+Initialize the configuration
+============================
 
-.. note::
-    A unique key is randomly generated for you when you utilize ``nsot-server
-    init``.
-
-This must be kept secret! Anyone with this key is able to create and read
-messages. 
+Create a new configuration in ``~/.nsot/nsot.conf.py``. 
 
 .. code-block:: bash
 
-    $ nsot-server generate_key
-    R2gasBVJKmU5ZgkrlBljyZJrLP_B6EwZ3S7k28-SkIs=
+   $ nsot-server init
+   Configuration file created at '/Users/jathan/.nsot/nsot.conf.py'
+
+Alternately, you may specify a path for the file by providing it as an
+argument.
+
+.. code-block:: bash
+
+   $ ./nsot-server init myconfig.py
+   Configuration file created at 'myconfig.py'
 
 Create a superuser
 ==================
@@ -48,6 +50,33 @@ You need at least one superuser to administer the system.
    Password:
    Password (again):
    Superuser created successfully.
+
+Start the server
+================
+
+This starts the built-in WSGI server using gevent + gunicorn. There are a ton
+of options. Use ``--h/--help`` to see them all!
+
+.. note::
+    Many of the options fallback to global defaults specificed in your
+    ``settings.py`` if they are not provided at the command-line. Please see
+    the :ref:`configuration` guide for customizing the defaults.
+
+.. code-block:: bash
+
+    $ nsot-server start
+    Performing upgrade before service startup...
+    Performing collectstatic before service startup...
+
+    0 static files copied to '/Users/jathan/sandbox/virtualenvs/nsot/lib/python2.7/site-packages/nsot/staticfiles', 145 unmodified.
+    Running service: 'http', num workers: 4, worker timeout: 30
+    [2016-04-29 02:52:39 -0500] [21840] [INFO] Starting gunicorn 19.3.0
+    [2016-04-29 02:52:39 -0500] [21840] [INFO] Listening at: http://127.0.0.1:8990 (21840)
+    [2016-04-29 02:52:39 -0500] [21840] [INFO] Using worker: gevent
+    [2016-04-29 02:52:39 -0500] [21843] [INFO] Booting worker with pid: 21843
+    [2016-04-29 02:52:39 -0500] [21844] [INFO] Booting worker with pid: 21844
+    [2016-04-29 02:52:39 -0500] [21845] [INFO] Booting worker with pid: 21845
+    [2016-04-29 02:52:39 -0500] [21846] [INFO] Booting worker with pid: 21846
 
 Upgrade the database
 ====================
@@ -114,6 +143,26 @@ You must install MrProxy first: ``pip install mrproxy``.
 
     $ nsot-server user_proxy
 
+Generate a secret_key
+=====================
+
+Generate a URL-safe base64-encoded 36-byte secret key suitable for use inside
+of ``settings.py``. This key is used for encryption/decryption of sessions and
+API auth tokens. 
+
+.. note::
+    A unique key is randomly generated for you when you utilize ``nsot-server
+    init``.
+
+This must be kept secret! Anyone with this key is able to create and read
+messages. 
+
+.. code-block:: bash
+
+    $ nsot-server generate_key
+    R2gasBVJKmU5ZgkrlBljyZJrLP_B6EwZ3S7k28-SkIs=
+
+
 Python shell
 ============
 
@@ -159,6 +208,14 @@ Database shell
 This will drop you to a shell for your configured database. This can be very
 handy for troubleshooting database issues.
 
+.. warning::
+    This is an advanced feature that gives you direct access to the database
+    to run raw SQL queries. database. Use this very cautiously as you can cause
+    irreparable damage to your NSoT installation.
+
 .. code-block:: bash
 
     $ nsot-server dbshell
+    SQLite version 3.8.10.2 2015-05-20 18:17:19
+    Enter ".help" for usage hints.
+    sqlite>

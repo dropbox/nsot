@@ -7,8 +7,8 @@ chance of getting a real-time response is during the weekdays, Pacific time.
 The best way to get support, provide feedback, ask questions, or to just talk
 shop is to find us online on Slack.
 
-We have a bi-direction Slack/IRC bridge for our channels so that users can use
-whichever they prefer.
+We have a bi-directional Slack/IRC bridge for our channels so that users can
+use whichever they prefer.
 
 Slack
 -----
