@@ -5,6 +5,15 @@ Changelog
 Version History
 ===============
 
+.. _v1.0.1:
+
+1.0.1 (2016-07-08)
+------------------
+
+* Fix #209 - Fixed a bug in ``Network.closest_parent()`` that would sometimes
+  cause an incorrect parent network to be returned when performing a "closest
+  parent" lookup for a CIDR.
+
 .. _v1.0:
 
 1.0 (2016-04-27)

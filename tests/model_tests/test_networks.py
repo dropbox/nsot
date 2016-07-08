@@ -121,6 +121,9 @@ def test_retrieve_networks(site):
     net_24 = models.Network.objects.create(
         site=site, cidr=u'10.0.0.0/24', attributes={'test': 'bar'}
     )
+    net_25 = models.Network.objects.create(
+        site=site, cidr=u'10.0.0.0/25', attributes={'test': 'baz'}
+    )
     ip = models.Network.objects.create(
         site=site, cidr=u'10.0.0.1/32'
     )
@@ -128,15 +131,14 @@ def test_retrieve_networks(site):
     # root=True
     assert list(site.networks.filter(parent_id=None)) == [net_8]
 
-
     # include_networks=True, include_ips=Fals
-    assert list(site.networks.filter(is_ip=False)) == [net_8, net_24]
+    assert list(site.networks.filter(is_ip=False)) == [net_8, net_24, net_25]
 
     # include_networks=False, include_ips=False
     assert list(site.networks.none()) == []
 
     # include_networks=True, include_ips=True
-    assert list(site.networks.all()) == [net_8, net_24, ip]
+    assert list(site.networks.all()) == [net_8, net_24, net_25, ip]
 
     # include_networks=False, include_ips=True
     assert list(site.networks.filter(is_ip=True)) == [ip]
@@ -151,8 +153,11 @@ def test_retrieve_networks(site):
     #
     # .get_closest_parent()
     #
-    # Get closest parent for non-existent 10.0.0.2/32 network
-    assert site.networks.get_closest_parent(u'10.0.0.2/32') == net_24
+    # Closest parent for non-existent 10.0.0.128/32 network should be /24
+    assert site.networks.get_closest_parent(u'10.0.0.128/32') == net_24
+
+    # Closest parent for non-existent 10.0.0.2/32 network should be /25
+    assert site.networks.get_closest_parent(u'10.0.0.2/32') == net_25
 
     # Matching ip with shorter prefix_length should not match
     with pytest.raises(models.Network.DoesNotExist):

@@ -668,9 +668,12 @@ def test_closest_parent_detail_route(site, client):
     parent_resp = client.create(net_uri, cidr='10.250.0.0/24')
     parent = get_result(parent_resp)
 
+    # To make sure that a /25 doesn't return as closest parent. See: issue #209
+    client.create(net_uri, cidr='10.250.0.0/25')
+
     # Closest parent for non-existent /32 should be ``parent``
     closest_uri = reverse(
-        'network-closest-parent', args=(site.id, '10.250.0.1/32')
+        'network-closest-parent', args=(site.id, '10.250.0.185/32')
     )
     expected = parent
     assert_success(client.retrieve(closest_uri), expected)
