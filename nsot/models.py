@@ -594,6 +594,7 @@ class NetworkManager(ResourceManager):
         """
         # Validate that it's a real CIDR
         cidr = validators.validate_cidr(cidr)
+        broadcast_address = cidr.broadcast_address.exploded
         leaf = netaddr.IPNetwork(str(cidr))
         ip_version = leaf.version
 
@@ -625,6 +626,7 @@ class NetworkManager(ResourceManager):
             'network_address__in': network_addresses,
             'prefix_length__in': prefix_lengths,
             'ip_version': ip_version,
+            'broadcast_address__gte': broadcast_address,
         }
         if site is not None:
             lookup_kwargs['site'] = site
