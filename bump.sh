@@ -22,7 +22,7 @@ function proceed() {
 }
 
 function replace() {
-    sed -i "s/'${CURVER}'/'${VERSION}'/" nsot/version.py && \
+    sed -i '' "s/'${CURVER}'/'${VERSION}'/" nsot/version.py && \
         echo "Updated nsot/version.py"
 
     sed "s/{{ NSOT_VERSION }}/${VERSION}/" docker/Dockerfile.sub > \
