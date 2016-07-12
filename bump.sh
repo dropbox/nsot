@@ -22,8 +22,8 @@ function proceed() {
 }
 
 function replace() {
-    sed -i '' "s/'${CURVER}'/'${VERSION}'/" nsot/version.py && \
-        echo "Updated nsot/version.py"
+    sed -i.bak "s/'${CURVER}'/'${VERSION}'/" nsot/version.py && \
+        echo "Updated nsot/version.py" && rm nsot/version.py.bak
 
     sed "s/{{ NSOT_VERSION }}/${VERSION}/" docker/Dockerfile.sub > \
         docker/Dockerfile && echo "Updated docker/Dockerfile"
