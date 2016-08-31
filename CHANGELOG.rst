@@ -5,6 +5,18 @@ Changelog
 Version History
 ===============
 
+.. _v1.0.2:
+
+1.0.2 (2016-08-31)
+------------------
+
+* Ubuntu 16.04 is now officially supported.
+* Fix #213 - Updated requirements to utilize ``cryptography==1.5`` so that
+  install will work on Ubuntu versions 12.04 through 16.04. (Credit:
+  @slinderud)
+* Finally fixed ``bump.sh`` to work on both Linux and Darwin. For real this
+  time.
+
 .. _v1.0.1:
 
 1.0.1 (2016-07-08)
