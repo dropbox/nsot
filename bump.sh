@@ -22,11 +22,13 @@ function proceed() {
 }
 
 function replace() {
-    sed -i.bak "s/'${CURVER}'/'${VERSION}'/" nsot/version.py && \
-        echo "Updated nsot/version.py" && rm nsot/version.py.bak
+    sed -i.bak "s/'${CURVER}'/'${VERSION}'/" nsot/version.py
+    echo "Updated nsot/version.py"
+    rm nsot/version.py.bak
 
     sed "s/{{ NSOT_VERSION }}/${VERSION}/" docker/Dockerfile.sub > \
-        docker/Dockerfile && echo "Updated docker/Dockerfile"
+        docker/Dockerfile
+    echo "Updated docker/Dockerfile"
 }
 
 function usage() {
@@ -53,5 +55,5 @@ done
 
 if [ -z $VERSION ]; then echo "You must provide -v|--version!" >&2; usage; fi
 
-CURVER=`sed "s/^.*'\(\S*\)'/\1/" nsot/version.py`
+CURVER=`cat nsot/version.py | grep -Eow "'(\S+)\'$" | cut -d\' -f 2`
 proceed

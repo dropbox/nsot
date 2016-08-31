@@ -2,9 +2,9 @@
 Ubuntu
 ######
 
-This installation guide assumes that you are running Ubuntu version 12.04 or
-14.04 on your machine, and are wanting to install NSoT. This guide will help
-you install NSoT and then run it locally from a browser window.
+This installation guide assumes that you are running Ubuntu version 12.04,
+14.04, or 16.04 on your machine, and are wanting to install NSoT. This guide
+will help you install NSoT and then run it locally from a browser window.
 
 Installation
 ============
