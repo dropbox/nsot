@@ -570,18 +570,18 @@ def test_get_next_detail_routes(site, client):
     )
 
     # A single /28
-    expected = [u'10.16.2.0/28']
+    expected = [u'10.16.2.32/28']
     assert_success(client.retrieve(uri, prefix_length=28), expected)
     assert_success(client.retrieve(natural_uri, prefix_length=28), expected)
 
-    # 4x /27
-    networks = [u'10.16.2.0/27', u'10.16.2.32/27', u'10.16.2.64/27', u'10.16.2.96/27']
+    # 3x remaining /27 in the /25
+    networks = [u'10.16.2.32/27', u'10.16.2.64/27', u'10.16.2.96/27']
     assert_success(
-        client.retrieve(uri, prefix_length=27, num=4),
+        client.retrieve(uri, prefix_length=27, num=3),
         networks
     )
     assert_success(
-        client.retrieve(natural_uri, prefix_length=27, num=4),
+        client.retrieve(natural_uri, prefix_length=27, num=3),
         networks
     )
 
@@ -591,6 +591,7 @@ def test_get_next_detail_routes(site, client):
     assert_error(client.retrieve(uri, prefix_length='ralph'), status.HTTP_400_BAD_REQUEST)
     assert_error(client.retrieve(uri, prefix_length=14), status.HTTP_400_BAD_REQUEST)
     assert_error(client.retrieve(uri, prefix_length=65), status.HTTP_400_BAD_REQUEST)
+
     ## by natural_key
     assert_error(client.retrieve(natural_uri), status.HTTP_400_BAD_REQUEST)
     assert_error(

@@ -250,15 +250,15 @@ def test_get_next_methods(site):
     #
 
     # A single /28
-    assert net_25.get_next_network(28) == [ipaddress.ip_network(u'10.16.2.0/28')]
+    assert net_25.get_next_network(28) == [ipaddress.ip_network(u'10.16.2.32/28')]
 
-    # 4x /27
-    slash27 = [u'10.16.2.0/27', u'10.16.2.32/27', u'10.16.2.64/27', u'10.16.2.96/27']
+    # 3x remaining /27 in the /25
+    slash27 = [u'10.16.2.32/27', u'10.16.2.64/27', u'10.16.2.96/27']
     expected = [ipaddress.ip_network(n) for n in slash27]
-    assert net_25.get_next_network(27, num=4) == expected
+    assert net_25.get_next_network(27, num=3) == expected
 
     # as_objects=False
-    assert net_25.get_next_network(27, num=4, as_objects=False) == slash27
+    assert net_25.get_next_network(27, num=3, as_objects=False) == slash27
 
     # 5x /27 will still only return 4
     assert net_25.get_next_network(27, num=5) == expected
