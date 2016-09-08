@@ -5,6 +5,18 @@ Changelog
 Version History
 ===============
 
+.. _v1.0.3:
+
+1.0.3 (2016-09-08)
+------------------
+
+* Fix #216 - Fixed a bug in ``Network.next_network()`` where networks
+  containing children were being offered as free. Networks are now only offered
+  if they do not have any child networks.
+* Fix #212 - Updated requirements to require ``djangorestframework>=3.4.4`` and
+  removed ``nsot.api.serializers.LimitedForeignKeyField`` since this
+  functionality is now built into DRF.
+
 .. _v1.0.2:
 
 1.0.2 (2016-08-31)
@@ -144,7 +156,6 @@ Version History
 -------------------
 
 * Migrated to built-in filtering of Interface objects in API.
-    
 * Also added the ability to filter by ``device__hostname``, e.g.
   ``GET /api/interfaces/?device__hostname=foo-bar1``
 
@@ -179,7 +190,7 @@ Version History
 -------------------
 
 * Made authentication API endpoints version-aware.
-    
+
   + Overlooked the API authentication endpoints when doing the
     API versioning.
 
@@ -193,7 +204,6 @@ Version History
 -------------------
 
 * Complete overhaul of API filtering to use DRF built-in filtering.
-    
 * All overloads in views of .get_queryset() has been removed and
   replaced with ``filter_class`` objects stored in ``nsot.api.filters``
 * All Resource filtering is now done using built-in
@@ -206,7 +216,7 @@ Version History
 -------------------
 
 * Fixes #118 - Network objects are now round-trippable in API.
-    
+
   + You may now provide either ``cidr`` or ``network_address`` +
     ``prefix_length`` when creating a Network object.
   + A Network object returned by the API may now be full used for create
@@ -229,15 +239,15 @@ Version History
 -----------------
 
 * Full support for PATCH in the API and some resultant bug fixes to PUT.
-    
+
   + Specifically, this means any resource that is allowed to have
     attributes can now be partially updated using PATCH, because PATCH
     operations have been made attribute-aware.
   + Attributes themselves cannot YET be partially updated, but we hope to
     address that in a future... PATCH.
-    
+
 * Serializers
-    
+
   + PATCH support enabled for complex objects: Attributes, Devices,
     Interfaces, Networks.
   + ResourceSerializer subclasses now all inherit default behavior for
@@ -249,15 +259,15 @@ Version History
   + Each resource now has PUT and PATCH serializers broken out explicitly
     to facilitate the "optional fields" nature of PATCH vs. the "mandatory
     fields" nature of PUT.
-    
+
 * Attributes
-    
+
   + All error messages raised when validating attributes include the word
     "attributes" so that you know it's a validation error specific to
     attributes.
-    
+
 * Bug Fixes
-    
+
   + Bugfix in handling PUT requests where attributes would be initialized
     if not provided. Attributes are now mandatory on any PUT requests and
     will result in an error if they are missing.
@@ -272,7 +282,7 @@ Version History
 -------------------
 
 * Bugfixes w/ natural_key lookups that would result in a 500 error.
-    
+
   + Turns out that ``site_pk`` was incorrectly being dropped when doing
     natural_key lookups, which would result in a 500 w/ multiple
     sites.
@@ -297,31 +307,31 @@ Version History
 -----------------
 
 * Implement GET/PUT objects by natural_key and minor fixes.
-    
+
 * General
-    
+
   + Upgraded ``drf-nested-routers==0.11.1``
   + Re-organized nsot.api.urls to improve readability
   + Implemented natural_key mappings for Device and Network resources
-    
+
 * Networks
-    
+
   + Updated ``Network.objects.get_by_address()`` to support optional site=
     argument for filtering by site_id.
-    
+
 * Serializers
-    
+
   + Moved ``.create()``, ``.update()`` methods from Device, Network serializers
     to new ``ResourceSerializer`` base.
-    
+
 * Change Events
-    
+
   + Fix when deleting a resource object using the API failed for any
     reason the "Delete" change event would still be created. The Change
     event will now only be kept *after* a successful delete.
-    
+
 * Views
-    
+
   + Implemented ``NsotViewSet.get_object()`` support for nested serializers
   + Updated Network lookup_value_regex to support loookup by pk or
     IPv4/IPv6 natural_key.
@@ -381,7 +391,6 @@ Version History
 -------------------
 
 * Upgrade to Django==1.8.7 and DRF==3.3.2
-    
 * Filter fields now implemented in Browsable API (new in DRF 3.3)
 * Added django-crispy-forms as a dependency
 * Bootstrap JS updated to v3.3.5
@@ -400,7 +409,7 @@ Version History
 -------------------
 
 * Implemented basic support for Interfaces in Web UI.
-    
+
   + Create, update, delete all work
   + Device still only showing by id, should be displayed by hostname
   + Type only showing by id, should be displayed as selection of
@@ -419,7 +428,7 @@ Version History
 -------------------
 
 * Fix 500 crash when querying OPTIONS to view schema in API (fixes #126)
-    
+
   + The bulk update mixin had to be subclassed to utilize super(), because
     it does not extend a pre-existing django-rest-framework mixin.
   + The inheritance order of the bulk mixins used in the Resource viewset
@@ -445,7 +454,7 @@ Version History
 -------------------
 
 * Implemented more backend gunicorn options for default http service
-    
+
   + max-requests: Max requests per worker before restart
   + max-requests-jitter - Random jitter in seconds between worker restart
   + preload - Whether to preload app before forking
@@ -777,20 +786,20 @@ Schema change to fix confusion when selecting parent objects.
 
 * Implement network/address allocation endpoints for Network objects.
 * For database models the following methods have been added:
-    
+
   + ``get_next_address()`` - Returns a list of next available a addresses
     (fixes #49)
   + ``get_next_network()`` - Returns a list of next available networks
     matching the provided prefix_length. (fixes #48)
-    
+
 * For the REST API, the following endpoints have been added to Network
   objects in detail view (e.g. ``GET /api/sites/1/networks/10/:endpoint1``):
-    
+
   + ``next_address`` - Returns a list of next available a addresses
   + ``next_network`` - Returns a list of next available networks
     matching the provided prefix_length.
   + ``parent`` - Return the parent Network for this Network
-    
+
 + Updated all of the tree traversal methods to explicitly order results
   by (network_address, prefix_length) so that results are in tree order.
 + Corrected a typo in the README file (fixes #69)
@@ -803,7 +812,7 @@ Schema change to fix confusion when selecting parent objects.
 
 * Implement tree traversal endpoints for Network objects.
 * For database models the following methods have been added:
-    
+
   + ``is_child_node()`` - Returns whether Network is a child node
   + ``is_leaf_node()`` - Returns whether Network has no children
   + ``is_root_node()`` - Returns whether Network has no parent
@@ -812,16 +821,16 @@ Schema change to fix confusion when selecting parent objects.
   + ``get_descendents()`` - Return ALL children for a Network
   + ``get_root()`` - Return the root node of this Network
   + ``get_siblings()`` - Returns Networks with the same parent
-    
+
 * For the REST API, the following endpoints have been added to Network
   objects detail view (e.g. ``GET /api/sites/1/networks/10/:endpoint``):
-    
+
   + ``ancestors`` - Return all parents for a Network
   + ``children`` - Return immediate children for a Network
   + ``descendents`` - Return ALL children for a Network
   + ``root`` - Return the root node of this Network
   + ``siblings`` - Returns Networks with the same parent
-    
+
 * All new functionality is completely unit-tested!
 
 .. _v0.7.4:
@@ -945,7 +954,7 @@ Schema change to fix confusion when selecting parent objects.
 
 * Bugfix for displaying IPs when filtering Networks w/ attrs. (fix #34)
 * Added some extra networks to the test fixtures for API tests.
-* Updated fixtures for network set queries to reflect extra networks. 
+* Updated fixtures for network set queries to reflect extra networks.
 
 .. _v0.4.3:
 
