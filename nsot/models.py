@@ -51,6 +51,151 @@ RESOURCE_CHOICES = [(c, c) for c in VALID_ATTRIBUTE_RESOURCES]
 # Unique interface type IDs.
 INTERFACE_TYPES = [t[0] for t in settings.INTERFACE_TYPE_CHOICES]
 
+class Iterable(models.Model):
+    """Generic iterable for stateful services - vlan#, po#, tenant ID etc"""
+    '''
+    min/max_val = defines the valid range for the Iterable
+    increment =  steps to increment the Iterable
+
+    '''
+    name = models.CharField(
+        max_length=255, unique=True, help_text='The name of the Iterable.'
+    )
+    description = models.TextField(
+        default='', blank=True, help_text='A helpful description for the Iterable.'
+    )
+    min_val = models.IntegerField(
+        default=1, help_text='The minimum value of the Iterable.'
+    )
+    max_val = models.IntegerField(
+        default=100, help_text='The maximum value  of the Iterable.'
+    )
+    increment = models.IntegerField(
+        default = 1, help_text='Increment  value  of the Iterable by.'
+    )
+
+
+    def __unicode__(self):
+        return str(self.name)
+    
+    def save(self, *args, **kwargs):
+        super(Iterable, self).save(*args, **kwargs)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'description': self.description,
+            'min_val': self.min_val,
+            'max_val': self.max_val,
+            'increment': self.increment,
+        }
+
+#class IterValueManager(models.Manager):
+#    def getnext(self, iterable_fk):
+#        "Get the next value of the iterable"
+#        curr_val = IterValue.objects.filter(iter_key=iterable_fk).order_by('-val').values_list('val', flat=True)[0]
+#        incr = Iterable.objects.filter(id=iterable_fk.id).values_list('increment', flat=True)[0]
+#        return curr_val + incr
+#
+class IterValue(models.Model):
+    """Value table for the generic iterable defined above"""
+    '''
+    val = contains the value
+        getnext = returns the next iterated value for this particular Iterable
+    save = saves the val
+    u_id = unique id to associate the value - query/deletes can be based on this unique id - This should also be set externally, to make it callable 
+    iter_key = Foreign key that ties the Iterable with the value
+    '''
+    iter_key = models.ForeignKey(Iterable, on_delete=models.PROTECT)
+    #self.default_val =  0
+    #self.default_val =   Iterable.objects.values_list('min_val', flat=True)[0]
+
+    myvar = 1
+
+    val = models.IntegerField(
+        default=myvar, unique=True, help_text='The value of the iterable.'
+    )
+    u_id = models.TextField(
+        blank=True, help_text='A helpful description for the Iterable.'
+    )
+
+       
+    def __unicode__(self):
+        return str(self.val)
+    
+    @classmethod
+    def getnext(cls, fk):
+        "Get the next value of the iterable"
+        try:
+            " First try to generate the next value based on the current allocation"
+            curr_val = IterValue.objects.filter(iter_key=fk).order_by('-val').values_list('val', flat=True)[0]
+            incr = Iterable.objects.filter(id=fk.id).values_list('increment', flat=True)[0]
+            next_val = curr_val + incr
+            try:
+                min_val = Iterable.objects.filter(id=fk.id).values_list('min_val', flat=True)[0]
+                max_val = Iterable.objects.filter(id=fk.id).values_list('max_val', flat=True)[0]
+                if min_val <= next_val <= max_val:
+                    return next_val
+            except:
+                log.debug('value out of range - exceeded')
+                raise exc.ValidationError({
+                    'next_val': 'Out of range'
+                })
+        except IndexError:
+            "Index Error implies that the table has not been intialized - so assign the first value"
+            return Iterable.objects.filter(id=fk.id).values_list('min_val', flat=True)[0]
+    
+    
+    def save(self, *args, **kwargs):
+        super(IterValue, self).save(*args, **kwargs)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'val': self.val,
+        }
+    @classmethod
+    def getnext_dict(cls, fx):
+        "Get the next value of the iterable"
+        try:
+            " First try to generate the next value based on the current allocation"
+            curr_val = IterValue.objects.filter(iter_key=fk).order_by('-val').values_list('val', flat=True)[0]
+            incr = Iterable.objects.filter(id=fk.id).values_list('increment', flat=True)[0]
+            next_val = curr_val + incr
+            try:
+                min_val = Iterable.objects.filter(id=fk.id).values_list('min_val', flat=True)[0]
+                max_val = Iterable.objects.filter(id=fk.id).values_list('max_val', flat=True)[0]
+                if min_val <= next_val <= max_val:
+                    return {
+                            'next_val' : next_val,
+                            }
+            except:
+                log.debug('value out of range - exceeded')
+                raise exc.ValidationError({
+                    'next_val': 'Out of range'
+                })
+        except IndexError:
+            "Index Error implies that the table has not been intialized - so assign the first value"
+            first_val = Iterable.objects.filter(id=fk.id).values_list('min_val', flat=True)[0]
+            return {
+                    'next_val' : next_val,
+                    }
+
+    
+
+
+
+
+        curr_val = IterValue.objects.filter(iter_key=fk).order_by('-val').values_list('val', flat=True)[0]
+        incr = Iterable.objects.filter(id=fk.id).values_list('increment', flat=True)[0]
+        next_val = curr_val + incr
+        return {
+                'next_val' : next_val,
+                }
+
+
+
 
 class Site(models.Model):
     """A namespace for attribtues, devices, and networks."""

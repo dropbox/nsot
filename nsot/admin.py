@@ -84,3 +84,12 @@ class InterfaceAdmin(admin.ModelAdmin):
 
     fields = list_display
 admin.site.register(models.Interface, InterfaceAdmin)
+
+
+class IterableAdmin(admin.ModelAdmin):
+    pass
+admin.site.register(models.Iterable, IterableAdmin)
+
+class IterValueAdmin(admin.ModelAdmin):
+    pass
+admin.site.register(models.IterValue, IterValueAdmin)

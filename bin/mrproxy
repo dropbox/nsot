@@ -1,0 +1,32 @@
+#!/Users/ajaychenampara/vagrant/nsot/bin/python
+
+import argparse
+import BaseHTTPServer
+
+from mrproxy import UserProxyHandler
+
+def main():
+
+    description_msg = "Mediocre Reverse Proxy."
+    parser = argparse.ArgumentParser(description=description_msg)
+
+    parser.add_argument("-p", "--listen-port", default=8888, type=int,
+                        help="Port to listen on.")
+    parser.add_argument("-P", "--backend-port", default=8989, type=int,
+                        help="Port to proxy to.")
+    parser.add_argument("--header", default=[], action="append",
+                        help="Headers to pass to backend. e.g. --header")
+
+    args = parser.parse_args()
+
+    # localhost is hardcoded to discourage real use. :)
+    server = BaseHTTPServer.HTTPServer(('localhost', args.listen_port), UserProxyHandler)
+    server.args = args
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        print "Bye!"
+
+
+if __name__ == "__main__":
+    main()
