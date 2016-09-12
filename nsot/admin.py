@@ -87,9 +87,13 @@ admin.site.register(models.Interface, InterfaceAdmin)
 
 
 class IterableAdmin(admin.ModelAdmin):
-    pass
+    list_display = ('name', 'min_val', 'max_val', 'increment')
+    fields = list_display
+
 admin.site.register(models.Iterable, IterableAdmin)
 
 class IterValueAdmin(admin.ModelAdmin):
-    pass
+    list_display = ('val', 'u_id', 'iter_key')
+    fields = list_display
+
 admin.site.register(models.IterValue, IterValueAdmin)
