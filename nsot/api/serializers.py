@@ -252,6 +252,10 @@ class ValueCreateSerializer(ValueSerializer):
                   'resource_id')
 
 
+
+
+
+
 ###########
 # Resources
 ###########
