@@ -346,6 +346,20 @@ class AttributeViewSet(ResourceViewSet):
             return serializers.AttributeUpdateSerializer
         return self.serializer_class
 
+class IterableViewSet(ResourceViewSet):
+    """
+    API endpoint that allows Iterables to be viewed or edited.
+    """
+    queryset = models.Iterable.objects.all()
+    serializer_class = serializers.IterableSerializer
+    filter_fields = ('name', 'description', 'min_val', 'max_val', 'increment')
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return serializers.IterableCreateSerializer
+        if self.request.method in ('PUT', 'PATCH'):
+            return serializers.IterableUpdateSerializer
+        return self.serializer_class
+
 
 class DeviceViewSet(ResourceViewSet):
     """

@@ -19,6 +19,7 @@ router.register(r'interfaces', views.InterfaceViewSet)
 router.register(r'networks', views.NetworkViewSet)
 router.register(r'users', views.UserViewSet)
 router.register(r'values', views.ValueViewSet)
+router.register(r'iterable', views.IterableViewSet)
 
 # Nested router for resources under /sites
 sites_router = routers.BulkNestedRouter(
@@ -32,6 +33,7 @@ sites_router.register(r'devices', views.DeviceViewSet)
 sites_router.register(r'interfaces', views.InterfaceViewSet)
 sites_router.register(r'networks', views.NetworkViewSet)
 sites_router.register(r'values', views.ValueViewSet)
+sites_router.register(r'iterable', views.IterableViewSet)
 
 # Wire up our API using automatic URL routing.
 # Additionally, we include login URLs for the browsable API.

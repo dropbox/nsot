@@ -252,6 +252,34 @@ class ValueCreateSerializer(ValueSerializer):
                   'resource_id')
 
 
+###########
+# Iterable
+###########
+class IterableSerializer(NsotSerializer):
+    """Used for GET, DELETE on Iterables."""
+    class Meta:
+        model = models.Iterable
+
+class IterableCreateSerializer(IterableSerializer):
+    """Used for POST on Iterables."""
+    
+    site_id = fields.IntegerField(
+        label = get_field_attr(models.Iterable, 'site', 'verbose_name'),
+        help_text = get_field_attr(models.Iterable, 'site', 'help_text')
+        )
+
+    class Meta:
+        model = models.Iterable
+        fields = ( 'name', 'description', 'min_val', 'max_val', 'increment', 'site_id')
+
+
+class IterableUpdateSerializer(BulkSerializerMixin,
+                                IterableCreateSerializer):
+    """ Used for PUT, PATCH, on Iterables.  """
+    class Meta:
+        model = models.Iterable
+        list_serializer_class = BulkListSerializer
+        fields = ('id', 'name', 'description', 'min_val', 'max_val', 'increment', 'site_id')
 
 
 
