@@ -27,7 +27,7 @@ log = logging.getLogger(__name__)
 # These are constants that becuase they are tied directly to the underlying
 # objects are explicitly NOT USER CONFIGURABLE.
 RESOURCE_BY_IDX = (
-    'Site', 'Network', 'Attribute', 'Device', 'Interface'
+    'Site', 'Network', 'Attribute', 'Device', 'Interface', 'Iterable'
 )
 RESOURCE_BY_NAME = {
     obj_type: idx
@@ -1940,6 +1940,32 @@ class Iterable(models.Model):
     def __unicode__(self):
         return u'name=%s, min=%s, max=%s, increment=%s' % (self.name, self.min_val, self.max_val, self.increment ) 
     
+    def get_next_value(self):
+        "Get the next value of the iterable"
+        try:
+            " First try to generate the next value based on the current allocation"
+            curr_val = IterValue.objects.filter(iter_key=self.id).order_by('-val').values_list('val', flat=True)[0]
+            incr = self.increment
+            next_val = curr_val + incr
+            try:
+                if self.min_val <= next_val <= self.max_val:
+                    return [next_val]
+                else:
+                    raise exc.ValidationError({
+                    'next_val': 'Out of range'
+                })
+
+            except:
+                log.debug('value out of range - exceeded')
+                raise exc.ValidationError({
+                    'next_val': 'Out of range'
+                })
+        except IndexError:
+            "Index Error implies that the table has not been intialized - so assign the first value"
+            return [self.min_val]
+    
+
+
     def save(self, *args, **kwargs):
         super(Iterable, self).save(*args, **kwargs)
 

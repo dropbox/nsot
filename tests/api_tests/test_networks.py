@@ -618,7 +618,6 @@ def test_get_next_detail_routes(site, client):
     natural_uri = reverse(
         'network-next-address', args=(site.id, mkcidr(net_25))
     )
-
     # A single /32
     assert_success(client.retrieve(uri), [u'10.16.2.3/32'])
     assert_success(client.retrieve(natural_uri), [u'10.16.2.3/32'])

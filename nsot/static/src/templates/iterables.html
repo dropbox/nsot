@@ -1,0 +1,67 @@
+<loading-panel ng-if="loading"></loading-panel>
+<div ng-if="!loading">
+    <heading-bar heading="Attributes">
+        <button
+            ng-if="admin"
+            class="btn btn-success"
+            data-toggle="modal"
+            data-target="#createAttributeModal"
+        >Create Attribute</button>
+    </heading-bar>
+
+    <nsot-modal title="Create Iterable" modal-id="createAttributeModal" modal-size="large">
+        <div class="modal-body">
+            <div ng-if="error" class="alert alert-danger">
+                [[error.code]] - [[error.message]]
+            </div>
+            <form novalidate name="attrForm" class="nsot-form">
+                <div ng-include="formUrl"></div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">
+                Close
+            </button>
+            <button type="submit" ng-click="createIterable()"
+                    class="btn btn-primary" ng-disabled="attrForm.$invalid"
+            >
+                Create
+            </button>
+        </div>
+    </nsot-modal>
+
+    <div class="row" ng-if="attributes.length" class="row"><div class="col-sm-10 col-sm-offset-1">
+        <panel>
+            <panel-heading>Iterables</panel-heading>
+            <panel-body ng-if="!iterabless.length">
+                No Iterables
+            </panel-body>
+            <panel-body ng-if="iterables.length">
+                <table class="table table-condensed table-hover">
+                    <thead>
+                        <tr>
+                            <th class="col-sm-2">Name</th>
+                            <th class="col-sm-3">Description</th>
+                            <th class="col-sm-1">Min value</th>
+                            <th class="col-sm-1">Max value</th>
+                            <th class="col-sm-1">incrementor</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr ng-repeat="itr in iterables">
+                            <td>[[itr.resource_name]]</td>
+                            <td>
+                                <a href="/sites/[[siteId]]/iterables/[[itr.id]]"
+                                >[[itr.name]]</a>
+                            </td>
+                            <td>[[itr.description]]</td>
+                            </tr>
+                    </tbody>
+                </table>
+            </panel-body>
+        </panel>
+
+    </div></div>
+
+
+</div>

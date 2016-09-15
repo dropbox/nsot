@@ -1,0 +1,85 @@
+<div class="row">
+    <div class="col-md-6">
+        <div class="form-group" ng-if="formMode == 'create'" ng-class="{
+            'has-error' : attrForm.name.$invalid,
+            'has-success' : attrForm.name.$valid
+        }">
+            <label>Name *</label>
+            <input type="text"
+                   class="form-control"
+                   name="name"
+                   ng-model="formData.name"
+                   ng-minlength="1"
+                   required
+            >
+        </div>
+        <span ng-if="formMode === 'update'">
+            <label>Name</label> [[attribute.name]]
+        <span>
+    </div>
+
+    <div class="col-md-6">
+        <div class="form-group" ng-if="formMode == 'create'" ng-class="{
+            'has-error' : attrForm.resourcType.$invalid,
+            'has-success' : attrForm.resourceType.$valid
+        }">
+            <label>Resource Type</label>
+            <select
+                name="resourceType"
+                class="form-control"
+                ng-required
+                ng-init="formData.resourceName = 'Network'"
+                ng-model="formData.resourceName">
+                <option value="Network">Network</option>
+                <option value="Device">Device</option>
+                <option value="Interface">Interface</option>
+            </select>
+        </div>
+        <span ng-if="formMode === 'update'">
+            <label>Resource Type</label> [[attribute.resource_name]]
+        <span>
+    </div>
+</div>
+<div class="form-group">
+    <label>Description</label>
+    <textarea style="resize: vertical;"
+              class="form-control"
+              rows="5"
+              ng-model="formData.description"
+    >
+    </textarea>
+</div>
+<h4 class="form-subheading">Constraints</h4>
+<div class="form-group">
+    <label>Valid Values</label>
+    <tags-input
+        placeholder="Add Value"
+        name="validValues"
+        min-length="1"
+        ng-model="formData.validValues"
+    ></tags-input>
+</div>
+<div class="form-group">
+    <label>Value Pattern</label>
+    <input type="text"
+           class="form-control"
+           name="pattern"
+           ng-model="formData.pattern"
+    >
+</div>
+<label class="checkbox-inline">
+    <input type="checkbox" name="required"
+            ng-model="formData.required"> Required
+</label>
+<label class="checkbox-inline">
+    <input type="checkbox" name="display"
+            ng-model="formData.display"> Display
+</label>
+<label class="checkbox-inline">
+    <input type="checkbox" name="multi"
+            ng-model="formData.multi"> Allow Multi Values
+</label>
+<label class="checkbox-inline">
+    <input type="checkbox" name="allowEmpty"
+            ng-model="formData.allowEmpty"> Allow Empty Values
+</label>

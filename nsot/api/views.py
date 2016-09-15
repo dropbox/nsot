@@ -356,9 +356,22 @@ class IterableViewSet(ResourceViewSet):
     def get_serializer_class(self):
         if self.request.method == 'POST':
             return serializers.IterableCreateSerializer
-        if self.request.method in ('PUT', 'PATCH'):
+        if self.request.method in ('PUT'):
             return serializers.IterableUpdateSerializer
+        if self.request.method in ('PATCH'):
+            return serializers.IterablePartialUpdateSerializer
         return self.serializer_class
+    
+    @detail_route(methods=['get'])
+    def next_value(self, request, pk=None, site_pk=None, *args, **kwargs):
+        """Return next available Iterable value from this Network."""
+        iterable = self.get_resource_object(pk, site_pk)
+
+        value  = iterable.get_next_value()
+
+        return self.success(value)
+
+
 
 
 class DeviceViewSet(ResourceViewSet):
