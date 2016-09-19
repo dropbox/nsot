@@ -49,7 +49,8 @@ def test_nextval(site):
     itrv1 = models.IterValue.objects.create(
         val = itr.get_next_value()[0],
         u_id='jasdgijn001',
-        iter_key=itr
+        iter_key=itr,
+        site=site
         )
 
 
@@ -69,7 +70,8 @@ def test_valrange(site):
     itrv0 = models.IterValue.objects.create(
         val = 10,
         u_id='jasdgijn001',
-        iter_key=itr
+        iter_key=itr,
+        site=site
         )
 
 #    itrv1 = models.IterValue.objects.create(

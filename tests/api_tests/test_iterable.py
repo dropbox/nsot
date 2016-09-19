@@ -36,6 +36,7 @@ def test_creation(client, site):
     #Validate that the repsonse (which contains the creation data) matches the GET response, upon quering the API
     payload = get_result(itr_resp)
     expected = [payload]
+    get_resp = client.get(itr_uri)
     assert_success(client.get(itr_uri), expected)
     # Successfully get a single Network Attribute
     assert_success(client.get(itr_obj_uri), payload)
@@ -152,35 +153,32 @@ def test_deletion(client, site):
     itr_pk_uri = site.detail_uri('iterable', id=itr['id'])
     assert_deleted(client.delete(itr_pk_uri))
 
+def test_del_protect(client, site):
+    """Test DELETE Protection operations for Iterable."""
+    itr_uri = site.list_uri('iterable')
 
-    ###TO DO: Validate deletion fails if there are values associated with the Iterable
+    itr_resp = client.create(itr_uri, name='itr1', description="test-iterable", min_val=10, max_val=20, increment=1)
+    itr = get_result(itr_resp)
+ 
+    itr_pk_uri = site.detail_uri('iterable', id=itr['id'])
+
+    itrval_uri = site.list_uri('itervalue')
+    nval = client.get(reverse('iterable-next-value', args=(site.id, itr['id']))).json()[0] #Get the next value to assign to the itervalue
+    itrval_resp = client.create(itrval_uri, iter_key=itr['id'], val=nval, u_id='uuid_custA_site1') # create the iterval
+
+    itrval_resp_dict = get_result(itrval_resp)
+    itrval_obj_uri = site.detail_uri('itervalue', id=itrval_resp_dict['id'])
+    # Don't allow delete when there's a value associated
+    assert_error(
+        client.delete(itr_pk_uri),
+        status.HTTP_409_CONFLICT
+    )
+
+    # Now delete the Value
+    client.delete(itrval_obj_uri)
+
+    # And safely delete the Iterable
+    assert_deleted(client.delete(itr_pk_uri))
 
 
 
-#
-#    attr_uri = site.list_uri('attribute')
-#    net_uri = site.list_uri('network')
-#
-#    attr_resp = client.create(attr_uri, resource_name='Network', name='attr1')
-#    attr = get_result(attr_resp)
-#    attr_obj_uri = site.detail_uri('attribute', id=attr['id'])
-#
-#    # Create a Network with an attribute
-#    net_resp = client.create(
-#        net_uri, cidr='10.0.0.0/24', attributes={'attr1': 'foo'}
-#    )
-#    net = get_result(net_resp)
-#
-#    net_obj_uri = site.detail_uri('network', id=net['id'])
-#
-#    # Don't allow delete when there's an attached network
-#    assert_error(
-#        client.delete(attr_obj_uri),
-#        status.HTTP_409_CONFLICT
-#    )
-#
-#    # Now delete the Network
-#    client.delete(net_obj_uri)
-#
-#    # And safely delete the Attribute
-#    assert_deleted(client.delete(attr_obj_uri))

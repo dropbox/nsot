@@ -28,7 +28,8 @@ def test_creation(site):
 
     itrv1 = models.IterValue.objects.create(
         u_id='jasdgijn001',
-        iter_key=itr
+        iter_key=itr,
+        site=site
 
     )
 #    itrv2 = models.IterValue.objects.create(
@@ -61,27 +62,31 @@ def test_getnext(site):
         site = site
     )
     itrv1 = models.IterValue.objects.create(
-        val = models.IterValue.getnext(itr),
+        val = itr.get_next_value()[0],
         u_id='jasdgijn001',
-        iter_key=itr
+        iter_key=itr,
+        site=site
     )
     itrv2 = models.IterValue.objects.create(
-        val = models.IterValue.getnext(itr),
+        val = itr.get_next_value()[0],
         u_id='jasdgijn002',
-        iter_key=itr
+        iter_key=itr,
+        site=site
     )
     itrv3 = models.IterValue.objects.create(
-        val = models.IterValue.getnext(itr2),
+        val = itr2.get_next_value()[0],
         u_id='jasdgijn001',
-        iter_key=itr2
+        iter_key=itr2,
+        site=site
     )
     itrv4 = models.IterValue.objects.create(
-        val = models.IterValue.getnext(itr2),
+        val = itr2.get_next_value()[0],
         u_id='jasdgijn002',
-        iter_key=itr2
+        iter_key=itr2,
+        site=site
     )
 
-    assert models.IterValue.getnext(itr) == 54
+    assert itr.get_next_value()[0] == 54
     assert itrv2.val == 52
     assert itrv4.val == 1300
 
@@ -96,9 +101,10 @@ def test_save(site):
         site = site
     )
     itrv1 = models.IterValue.objects.create(
-        val = models.IterValue.getnext(itr),
+        val = itr.get_next_value()[0],
         u_id='jasdgijn001',
-        iter_key=itr
+        iter_key=itr,
+        site=site
     )
     itrv1.save()
 
@@ -122,24 +128,32 @@ def test_delete(site):
         site = site
     )
     itrv1 = models.IterValue.objects.create(
-        val = models.IterValue.getnext(itr),
+        val = itr.get_next_value()[0],
         u_id='jasdgijn001',
-        iter_key=itr
+        iter_key=itr,
+        site=site
+
     )
     itrv2 = models.IterValue.objects.create(
-        val = models.IterValue.getnext(itr),
+        val = itr.get_next_value()[0],
         u_id='jasdgijn002',
-        iter_key=itr
+        iter_key=itr,
+        site=site
+
     )
     itrv3 = models.IterValue.objects.create(
-        val = models.IterValue.getnext(itr2),
+        val = itr2.get_next_value()[0],
         u_id='jasdgijn001',
-        iter_key=itr2
+        iter_key=itr2,
+        site=site
+
     )
     itrv4 = models.IterValue.objects.create(
-        val = models.IterValue.getnext(itr2),
+        val = itr2.get_next_value()[0],
         u_id='jasdgijn002',
-        iter_key=itr2
+        iter_key=itr2,
+        site=site
+
     )
 
     models.IterValue.objects.filter(u_id=service_UID).all().delete()
@@ -163,27 +177,35 @@ def test_protected_delete(site):
         increment = 100,
         site = site
     )
+    
     itrv1 = models.IterValue.objects.create(
-        val = models.IterValue.getnext(itr),
+        val = itr.get_next_value()[0],
         u_id='jasdgijn001',
-        iter_key=itr
+        iter_key=itr,
+        site=site
+
     )
     itrv2 = models.IterValue.objects.create(
-        val = models.IterValue.getnext(itr),
+        val = itr.get_next_value()[0],
         u_id='jasdgijn002',
-        iter_key=itr
+        iter_key=itr,
+        site=site
+
     )
     itrv3 = models.IterValue.objects.create(
-        val = models.IterValue.getnext(itr2),
+        val = itr2.get_next_value()[0],
         u_id='jasdgijn001',
-        iter_key=itr2
+        iter_key=itr2,
+        site=site
+
     )
     itrv4 = models.IterValue.objects.create(
-        val = models.IterValue.getnext(itr2),
+        val = itr2.get_next_value()[0],
         u_id='jasdgijn002',
-        iter_key=itr2
-    )
+        iter_key=itr2,
+        site=site
 
+    )
     with pytest.raises(exc.ProtectedError):
         models.Iterable.objects.all().delete()
 

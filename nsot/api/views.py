@@ -372,7 +372,22 @@ class IterableViewSet(ResourceViewSet):
         return self.success(value)
 
 
-
+class IterValueViewSet(ResourceViewSet):
+    """
+    API endpoint that allows IterValues to be viewed or edited.
+    """
+    queryset = models.IterValue.objects.all()
+    serializer_class = serializers.IterValueSerializer
+    filter_fields = ( 'iter_key', 'val', 'u_id')
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return serializers.IterValueCreateSerializer
+        if self.request.method in ('PUT'):
+            return serializers.IterValueUpdateSerializer
+        if self.request.method in ('PATCH'):
+            return serializers.IterValuePartialUpdateSerializer
+        return self.serializer_class
+ 
 
 class DeviceViewSet(ResourceViewSet):
     """

@@ -289,6 +289,44 @@ class IterablePartialUpdateSerializer(BulkSerializerMixin,
         list_serializer_class = BulkListSerializer
         fields = ('id', 'name', 'description', 'min_val', 'max_val', 'increment')
 
+###########
+# IterValue
+###########
+#class IterValueSerializer(serializers.ModelSerializer):
+class IterValueSerializer(NsotSerializer):
+    """Used for GET, DELETE on IterValues."""
+    class Meta:
+        model = models.IterValue
+        #fields = ('id', 'iter_key', 'val', 'u_id')
+
+class IterValueCreateSerializer(IterValueSerializer):
+    """Used for POST on IterValues."""
+    site_id = fields.IntegerField(
+        label = get_field_attr(models.Iterable, 'site', 'verbose_name'),
+        help_text = get_field_attr(models.Iterable, 'site', 'help_text')
+        )
+    class Meta:
+        model = models.IterValue
+        #read_only_fields = ('id',  'site_id')
+        fields = ('iter_key', 'val', 'u_id', 'site_id')
+
+
+class IterValueUpdateSerializer(BulkSerializerMixin,
+                                IterValueCreateSerializer):
+    """ Used for PUT on IterValues.  """
+    class Meta:
+        model = models.IterValue
+        list_serializer_class = BulkListSerializer
+        fields = ('id', 'iter_key', 'val', 'u_id')
+
+class IterValuePartialUpdateSerializer(BulkSerializerMixin,
+                                IterValueCreateSerializer):
+    """ Used for PATCH, on IterValues.  """
+    class Meta:
+        model = models.IterValue
+        list_serializer_class = BulkListSerializer
+        fields = ('id', 'iter_key', 'val', 'u_id')
+
 
 
 

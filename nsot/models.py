@@ -27,7 +27,7 @@ log = logging.getLogger(__name__)
 # These are constants that becuase they are tied directly to the underlying
 # objects are explicitly NOT USER CONFIGURABLE.
 RESOURCE_BY_IDX = (
-    'Site', 'Network', 'Attribute', 'Device', 'Interface', 'Iterable'
+    'Site', 'Network', 'Attribute', 'Device', 'Interface', 'Iterable', 'IterValue'
 )
 RESOURCE_BY_NAME = {
     obj_type: idx
@@ -1847,10 +1847,17 @@ class Change(models.Model):
 
         # Site doesn't have an id to itself, so if obj is a Site, use it.
         self.site = obj if isinstance(obj, Site) else obj.site
-
         serializer_class = self.get_serializer_for_resource(self.resource_name)
         serializer = serializer_class(obj)
         self._resource = serializer.data
+        
+#        if isinstance(obj, Site):
+#            self.site = obj
+#        elif isinstance(obj, IterValue): #If the obj is of IterValue type, use it's foreign key, to find associate site and store changes
+#            site_num = Iterable.objects.filter(id=self._resource['iter_key']).values_list('site', flat=True)[0]
+#            self.site = Site.objects.get(id=site_num)
+#        else:
+#            self.site = obj.site
 
     def save(self, *args, **kwargs):
         self.full_clean()  # First validate fields are correct
@@ -1871,41 +1878,6 @@ class Change(models.Model):
             'resource_id': self.resource_id,
             'resource': resource,
         }
-
-
-# Signals
-def delete_resource_values(sender, instance, **kwargs):
-    """Delete values when a Resource object is deleted."""
-    instance.attributes.delete()  # These are instances of Value
-
-
-def change_api_updated_at(sender=None, instance=None, *args, **kwargs):
-    """Anytime the API is updated, invalidate the cache."""
-    djcache.set('api_updated_at_timestamp', timezone.now())
-
-
-# Register signals
-resource_subclasses = Resource.__subclasses__()
-for model_class in resource_subclasses:
-    # Value post_delete
-    models.signals.post_delete.connect(
-        delete_resource_values,
-        sender=model_class,
-        dispatch_uid='value_post_delete_' + model_class.__name__
-    )
-
-
-# Invalidate Interface cache on save/delete
-models.signals.post_save.connect(
-    change_api_updated_at, sender=Interface,
-    dispatch_uid='invalidate_cache_post_save_interface'
-)
-models.signals.post_delete.connect(
-    change_api_updated_at, sender=Interface,
-    dispatch_uid='invalidate_cache_post_delete_interface'
-)
-
-
 
 class Iterable(models.Model):
     """Generic iterable for stateful services - vlan#, po#, tenant ID etc"""
@@ -1990,91 +1962,134 @@ class IterValue(models.Model):
     iter_key = Foreign key that ties the Iterable with the value
     '''
     iter_key = models.ForeignKey(Iterable, on_delete=models.PROTECT)
-    #self.default_val =  0
-    #self.default_val =   Iterable.objects.values_list('min_val', flat=True)[0]
-
-    myvar = 1
 
     val = models.IntegerField(
-        default=myvar, help_text='The value of the iterable.'
+        default=1, help_text='The value of the iterable.'
     )
     u_id = models.TextField(
         blank=True, help_text='A helpful description for the Iterable.'
     )
-
+    # BORROW the logic from class Value - for easier mgmt of the IterValue
+    # We are currently inferring the site_id from the parent Attribute in
+    # .save() method. We don't want to even care about the site_id, but it
+    # simplifies managing them this way.
+    site = models.ForeignKey(
+        Site, db_index=True, related_name='itervalue',
+        on_delete=models.PROTECT, verbose_name='Site',
+        help_text='Unique ID of the Site this IterValue is under.'
+    )
        
     def __unicode__(self):
         return u'value=%s, uuid=%s, iterable=%s' % (self.val, self.u_id, self.iter_key.name) 
-
-    @classmethod
-    def getnext(cls, fk):
-        "Get the next value of the iterable"
-        try:
-            " First try to generate the next value based on the current allocation"
-            curr_val = IterValue.objects.filter(iter_key=fk).order_by('-val').values_list('val', flat=True)[0]
-            incr = Iterable.objects.filter(id=fk.id).values_list('increment', flat=True)[0]
-            next_val = curr_val + incr
-            try:
-                min_val = Iterable.objects.filter(id=fk.id).values_list('min_val', flat=True)[0]
-                max_val = Iterable.objects.filter(id=fk.id).values_list('max_val', flat=True)[0]
-                if min_val <= next_val <= max_val:
-                    return next_val
-            except:
-                log.debug('value out of range - exceeded')
-                raise exc.ValidationError({
-                    'next_val': 'Out of range'
-                })
-        except IndexError:
-            "Index Error implies that the table has not been intialized - so assign the first value"
-            return Iterable.objects.filter(id=fk.id).values_list('min_val', flat=True)[0]
-    
-    
-    def save(self, *args, **kwargs):
-        super(IterValue, self).save(*args, **kwargs)
 
     def to_dict(self):
         return {
             'id': self.id,
             'val': self.val,
+            'iter_key': self.iter_key.id,
+            'u_id': self.u_id
         }
-    @classmethod
-    def getnext_dict(cls, fx):
-        "Get the next value of the iterable"
-        try:
-            " First try to generate the next value based on the current allocation"
-            curr_val = IterValue.objects.filter(iter_key=fk).order_by('-val').values_list('val', flat=True)[0]
-            incr = Iterable.objects.filter(id=fk.id).values_list('increment', flat=True)[0]
-            next_val = curr_val + incr
-            try:
-                min_val = Iterable.objects.filter(id=fk.id).values_list('min_val', flat=True)[0]
-                max_val = Iterable.objects.filter(id=fk.id).values_list('max_val', flat=True)[0]
-                if min_val <= next_val <= max_val:
-                    return {
-                            'next_val' : next_val,
-                            }
-            except:
-                log.debug('value out of range - exceeded')
-                raise exc.ValidationError({
-                    'next_val': 'Out of range'
-                })
-        except IndexError:
-            "Index Error implies that the table has not been intialized - so assign the first value"
-            first_val = Iterable.objects.filter(id=fk.id).values_list('min_val', flat=True)[0]
-            return {
-                    'next_val' : next_val,
-                    }
-
-    
 
 
+#    @classmethod
+#    def getnext(cls, fk):
+#        "Get the next value of the iterable"
+#        try:
+#            " First try to generate the next value based on the current allocation"
+#            curr_val = IterValue.objects.filter(iter_key=fk).order_by('-val').values_list('val', flat=True)[0]
+#            incr = Iterable.objects.filter(id=fk.id).values_list('increment', flat=True)[0]
+#            next_val = curr_val + incr
+#            try:
+#                min_val = Iterable.objects.filter(id=fk.id).values_list('min_val', flat=True)[0]
+#                max_val = Iterable.objects.filter(id=fk.id).values_list('max_val', flat=True)[0]
+#                if min_val <= next_val <= max_val:
+#                    return next_val
+#            except:
+#                log.debug('value out of range - exceeded')
+#                raise exc.ValidationError({
+#                    'next_val': 'Out of range'
+#                })
+#        except IndexError:
+#            "Index Error implies that the table has not been intialized - so assign the first value"
+#            return Iterable.objects.filter(id=fk.id).values_list('min_val', flat=True)[0]
+#    
+#    
+#    def save(self, *args, **kwargs):
+#        super(IterValue, self).save(*args, **kwargs)
+#
+#    def to_dict(self):
+#        return {
+#            'id': self.id,
+#            'val': self.val,
+#        }
+#    @classmethod
+#    def getnext_dict(cls, fx):
+#        "Get the next value of the iterable"
+#        try:
+#            " First try to generate the next value based on the current allocation"
+#            curr_val = IterValue.objects.filter(iter_key=fk).order_by('-val').values_list('val', flat=True)[0]
+#            incr = Iterable.objects.filter(id=fk.id).values_list('increment', flat=True)[0]
+#            next_val = curr_val + incr
+#            try:
+#                min_val = Iterable.objects.filter(id=fk.id).values_list('min_val', flat=True)[0]
+#                max_val = Iterable.objects.filter(id=fk.id).values_list('max_val', flat=True)[0]
+#                if min_val <= next_val <= max_val:
+#                    return {
+#                            'next_val' : next_val,
+#                            }
+#            except:
+#                log.debug('value out of range - exceeded')
+#                raise exc.ValidationError({
+#                    'next_val': 'Out of range'
+#                })
+#        except IndexError:
+#            "Index Error implies that the table has not been intialized - so assign the first value"
+#            first_val = Iterable.objects.filter(id=fk.id).values_list('min_val', flat=True)[0]
+#            return {
+#                    'next_val' : next_val,
+#                    }
+#
+#        curr_val = IterValue.objects.filter(iter_key=fk).order_by('-val').values_list('val', flat=True)[0]
+#        incr = Iterable.objects.filter(id=fk.id).values_list('increment', flat=True)[0]
+#        next_val = curr_val + incr
+#        return {
+#                'next_val' : next_val,
+#                }
+#
+
+# Signals
+def delete_resource_values(sender, instance, **kwargs):
+    """Delete values when a Resource object is deleted."""
+    instance.attributes.delete()  # These are instances of Value
 
 
-        curr_val = IterValue.objects.filter(iter_key=fk).order_by('-val').values_list('val', flat=True)[0]
-        incr = Iterable.objects.filter(id=fk.id).values_list('increment', flat=True)[0]
-        next_val = curr_val + incr
-        return {
-                'next_val' : next_val,
-                }
+def change_api_updated_at(sender=None, instance=None, *args, **kwargs):
+    """Anytime the API is updated, invalidate the cache."""
+    djcache.set('api_updated_at_timestamp', timezone.now())
+
+
+# Register signals
+resource_subclasses = Resource.__subclasses__()
+for model_class in resource_subclasses:
+    # Value post_delete
+    models.signals.post_delete.connect(
+        delete_resource_values,
+        sender=model_class,
+        dispatch_uid='value_post_delete_' + model_class.__name__
+    )
+
+
+# Invalidate Interface cache on save/delete
+models.signals.post_save.connect(
+    change_api_updated_at, sender=Interface,
+    dispatch_uid='invalidate_cache_post_save_interface'
+)
+models.signals.post_delete.connect(
+    change_api_updated_at, sender=Interface,
+    dispatch_uid='invalidate_cache_post_delete_interface'
+)
+
+
 
 
 
