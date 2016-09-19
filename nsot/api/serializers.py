@@ -260,9 +260,9 @@ class IterableSerializer(NsotSerializer):
     class Meta:
         model = models.Iterable
 
+
 class IterableCreateSerializer(IterableSerializer):
     """Used for POST on Iterables."""
-    
     site_id = fields.IntegerField(
         label = get_field_attr(models.Iterable, 'site', 'verbose_name'),
         help_text = get_field_attr(models.Iterable, 'site', 'help_text')
@@ -274,12 +274,12 @@ class IterableCreateSerializer(IterableSerializer):
 
 
 class IterableUpdateSerializer(BulkSerializerMixin,
-                                IterableCreateSerializer):
     """ Used for PUT on Iterables.  """
     class Meta:
         model = models.Iterable
         list_serializer_class = BulkListSerializer
         fields = ('id', 'name', 'description', 'min_val', 'max_val', 'increment')
+
 
 class IterablePartialUpdateSerializer(BulkSerializerMixin,
                                 IterableCreateSerializer):
@@ -289,15 +289,15 @@ class IterablePartialUpdateSerializer(BulkSerializerMixin,
         list_serializer_class = BulkListSerializer
         fields = ('id', 'name', 'description', 'min_val', 'max_val', 'increment')
 
+
 ###########
 # IterValue
 ###########
-#class IterValueSerializer(serializers.ModelSerializer):
 class IterValueSerializer(NsotSerializer):
     """Used for GET, DELETE on IterValues."""
     class Meta:
         model = models.IterValue
-        #fields = ('id', 'iter_key', 'val', 'u_id')
+
 
 class IterValueCreateSerializer(IterValueSerializer):
     """Used for POST on IterValues."""

@@ -1966,13 +1966,13 @@ class IterValue(models.Model):
     u_id = unique id to associate the value - query/deletes can be based on this unique id - This should also be set externally, to make it callable 
     iter_key = Foreign key that ties the Iterable with the value
     '''
-    iter_key = models.ForeignKey(Iterable, on_delete=models.PROTECT)
+    iterable = models.ForeignKey(Iterable, on_delete=models.PROTECT, related_name='itervalue')
 
-    val = models.IntegerField(
+    value = models.IntegerField(
         default=1, help_text='The value of the iterable.'
     )
-    u_id = models.TextField(
-        blank=True, help_text='A helpful description for the Iterable.'
+    unique_id = models.TextField(
+        blank=True, help_text='An identification for the value table, used to id different rows that have this tag'
     )
     # BORROW the logic from class Value - for easier mgmt of the IterValue
     # We are currently inferring the site_id from the parent Attribute in
@@ -1985,82 +1985,16 @@ class IterValue(models.Model):
     )
        
     def __unicode__(self):
-        return u'value=%s, uuid=%s, iterable=%s' % (self.val, self.u_id, self.iter_key.name) 
+        return u'value=%s, uuid=%s, iterable=%s' % (self.value, self.unique_id, self.iterable.name) 
 
     def to_dict(self):
         return {
             'id': self.id,
-            'val': self.val,
-            'iter_key': self.iter_key.id,
-            'u_id': self.u_id
+            'value': self.value,
+            'iterable': self.iterable.id,
+            'unique_id': self.unique_id
         }
 
-
-#    @classmethod
-#    def getnext(cls, fk):
-#        "Get the next value of the iterable"
-#        try:
-#            " First try to generate the next value based on the current allocation"
-#            curr_val = IterValue.objects.filter(iter_key=fk).order_by('-val').values_list('val', flat=True)[0]
-#            incr = Iterable.objects.filter(id=fk.id).values_list('increment', flat=True)[0]
-#            next_val = curr_val + incr
-#            try:
-#                min_val = Iterable.objects.filter(id=fk.id).values_list('min_val', flat=True)[0]
-#                max_val = Iterable.objects.filter(id=fk.id).values_list('max_val', flat=True)[0]
-#                if min_val <= next_val <= max_val:
-#                    return next_val
-#            except:
-#                log.debug('value out of range - exceeded')
-#                raise exc.ValidationError({
-#                    'next_val': 'Out of range'
-#                })
-#        except IndexError:
-#            "Index Error implies that the table has not been intialized - so assign the first value"
-#            return Iterable.objects.filter(id=fk.id).values_list('min_val', flat=True)[0]
-#    
-#    
-#    def save(self, *args, **kwargs):
-#        super(IterValue, self).save(*args, **kwargs)
-#
-#    def to_dict(self):
-#        return {
-#            'id': self.id,
-#            'val': self.val,
-#        }
-#    @classmethod
-#    def getnext_dict(cls, fx):
-#        "Get the next value of the iterable"
-#        try:
-#            " First try to generate the next value based on the current allocation"
-#            curr_val = IterValue.objects.filter(iter_key=fk).order_by('-val').values_list('val', flat=True)[0]
-#            incr = Iterable.objects.filter(id=fk.id).values_list('increment', flat=True)[0]
-#            next_val = curr_val + incr
-#            try:
-#                min_val = Iterable.objects.filter(id=fk.id).values_list('min_val', flat=True)[0]
-#                max_val = Iterable.objects.filter(id=fk.id).values_list('max_val', flat=True)[0]
-#                if min_val <= next_val <= max_val:
-#                    return {
-#                            'next_val' : next_val,
-#                            }
-#            except:
-#                log.debug('value out of range - exceeded')
-#                raise exc.ValidationError({
-#                    'next_val': 'Out of range'
-#                })
-#        except IndexError:
-#            "Index Error implies that the table has not been intialized - so assign the first value"
-#            first_val = Iterable.objects.filter(id=fk.id).values_list('min_val', flat=True)[0]
-#            return {
-#                    'next_val' : next_val,
-#                    }
-#
-#        curr_val = IterValue.objects.filter(iter_key=fk).order_by('-val').values_list('val', flat=True)[0]
-#        incr = Iterable.objects.filter(id=fk.id).values_list('increment', flat=True)[0]
-#        next_val = curr_val + incr
-#        return {
-#                'next_val' : next_val,
-#                }
-#
 
 # Signals
 def delete_resource_values(sender, instance, **kwargs):
