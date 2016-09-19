@@ -1880,6 +1880,7 @@ class Change(models.Model):
             'resource': resource,
         }
 
+
 class Iterable(models.Model):
     """Generic iterable for stateful services - vlan#, po#, tenant ID etc"""
     '''
@@ -1908,8 +1909,6 @@ class Iterable(models.Model):
         help_text='Unique ID of the Site this Attribute is under.'
     )
 
-
-
     def __unicode__(self):
         return u'name=%s, min=%s, max=%s, increment=%s' % (self.name, self.min_val, self.max_val, self.increment ) 
     
@@ -1936,10 +1935,15 @@ class Iterable(models.Model):
         except IndexError:
             "Index Error implies that the table has not been intialized - so assign the first value"
             return [self.min_val]
-    
 
+    def clean_fields(self, exclude=None):
+        if not  self.increment <= self.max_val:
+            raise exc.ValidationError({
+                'increment': 'Increment should be less than the max value for it to be useable'
+                })
 
     def save(self, *args, **kwargs):
+        self.full_clean()
         super(Iterable, self).save(*args, **kwargs)
 
     def to_dict(self):

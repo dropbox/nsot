@@ -85,6 +85,18 @@ def test_valrange(site):
     with pytest.raises(exc.ValidationError):
         assert itr.get_next_value() == [25]
 
+
+    #Catch the exception, if increment is  > max_val
+    with pytest.raises(exc.ValidationError):
+        itr1 = models.Iterable.objects.create(
+            name='increment-below-min',
+            description='test vlan for testing',
+            min_val = 10,
+            max_val = 15,
+            increment = 16,
+            site = site
+        )
+
 def test_save(site):
     iterable = models.Iterable.objects.create(
         name='testsave',
