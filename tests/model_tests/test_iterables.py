@@ -47,9 +47,9 @@ def test_nextval(site):
     )
     #Create a test value and assign the min val to it
     itrv1 = models.IterValue.objects.create(
-        val = itr.get_next_value()[0],
-        u_id='jasdgijn001',
-        iter_key=itr,
+        value = itr.get_next_value()[0],
+        unique_id='jasdgijn001',
+        iterable=itr,
         site=site
         )
 
@@ -68,18 +68,11 @@ def test_valrange(site):
     )
     #Create a test value and assign the min val to it
     itrv0 = models.IterValue.objects.create(
-        val = 10,
-        u_id='jasdgijn001',
-        iter_key=itr,
+        value = 10,
+        unique_id='jasdgijn001',
+        iterable=itr,
         site=site
         )
-
-#    itrv1 = models.IterValue.objects.create(
-#        val = itr.get_next_value(),
-#        u_id='jasdgijn0022222222222222222222221',
-#        iter_key=itr
-#        )
-
 
     #Now, assert that the next value is last assigned + incr exceeds range is not assigned
     with pytest.raises(exc.ValidationError):

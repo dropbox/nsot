@@ -353,6 +353,7 @@ class IterableViewSet(ResourceViewSet):
     queryset = models.Iterable.objects.all()
     serializer_class = serializers.IterableSerializer
     filter_fields = ('name', 'description', 'min_val', 'max_val', 'increment')
+
     def get_serializer_class(self):
         if self.request.method == 'POST':
             return serializers.IterableCreateSerializer
@@ -366,9 +367,7 @@ class IterableViewSet(ResourceViewSet):
     def next_value(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return next available Iterable value from this Network."""
         iterable = self.get_resource_object(pk, site_pk)
-
         value  = iterable.get_next_value()
-
         return self.success(value)
 
 
@@ -378,7 +377,8 @@ class IterValueViewSet(ResourceViewSet):
     """
     queryset = models.IterValue.objects.all()
     serializer_class = serializers.IterValueSerializer
-    filter_fields = ( 'iter_key', 'val', 'u_id')
+    filter_fields = ( 'iterable', 'value', 'unique_id')
+
     def get_serializer_class(self):
         if self.request.method == 'POST':
             return serializers.IterValueCreateSerializer

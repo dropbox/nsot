@@ -27,22 +27,18 @@ def test_creation(site):
     )
 
     itrv1 = models.IterValue.objects.create(
-        u_id='jasdgijn001',
-        iter_key=itr,
+        unique_id='jasdgijn001',
+        iterable=itr,
         site=site
 
     )
-#    itrv2 = models.IterValue.objects.create(
-#        val = 23
-#        u_id='jasdgijn002'
-#    )
 
     iterable_val = models.Iterable.objects.values_list('min_val', flat=True)[0]
-    iterv_uid = models.IterValue.objects.values_list('u_id', flat=True)[0]
+    iterv_uid = models.IterValue.objects.values_list('unique_id', flat=True)[0]
 
-    assert itrv1.iter_key.id == itr.id
-    assert itrv1.val == iterable_val
-    assert itrv1.u_id == iterv_uid
+    assert itrv1.iterable.id == itr.id
+    assert itrv1.value == iterable_val
+    assert itrv1.unique_id == iterv_uid
 
 def test_getnext(site):
     itr = models.Iterable.objects.create(
@@ -62,33 +58,33 @@ def test_getnext(site):
         site = site
     )
     itrv1 = models.IterValue.objects.create(
-        val = itr.get_next_value()[0],
-        u_id='jasdgijn001',
-        iter_key=itr,
+        value = itr.get_next_value()[0],
+        unique_id='jasdgijn001',
+        iterable=itr,
         site=site
     )
     itrv2 = models.IterValue.objects.create(
-        val = itr.get_next_value()[0],
-        u_id='jasdgijn002',
-        iter_key=itr,
+        value = itr.get_next_value()[0],
+        unique_id='jasdgijn002',
+        iterable=itr,
         site=site
     )
     itrv3 = models.IterValue.objects.create(
-        val = itr2.get_next_value()[0],
-        u_id='jasdgijn001',
-        iter_key=itr2,
+        value = itr2.get_next_value()[0],
+        unique_id='jasdgijn001',
+        iterable=itr2,
         site=site
     )
     itrv4 = models.IterValue.objects.create(
-        val = itr2.get_next_value()[0],
-        u_id='jasdgijn002',
-        iter_key=itr2,
+        value = itr2.get_next_value()[0],
+        unique_id='jasdgijn002',
+        iterable=itr2,
         site=site
     )
 
     assert itr.get_next_value()[0] == 54
-    assert itrv2.val == 52
-    assert itrv4.val == 1300
+    assert itrv2.value == 52
+    assert itrv4.value == 1300
 
 
 def test_save(site):
@@ -101,9 +97,9 @@ def test_save(site):
         site = site
     )
     itrv1 = models.IterValue.objects.create(
-        val = itr.get_next_value()[0],
-        u_id='jasdgijn001',
-        iter_key=itr,
+        value = itr.get_next_value()[0],
+        unique_id='jasdgijn001',
+        iterable=itr,
         site=site
     )
     itrv1.save()
@@ -128,35 +124,35 @@ def test_delete(site):
         site = site
     )
     itrv1 = models.IterValue.objects.create(
-        val = itr.get_next_value()[0],
-        u_id='jasdgijn001',
-        iter_key=itr,
+        value = itr.get_next_value()[0],
+        unique_id='jasdgijn001',
+        iterable=itr,
         site=site
 
     )
     itrv2 = models.IterValue.objects.create(
-        val = itr.get_next_value()[0],
-        u_id='jasdgijn002',
-        iter_key=itr,
+        value = itr.get_next_value()[0],
+        unique_id='jasdgijn002',
+        iterable=itr,
         site=site
 
     )
     itrv3 = models.IterValue.objects.create(
-        val = itr2.get_next_value()[0],
-        u_id='jasdgijn001',
-        iter_key=itr2,
+        value = itr2.get_next_value()[0],
+        unique_id='jasdgijn001',
+        iterable=itr2,
         site=site
 
     )
     itrv4 = models.IterValue.objects.create(
-        val = itr2.get_next_value()[0],
-        u_id='jasdgijn002',
-        iter_key=itr2,
+        value = itr2.get_next_value()[0],
+        unique_id='jasdgijn002',
+        iterable=itr2,
         site=site
 
     )
 
-    models.IterValue.objects.filter(u_id=service_UID).all().delete()
+    models.IterValue.objects.filter(unique_id=service_UID).all().delete()
 
 def test_protected_delete(site):
     "Delete all rows in IterValues given the service identifier criteria"
@@ -179,30 +175,30 @@ def test_protected_delete(site):
     )
     
     itrv1 = models.IterValue.objects.create(
-        val = itr.get_next_value()[0],
-        u_id='jasdgijn001',
-        iter_key=itr,
+        value = itr.get_next_value()[0],
+        unique_id='jasdgijn001',
+        iterable=itr,
         site=site
 
     )
     itrv2 = models.IterValue.objects.create(
-        val = itr.get_next_value()[0],
-        u_id='jasdgijn002',
-        iter_key=itr,
+        value = itr.get_next_value()[0],
+        unique_id='jasdgijn002',
+        iterable=itr,
         site=site
 
     )
     itrv3 = models.IterValue.objects.create(
-        val = itr2.get_next_value()[0],
-        u_id='jasdgijn001',
-        iter_key=itr2,
+        value = itr2.get_next_value()[0],
+        unique_id='jasdgijn001',
+        iterable=itr2,
         site=site
 
     )
     itrv4 = models.IterValue.objects.create(
-        val = itr2.get_next_value()[0],
-        u_id='jasdgijn002',
-        iter_key=itr2,
+        value = itr2.get_next_value()[0],
+        unique_id='jasdgijn002',
+        iterable=itr2,
         site=site
 
     )

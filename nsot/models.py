@@ -1852,14 +1852,6 @@ class Change(models.Model):
         serializer = serializer_class(obj)
         self._resource = serializer.data
         
-#        if isinstance(obj, Site):
-#            self.site = obj
-#        elif isinstance(obj, IterValue): #If the obj is of IterValue type, use it's foreign key, to find associate site and store changes
-#            site_num = Iterable.objects.filter(id=self._resource['iter_key']).values_list('site', flat=True)[0]
-#            self.site = Site.objects.get(id=site_num)
-#        else:
-#            self.site = obj.site
-
     def save(self, *args, **kwargs):
         self.full_clean()  # First validate fields are correct
         super(Change, self).save(*args, **kwargs)
@@ -1916,7 +1908,7 @@ class Iterable(models.Model):
         "Get the next value of the iterable"
         try:
             " First try to generate the next value based on the current allocation"
-            curr_val = IterValue.objects.filter(iter_key=self.id).order_by('-val').values_list('val', flat=True)[0]
+            curr_val = IterValue.objects.filter(iterable=self.id).order_by('-value').values_list('value', flat=True)[0]
             incr = self.increment
             next_val = curr_val + incr
             try:
@@ -1960,11 +1952,11 @@ class Iterable(models.Model):
 class IterValue(models.Model):
     """Value table for the generic iterable defined above"""
     '''
-    val = contains the value
+    value = contains the value
         getnext = returns the next iterated value for this particular Iterable
     save = saves the val
-    u_id = unique id to associate the value - query/deletes can be based on this unique id - This should also be set externally, to make it callable 
-    iter_key = Foreign key that ties the Iterable with the value
+    unique_id = unique id to associate the value - query/deletes can be based on this unique id - This should also be set externally, to make it callable 
+    iterable = Foreign key that ties the Iterable with the value
     '''
     iterable = models.ForeignKey(Iterable, on_delete=models.PROTECT, related_name='itervalue')
 

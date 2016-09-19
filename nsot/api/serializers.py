@@ -274,6 +274,7 @@ class IterableCreateSerializer(IterableSerializer):
 
 
 class IterableUpdateSerializer(BulkSerializerMixin,
+                                IterableCreateSerializer):
     """ Used for PUT on Iterables.  """
     class Meta:
         model = models.Iterable
@@ -307,8 +308,7 @@ class IterValueCreateSerializer(IterValueSerializer):
         )
     class Meta:
         model = models.IterValue
-        #read_only_fields = ('id',  'site_id')
-        fields = ('iter_key', 'val', 'u_id', 'site_id')
+        fields = ('iterable', 'value', 'unique_id', 'site_id')
 
 
 class IterValueUpdateSerializer(BulkSerializerMixin,
@@ -317,7 +317,8 @@ class IterValueUpdateSerializer(BulkSerializerMixin,
     class Meta:
         model = models.IterValue
         list_serializer_class = BulkListSerializer
-        fields = ('id', 'iter_key', 'val', 'u_id')
+        fields = ('id', 'iterable', 'value', 'unique_id')
+
 
 class IterValuePartialUpdateSerializer(BulkSerializerMixin,
                                 IterValueCreateSerializer):
@@ -325,9 +326,7 @@ class IterValuePartialUpdateSerializer(BulkSerializerMixin,
     class Meta:
         model = models.IterValue
         list_serializer_class = BulkListSerializer
-        fields = ('id', 'iter_key', 'val', 'u_id')
-
-
+        fields = ('id', 'iterable', 'value', 'unique_id')
 
 
 ###########
