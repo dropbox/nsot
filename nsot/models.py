@@ -51,6 +51,7 @@ RESOURCE_CHOICES = [(c, c) for c in VALID_ATTRIBUTE_RESOURCES]
 # Unique interface type IDs.
 INTERFACE_TYPES = [t[0] for t in settings.INTERFACE_TYPE_CHOICES]
 
+
 class Site(models.Model):
     """A namespace for attribtues, devices, and networks."""
     name = models.CharField(
@@ -1892,13 +1893,13 @@ class Iterable(models.Model):
     description = models.TextField(
         default='', blank=True, help_text='A helpful description for the Iterable.'
     )
-    min_val = models.IntegerField(
+    min_val = models.PositiveIntegerField(
         default=1, help_text='The minimum value of the Iterable.'
     )
-    max_val = models.IntegerField(
+    max_val = models.PositiveIntegerField(
         default=100, help_text='The maximum value  of the Iterable.'
     )
-    increment = models.IntegerField(
+    increment = models.PositiveIntegerField(
         default = 1, help_text='Increment  value  of the Iterable by.'
     )
     site = models.ForeignKey(
