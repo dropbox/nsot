@@ -164,7 +164,7 @@ def test_del_protect(client, site):
 
     itrval_uri = site.list_uri('itervalue')
     nval = client.get(reverse('iterable-next-value', args=(site.id, itr['id']))).json()[0] #Get the next value to assign to the itervalue
-    itrval_resp = client.create(itrval_uri, iter_key=itr['id'], val=nval, u_id='uuid_custA_site1') # create the iterval
+    itrval_resp = client.create(itrval_uri, iterable=itr['id'], value=nval, unique_id='uuid_custA_site1') # create the iterval
 
     itrval_resp_dict = get_result(itrval_resp)
     itrval_obj_uri = site.detail_uri('itervalue', id=itrval_resp_dict['id'])
