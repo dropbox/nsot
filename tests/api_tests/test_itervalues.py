@@ -30,7 +30,7 @@ def test_creation(client, site):
     #Create the first value
     itrval_uri = site.list_uri('itervalue')
     nval = client.get(reverse('iterable-next-value', args=(site.id, itr['id']))).json()[0] #Get the next value to assign to the itervalue
-    itrval_resp = client.create(itrval_uri, iter_key=itr['id'], val=nval, u_id='uuid_custA_site1') # create the iterval
+    itrval_resp = client.create(itrval_uri, iterable=itr['id'], value=nval, unique_id='uuid_custA_site1') # create the iterval
 
     payload = get_result(itrval_resp)
     itrval_obj_uri = site.detail_uri('itervalue', id=payload['id'])
@@ -47,12 +47,12 @@ def test_update(client, site):
 
     itrval_uri = site.list_uri('itervalue')
     nval = client.get(reverse('iterable-next-value', args=(site.id, itr['id']))).json()[0] #Get the next value to assign to the itervalue
-    itrval_resp = client.create(itrval_uri, iter_key=itr['id'], val=nval, u_id='uuid_custA_site1') # create the iterval
+    itrval_resp = client.create(itrval_uri, iterable=itr['id'], value=nval, unique_id='uuid_custA_site1') # create the iterval
 
     itrval_resp_dict = get_result(itrval_resp)
     itrval_obj_uri = site.detail_uri('itervalue', id=itrval_resp_dict['id'])
     #Update the U_ID
-    params =  {'iter_key': itr['id'], 'val': nval, 'u_id': 'new_update' }
+    params =  {'iterable': itr['id'], 'value': nval, 'unique_id': 'new_update' }
     itrval_backup = copy.deepcopy(itrval_resp_dict)
     itrval_backup.update(params)
     assert_success(
@@ -79,12 +79,12 @@ def test_partial_update(client, site):
 
     itrval_uri = site.list_uri('itervalue')
     nval = client.get(reverse('iterable-next-value', args=(site.id, itr['id']))).json()[0] #Get the next value to assign to the itervalue
-    itrval_resp = client.create(itrval_uri, iter_key=itr['id'], val=nval, u_id='uuid_custA_site1') # create the iterval
+    itrval_resp = client.create(itrval_uri, iterable=itr['id'], value=nval, unique_id='uuid_custA_site1') # create the iterval
 
     itrval_resp_dict = get_result(itrval_resp)
     itrval_obj_uri = site.detail_uri('itervalue', id=itrval_resp_dict['id'])
     #Update the U_ID
-    params =  {'u_id': 'new_update' }
+    params =  {'unique_id': 'new_update' }
     itrval_backup = copy.deepcopy(itrval_resp_dict)
     itrval_backup.update(params)
     assert_success(
@@ -103,7 +103,7 @@ def test_deletion(client, site):
 
     itrval_uri = site.list_uri('itervalue')
     nval = client.get(reverse('iterable-next-value', args=(site.id, itr['id']))).json()[0] #Get the next value to assign to the itervalue
-    itrval_resp = client.create(itrval_uri, iter_key=itr['id'], val=nval, u_id='uuid_custA_site1') # create the iterval
+    itrval_resp = client.create(itrval_uri, iterable=itr['id'], value=nval, unique_id='uuid_custA_site1') # create the iterval
 
     itrval_resp_dict = get_result(itrval_resp)
     itrval_obj_uri = site.detail_uri('itervalue', id=itrval_resp_dict['id'])
