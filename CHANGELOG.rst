@@ -5,6 +5,19 @@ Changelog
 Version History
 ===============
 
+.. _v1.0.4:
+
+1.0.4 (2016-09-29)
+------------------
+
+* Replaced ``settings.NETWORK_INTERCONNECT_PREFIXLEN`` (an integer) with
+  ``settings.NETWORK_INTERCONNECT_PREFIXES`` (a tuple) to support IPv6
+  prefixes, which defaults to prefixes (/31, /127).
+* ``Network.next_address()`` was changed to calculate available addresses
+  differently if the network from which you are allocating is determined to be
+  an interconnect network. For interconnects, gateway and broadcast addresses
+  can be returned. For any other networks, they cannot.
+
 .. _v1.0.3:
 
 1.0.3 (2016-09-08)
