@@ -819,7 +819,16 @@ class Network(Resource):
             raise exc.ValidationError({'num': err.message})
 
         cidr = self.ip_network
-        subnets = cidr.subnets(new_prefix=prefix_length)
+
+        # If this network is an interconnect network, generate the hosts as
+        # network objects, otherwise just subnet based on the prefix_length.
+        # This is so that .0 and .1 could be allocated from a /31, for example.
+        if cidr.prefixlen in settings.NETWORK_INTERCONNECT_PREFIXES:
+            log.debug('CIDR %s is an interconnect!', cidr)
+            subnets = (ipaddress.ip_network(ip) for ip in cidr)
+        else:
+            log.debug('cidr %s is NOT an interconnect!', cidr)
+            subnets = cidr.subnets(new_prefix=prefix_length)
 
         # Exclude children that are in busy states.
         children = self.get_children()
@@ -849,7 +858,7 @@ class Network(Resource):
             # unless it's an interconnect (aka point-to-point).
             # FIXME(jathan): Revisit why we made this decision. It seems
             # arbitrary.
-            if cidr.prefixlen == settings.NETWORK_INTERCONNECT_PREFIXLEN:
+            if cidr.prefixlen in settings.NETWORK_INTERCONNECT_PREFIXES:
                 pass
             elif (next_subnet.prefixlen in settings.HOST_PREFIXES and
                     (next_subnet.network_address == cidr.network_address or
