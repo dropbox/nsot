@@ -300,6 +300,39 @@ def test_get_next_methods(site):
     assert net_25.get_next_address(num=3, as_objects=False) == slash32
 
 
+def test_get_next_address_interconnect(site):
+    """Test that interconnects return first/last, but other networks don't."""
+    net_24 = models.Network.objects.create(site=site, cidr=u'10.20.30.0/24')
+    net_31 = models.Network.objects.create(site=site, cidr=u'10.20.30.0/31')
+    net_64 = models.Network.objects.create(site=site, cidr=u'2001:db8::/64')
+    net_127 = models.Network.objects.create(site=site, cidr=u'2001:db8::/127')
+
+    for obj in (net_24, net_31, net_64, net_127):
+        obj.refresh_from_db()
+
+    ## IPv4
+    # /24 should return .1 and .2
+    slash24 = [u'10.20.30.1/32', u'10.20.30.2/32']
+    expected = [ipaddress.ip_network(n) for n in slash24]
+    assert net_24.get_next_address(num=2) == expected
+
+    # /31 should return .0 and .1
+    slash31 = [u'10.20.30.0/32', u'10.20.30.1/32']
+    expected = [ipaddress.ip_network(n) for n in slash31]
+    assert net_31.get_next_address(num=2) == expected
+
+    ## IPv6
+    # /64 should return :1 and :2
+    slash64 = [u'2001:db8::1/128', u'2001:db8::2/128']
+    expected = [ipaddress.ip_network(n) for n in slash64]
+    assert net_64.get_next_address(num=2) == expected
+
+    # /127 should return :0 and :1
+    slash127 = [u'2001:db8::/128', u'2001:db8::1/128']
+    expected = [ipaddress.ip_network(n) for n in slash127]
+    assert net_127.get_next_address(num=2) == expected
+
+
 def test_reservation(site):
     """Test that a reserved Network returns no available networks or IPs."""
 
