@@ -27,7 +27,7 @@ log = logging.getLogger(__name__)
 # These are constants that becuase they are tied directly to the underlying
 # objects are explicitly NOT USER CONFIGURABLE.
 RESOURCE_BY_IDX = (
-    'Site', 'Network', 'Attribute', 'Device', 'Interface', 'Iterable', 'IterValue'
+    'Site', 'Network', 'Attribute', 'Device', 'Interface', 'Iterable', 'Itervalue'
 )
 RESOURCE_BY_NAME = {
     obj_type: idx
@@ -38,7 +38,7 @@ CHANGE_EVENTS = ('Create', 'Update', 'Delete')
 
 VALID_CHANGE_RESOURCES = set(RESOURCE_BY_IDX)
 VALID_ATTRIBUTE_RESOURCES = set([
-    'Network', 'Device', 'Interface'
+    'Network', 'Device', 'Interface', 'Itervalue'
 ])
 
 # Lists of 2-tuples of (value, option) for displaying choices in certain model
@@ -313,7 +313,6 @@ class ResourceSetTheoryQuerySet(models.query.QuerySet):
                 name=name, value=value, resource_name=resource_name
             ).values_list('resource_id', flat=True)
         )
-
         if site_id is not None:
             query = query.filter(site=site_id)
 
@@ -1908,7 +1907,7 @@ class Iterable(models.Model):
         "Get the next value of the iterable"
         try:
             " First try to generate the next value based on the current allocation"
-            curr_val = IterValue.objects.filter(iterable=self.id).order_by('-value').values_list('value', flat=True)[0]
+            curr_val = Itervalue.objects.filter(iterable=self.id).order_by('-value').values_list('value', flat=True)[0]
             incr = self.increment
             next_val = curr_val + incr
             try:
@@ -1949,7 +1948,7 @@ class Iterable(models.Model):
         }
 
 
-class IterValue(models.Model):
+class Itervalue(Resource):
     """Value table for the generic iterable defined above"""
     '''
     value = contains the value
@@ -1963,28 +1962,28 @@ class IterValue(models.Model):
     value = models.IntegerField(
         default=1, help_text='The value of the iterable.'
     )
-    unique_id = models.TextField(
-        blank=True, help_text='An identification for the value table, used to id different rows that have this tag'
-    )
-    # BORROW the logic from class Value - for easier mgmt of the IterValue
+    # BORROW the logic from class Value - for easier mgmt of the Itervalue
     # We are currently inferring the site_id from the parent Attribute in
     # .save() method. We don't want to even care about the site_id, but it
     # simplifies managing them this way.
     site = models.ForeignKey(
         Site, db_index=True, related_name='itervalue',
         on_delete=models.PROTECT, verbose_name='Site',
-        help_text='Unique ID of the Site this IterValue is under.'
+        help_text='Unique ID of the Site this Itervalue is under.'
     )
+
+    class Meta:
+        verbose_name = "itervalue"
        
     def __unicode__(self):
-        return u'value=%s, uuid=%s, iterable=%s' % (self.value, self.unique_id, self.iterable.name) 
+        return u'value=%s,  iterable=%s' % (self.value,  self.iterable.name) 
 
     def to_dict(self):
         return {
             'id': self.id,
             'value': self.value,
             'iterable': self.iterable.id,
-            'unique_id': self.unique_id
+            'attributes': self.get_attributes()
         }
 
 
