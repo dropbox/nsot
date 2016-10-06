@@ -93,7 +93,7 @@ class IterableAdmin(admin.ModelAdmin):
 admin.site.register(models.Iterable, IterableAdmin)
 
 class ItervalueAdmin(admin.ModelAdmin):
-    list_display = ('value', 'unique_id', 'iterable', 'site')
+    list_display = ('value',  'iterable', 'site')
     fields = list_display
 
 admin.site.register(models.Itervalue, ItervalueAdmin)

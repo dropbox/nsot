@@ -18,12 +18,12 @@ from .fixtures import admin_user, user, site, transactional_db
 
 def test_creation(site):
     itr = models.Iterable.objects.create(
+        site = site,
         name='test-vlan',
         description='test vlan for testing',
         min_val = 50,
         max_val = 70,
         increment = 2,
-        site = site
     )
 
     iterable = models.Iterable.objects.all()
@@ -36,6 +36,7 @@ def test_creation(site):
     assert iterable[0].max_val == itr.max_val
     assert iterable[0].increment == itr.increment
 
+    
 def test_nextval(site):
     itr = models.Iterable.objects.create(
         name='auto-increment-test',
@@ -45,11 +46,16 @@ def test_nextval(site):
         increment = 2,
         site = site
     )
+    #Create the Attribute
+    models.Attribute.objects.create(
+        site=site,
+        resource_name='Itervalue', name='service_key'
+    )
     #Create a test value and assign the min val to it
-    itrv1 = models.IterValue.objects.create(
+    itrv1 = models.Itervalue.objects.create(
         value = itr.get_next_value()[0],
-        unique_id='jasdgijn001',
         iterable=itr,
+        attributes={'service_key': 'cust01A_key1'},
         site=site
         )
 
@@ -66,11 +72,17 @@ def test_valrange(site):
         increment = 10,
         site = site
     )
+    #Create an attribute for the Itervalue
+    models.Attribute.objects.create(
+        site=site,
+        resource_name='Itervalue', name='service_key'
+    )
+
     #Create a test value and assign the min val to it
-    itrv0 = models.IterValue.objects.create(
+    itrv0 = models.Itervalue.objects.create(
         value = 10,
-        unique_id='jasdgijn001',
         iterable=itr,
+        attributes={'service_key': 'custA01_key1'},
         site=site
         )
 

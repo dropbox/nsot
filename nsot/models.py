@@ -38,7 +38,7 @@ CHANGE_EVENTS = ('Create', 'Update', 'Delete')
 
 VALID_CHANGE_RESOURCES = set(RESOURCE_BY_IDX)
 VALID_ATTRIBUTE_RESOURCES = set([
-    'Network', 'Device', 'Interface', 'Itervalue'
+    'Network', 'Device', 'Interface', 'Itervalue' 
 ])
 
 # Lists of 2-tuples of (value, option) for displaying choices in certain model
@@ -1518,6 +1518,7 @@ class Attribute(models.Model):
         help_text='The name of the Resource to which this Attribute is bound.'
     )
 
+
     def __unicode__(self):
         return u'%s %s (site_id: %s)' % (
             self.resource_name, self.name, self.site_id
@@ -1895,7 +1896,7 @@ class Iterable(models.Model):
         default = 1, help_text='Increment  value  of the Iterable by.'
     )
     site = models.ForeignKey(
-        Site, db_index=True, related_name='Iterable',
+        Site, db_index=True, related_name='iterable',
         on_delete=models.PROTECT, verbose_name='Site',
         help_text='Unique ID of the Site this Attribute is under.'
     )
@@ -1937,6 +1938,7 @@ class Iterable(models.Model):
         self.full_clean()
         super(Iterable, self).save(*args, **kwargs)
 
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -1953,8 +1955,10 @@ class Itervalue(Resource):
     '''
     value = contains the value
         getnext = returns the next iterated value for this particular Iterable
-    save = saves the val
-    unique_id = unique id to associate the value - query/deletes can be based on this unique id - This should also be set externally, to make it callable 
+    This table uses the attribute:
+        The intention of attribute here is to associate a "service key" that will keep track of the (potentially multiple iterable) values associated with 
+        a particular automation instance (e.g an ansible playbook that needs next available vlan numbers, portchannel numbers etc). We can then use this service key
+        to perform CRUD operations on those values (in other words on the invocation instance of the automation service/playbook)
     iterable = Foreign key that ties the Iterable with the value
     '''
     iterable = models.ForeignKey(Iterable, on_delete=models.PROTECT, related_name='itervalue')

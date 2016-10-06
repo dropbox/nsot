@@ -41,6 +41,9 @@ def test_creation(client, site):
     # Successfully get a single Network Attribute
     assert_success(client.get(itr_obj_uri), payload)
 
+    # Verify successful get of single Iterable  by natural_key
+    itr_natural_uri = site.detail_uri('iterable', id='itr1')
+    assert_success(client.get(itr_natural_uri), itr)
 def test_bulk_operations(client, site):
     """Test creating/updating multiple Iterables at once."""
 

@@ -353,6 +353,7 @@ class IterableViewSet(ResourceViewSet):
     queryset = models.Iterable.objects.all()
     serializer_class = serializers.IterableSerializer
     filter_fields = ('name', 'description', 'min_val', 'max_val', 'increment')
+    natural_key = 'name'
 
     def get_serializer_class(self):
         if self.request.method == 'POST':
@@ -363,6 +364,10 @@ class IterableViewSet(ResourceViewSet):
             return serializers.IterablePartialUpdateSerializer
         return self.serializer_class
     
+    def get_natural_key_kwargs(self, filter_value):
+        """Return a dict of kwargs for natural_key lookup."""
+        return {self.natural_key: filter_value}
+
     @detail_route(methods=['get'])
     def next_value(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return next available Iterable value from this Network."""
@@ -377,7 +382,7 @@ class ItervalueViewSet(ResourceViewSet):
     """
     queryset = models.Itervalue.objects.all()
     serializer_class = serializers.ItervalueSerializer
-    filter_fields = ( 'iterable', 'value', 'unique_id')
+    filter_class = filters.ItervalueFilter
 
     def get_serializer_class(self):
         if self.request.method == 'POST':
@@ -386,6 +391,7 @@ class ItervalueViewSet(ResourceViewSet):
             return serializers.ItervalueUpdateSerializer
         if self.request.method in ('PATCH'):
             return serializers.ItervaluePartialUpdateSerializer
+
         return self.serializer_class
  
 
