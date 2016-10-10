@@ -211,7 +211,7 @@ def test_skey_deletion(client, site):
     itrval_resp = client.create(itrval_uri, iterable=itr2['id'], value=nval, attributes={'service_key': 'custa01_key2'}) # create the iterval
     #create the next value
     nval = client.get(reverse('iterable-next-value', args=(site.id, itr2['id']))).json()[0] #get the next value to assign to the itervalue
-    itrval_resp = client.create(itrval_uri, iterable=itr2['id'], value=nval, attributes={'service_key': 'custb01_key1'}) # create the iterval
+    itrval_resp = client.create(itrval_uri, iterable=itr2['id'], value=nval, attributes={'service_key': 'custb01_key1'}) # create the iterval 1 
     #create the next value
     nval = client.get(reverse('iterable-next-value', args=(site.id, itr2['id']))).json()[0] #get the next value to assign to the itervalue
     itrval_resp = client.create(itrval_uri, iterable=itr2['id'], value=nval, attributes={'service_key': 'custb01_key2'}) # create the iterval
