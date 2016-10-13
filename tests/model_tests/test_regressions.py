@@ -56,4 +56,31 @@ def test_next_network_bug_issues_216(site):
 
     assert next_21 == expected
 
-    # pytest.set_trace()
+
+def test_next_network_bug_issues_224(site):
+    """
+    Test for bug where Network.get_next_network() returns the wrong result.
+
+    Ref: https://github.com/dropbox/nsot/issues/224
+    """
+
+    objects = load_json('model_tests/data/networks.json')
+    [models.Network.objects.create(site=site, **n) for n in objects]
+
+    # Get the parent
+    parent = models.Network.objects.get_by_address('10.20.0.0/16')
+
+    # We're expecting that the next /31 is going to be first_cidr
+    first_cidr = '10.20.0.0/31'
+    expected = [ipaddress.ip_network(first_cidr)]
+    first_31 = parent.get_next_network(prefix_length=31)
+
+    assert first_31 == expected
+
+    # Create the first /31 and get the next one.
+    models.Network.objects.create(cidr=first_cidr, site=site)
+    next_cidr = '10.20.0.2/31'
+    expected = [ipaddress.ip_network(next_cidr)]
+    next_31 = parent.get_next_network(prefix_length=31)
+
+    assert next_31 == expected

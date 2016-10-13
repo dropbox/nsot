@@ -5,6 +5,16 @@ Changelog
 Version History
 ===============
 
+.. _v1.0.5:
+
+1.0.5 (2016-10-13)
+------------------
+
+* Fix #224 - Fixed a bug in ``Network.next_network()`` where a nested child
+  (descendent) would continually be offered as free, even if it existed in the
+  database. All descendent networks for a parent are now inspected when
+  determining availability.
+
 .. _v1.0.4:
 
 1.0.4 (2016-09-29)
