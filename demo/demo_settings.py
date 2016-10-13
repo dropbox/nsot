@@ -2,6 +2,7 @@
 NSoT demo settings.
 """
 from nsot.conf.settings import *
+import os
 import os.path
 
 # Path where the config is found.
@@ -29,4 +30,5 @@ NSOT_HOST = '0.0.0.0'
 NSOT_PORT = 8990
 
 # Enable DEBUG logging to console
-LOGGING['loggers']['nsot']['level'] = 'DEBUG'
+if os.getenv('NSOT_DEBUG'):
+    LOGGING['loggers']['nsot']['level'] = 'DEBUG'

@@ -831,7 +831,7 @@ class Network(Resource):
             subnets = cidr.subnets(new_prefix=prefix_length)
 
         # Exclude children that are in busy states.
-        children = self.get_children()
+        children = self.get_descendents()
 
         # FIXME(jathan): This can potentially be very slow if the gap between
         # parent and child networks is large, say, on the order of /8.
