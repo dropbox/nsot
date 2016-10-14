@@ -7,7 +7,6 @@ import logging
 from django.contrib.auth import get_user_model
 from rest_framework import fields, serializers
 from rest_framework_bulk import BulkSerializerMixin, BulkListSerializer
-import six
 
 from . import auth
 from .. import exc, models, validators
@@ -66,44 +65,6 @@ class JSONDictField(JSONDataField):
 class JSONListField(JSONDataField):
     """Field used to represent attributes as JSON <-> List."""
     field_type = list
-
-
-class LimitedForeignKeyField(serializers.PrimaryKeyRelatedField):
-    """
-    Workaround for performance for when there are 100k+ related objects.
-
-    Ref: https://github.com/tomchristie/django-rest-framework/pull/3330
-    """
-    @property
-    def choices(self):
-        return self.get_choices()
-
-    def get_choices(self, cutoff=None):
-        queryset = self.get_queryset()
-        if queryset is None:
-            # Ensure that field.choices returns something sensible
-            # even when accessed with a read-only field.
-            return {}
-
-        if cutoff:
-            queryset = queryset[:cutoff]
-
-        return OrderedDict([
-            (
-                six.text_type(self.to_representation(item)),
-                self.display_value(item)
-            )
-            for item in queryset
-            # for item in queryset[:self.html_cutoff]
-        ])
-
-    def iter_options(self):
-        return fields.iter_options(
-            # self.grouped_choices,
-            self.get_choices(self.html_cutoff),
-            cutoff=self.html_cutoff,
-            cutoff_text=self.html_cutoff_text
-        )
 
 
 class MACAddressField(fields.Field):
@@ -425,9 +386,6 @@ class NetworkPartialUpdateSerializer(BulkSerializerMixin,
 ###########
 class InterfaceSerializer(ResourceSerializer):
     """Used for GET, DELETE on Interfaces."""
-    # parent_id = LimitedForeignKeyField(
-    #     html_cutoff=100,
-    #     queryset=models.Interface.objects.all(),
     parent_id = fields.IntegerField(
         required=False, allow_null=True,
         label=get_field_attr(models.Interface, 'parent', 'verbose_name'),

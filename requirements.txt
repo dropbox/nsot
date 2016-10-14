@@ -1,11 +1,11 @@
 enum34==1.0.4
-cffi==1.2.1
+cffi>=1.4.1
 pyasn1==0.1.9
 six==1.10.0
 pycparser==2.14
 backports.ssl-match-hostname==3.4.0.2
 idna==2.0
-cryptography==1.0.2
+cryptography==1.5
 certifi==2016.2.28
 dj-static==0.0.6
 Django==1.8.11
@@ -16,7 +16,7 @@ django-jinja==1.4.1
 django-macaddress==1.3.2
 django-rest-swagger==0.3.5
 django-smart-selects==1.1.1
-djangorestframework==3.3.3
+djangorestframework>=3.4.4
 djangorestframework-bulk==0.2.1
 drf-extensions==0.2.8
 drf-nested-routers==0.11.1

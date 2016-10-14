@@ -415,7 +415,7 @@ INTERFACE_DEFAULT_TYPE = 6  # ethernet
 ############
 
 # How long is an interconnect? (aka a point-to-point link)
-NETWORK_INTERCONNECT_PREFIXLEN = 31
+NETWORK_INTERCONNECT_PREFIXES = (31, 127)
 
 # CIDR prefix lengths for host addresses
 HOST_PREFIXES = (32, 128)

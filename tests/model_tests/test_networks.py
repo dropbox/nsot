@@ -250,15 +250,15 @@ def test_get_next_methods(site):
     #
 
     # A single /28
-    assert net_25.get_next_network(28) == [ipaddress.ip_network(u'10.16.2.0/28')]
+    assert net_25.get_next_network(28) == [ipaddress.ip_network(u'10.16.2.32/28')]
 
-    # 4x /27
-    slash27 = [u'10.16.2.0/27', u'10.16.2.32/27', u'10.16.2.64/27', u'10.16.2.96/27']
+    # 3x remaining /27 in the /25
+    slash27 = [u'10.16.2.32/27', u'10.16.2.64/27', u'10.16.2.96/27']
     expected = [ipaddress.ip_network(n) for n in slash27]
-    assert net_25.get_next_network(27, num=4) == expected
+    assert net_25.get_next_network(27, num=3) == expected
 
     # as_objects=False
-    assert net_25.get_next_network(27, num=4, as_objects=False) == slash27
+    assert net_25.get_next_network(27, num=3, as_objects=False) == slash27
 
     # 5x /27 will still only return 4
     assert net_25.get_next_network(27, num=5) == expected
@@ -298,6 +298,39 @@ def test_get_next_methods(site):
 
     # as_objects=False
     assert net_25.get_next_address(num=3, as_objects=False) == slash32
+
+
+def test_get_next_address_interconnect(site):
+    """Test that interconnects return first/last, but other networks don't."""
+    net_24 = models.Network.objects.create(site=site, cidr=u'10.20.30.0/24')
+    net_31 = models.Network.objects.create(site=site, cidr=u'10.20.30.0/31')
+    net_64 = models.Network.objects.create(site=site, cidr=u'2001:db8::/64')
+    net_127 = models.Network.objects.create(site=site, cidr=u'2001:db8::/127')
+
+    for obj in (net_24, net_31, net_64, net_127):
+        obj.refresh_from_db()
+
+    ## IPv4
+    # /24 should return .1 and .2
+    slash24 = [u'10.20.30.1/32', u'10.20.30.2/32']
+    expected = [ipaddress.ip_network(n) for n in slash24]
+    assert net_24.get_next_address(num=2) == expected
+
+    # /31 should return .0 and .1
+    slash31 = [u'10.20.30.0/32', u'10.20.30.1/32']
+    expected = [ipaddress.ip_network(n) for n in slash31]
+    assert net_31.get_next_address(num=2) == expected
+
+    ## IPv6
+    # /64 should return :1 and :2
+    slash64 = [u'2001:db8::1/128', u'2001:db8::2/128']
+    expected = [ipaddress.ip_network(n) for n in slash64]
+    assert net_64.get_next_address(num=2) == expected
+
+    # /127 should return :0 and :1
+    slash127 = [u'2001:db8::/128', u'2001:db8::1/128']
+    expected = [ipaddress.ip_network(n) for n in slash127]
+    assert net_127.get_next_address(num=2) == expected
 
 
 def test_reservation(site):

@@ -772,6 +772,8 @@ class Network(Resource):
             broadcast_address__lte=self.broadcast_address
         )
 
+    # FIXME(jathan): This entire implementation needs to be revisited. It feels
+    # as if it's too complicated. It may not be, but it feels like it is.
     def get_next_network(self, prefix_length, num=None, as_objects=True):
         """
         Return a list of the next available networks.
@@ -786,6 +788,9 @@ class Network(Resource):
 
         :param as_objects:
             Whether to return IPNetwork objects or strings
+
+        :returns:
+            list(IPNetwork)
         """
         # If we're reserved, automatically ZILCH!!
         # TODO(jathan): Should we raise an error instead?
@@ -813,17 +818,29 @@ class Network(Resource):
             raise exc.ValidationError({'num': err.message})
 
         cidr = self.ip_network
-        subnets = cidr.subnets(new_prefix=prefix_length)
+
+        # If this network is an interconnect network, generate the hosts as
+        # network objects, otherwise just subnet based on the prefix_length.
+        # This is so that .0 and .1 could be allocated from a /31, for example.
+        if cidr.prefixlen in settings.NETWORK_INTERCONNECT_PREFIXES:
+            log.debug('CIDR %s is an interconnect!', cidr)
+            subnets = (ipaddress.ip_network(ip) for ip in cidr)
+        else:
+            log.debug('cidr %s is NOT an interconnect!', cidr)
+            subnets = cidr.subnets(new_prefix=prefix_length)
 
         # Exclude children that are in busy states.
-        children = self.get_children()
+        children = self.get_descendents()
 
         # FIXME(jathan): This can potentially be very slow if the gap between
         # parent and child networks is large, say, on the order of /8.
         # Something to keep in mind if it comes up in practical application,
         # especially with IPv6 networks, which is still not heavily tested.
-        wanted = []
-        children_seen = []
+        wanted = []  # Subnets we want.
+        dirty = []   # Dirty subnets (have children)
+        children_seen = []  # For child networks we've already processed.
+
+        # Keep iterating until we've found the number of networks we want.
         while len(wanted) < num:
             try:
                 next_subnet = next(subnets)
@@ -838,7 +855,9 @@ class Network(Resource):
 
             # Never return 1st/last addresses if prefix is for an address,
             # unless it's an interconnect (aka point-to-point).
-            if cidr.prefixlen == settings.NETWORK_INTERCONNECT_PREFIXLEN:
+            # FIXME(jathan): Revisit why we made this decision. It seems
+            # arbitrary.
+            if cidr.prefixlen in settings.NETWORK_INTERCONNECT_PREFIXES:
                 pass
             elif (next_subnet.prefixlen in settings.HOST_PREFIXES and
                     (next_subnet.network_address == cidr.network_address or
@@ -846,16 +865,15 @@ class Network(Resource):
                         cidr.broadcast_address)):
                 continue
 
-            log.debug('>> NEXT SUBNET: %s', next_subnet)
+            log.debug('>> NEXT_SUBNET: %s', next_subnet)
 
             # Iterate the children and if we make it to the end, we've found a
             # keeper!
             for child in children:
                 # This child is busy; mark it as seen.
                 if child.state in self.BUSY_STATES:
-                    log.debug('Child %s is BUSY (%s)', child, child.state)
                     children_seen.append(child.ip_network)
-                    pass
+                    continue
 
                 # Network is already wanted; skip it!
                 if next_subnet in wanted:
@@ -865,8 +883,6 @@ class Network(Resource):
 
                 # This child has already been seen; skip it!
                 if child.ip_network in children_seen:
-                    log.debug('Child %s already seen; skipping',
-                              child.ip_network)
                     continue
 
                 # This network is already in use/allocated; skip it!
@@ -880,9 +896,29 @@ class Network(Resource):
                     children_seen.append(child.ip_network)
                     continue
 
-            # We want this one; keep it!!
+            # We *might* want this subnet. But make sure it's clean first.
             else:
-                if next_subnet not in children_seen:
+                # Skip dirty subnets.
+                if next_subnet in dirty:
+                    continue
+
+                # Check all the children we've seen; if next_subnet contains
+                # it, mark it as dirty.
+                for child in children_seen:
+                    if child.subnet_of(next_subnet):
+                        log.debug(
+                            '>> NEXT_SUBNET %s is DIRTY. Contains: %s',
+                            next_subnet, child
+                        )
+                        dirty.append(next_subnet)
+                        break
+
+                # If we haven't seen it and it's not dirty, we want it!!
+                subnet_wanted = all([
+                    next_subnet not in children_seen,
+                    next_subnet not in dirty
+                ])
+                if subnet_wanted:
                     log.info('>> NEXT_SUBNET %s is now wanted!', next_subnet)
                     wanted.append(next_subnet)
 
