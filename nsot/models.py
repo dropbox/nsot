@@ -15,6 +15,7 @@ import logging
 import netaddr
 from operator import attrgetter
 import re
+import time
 
 from . import exc
 from . import fields
@@ -793,6 +794,8 @@ class Network(Resource):
         :returns:
             list(IPNetwork)
         """
+        start_time = time.time()  # For debugging
+
         # If we're reserved, automatically ZILCH!!
         # TODO(jathan): Should we raise an error instead?
         if self.state == Network.RESERVED:
@@ -833,13 +836,29 @@ class Network(Resource):
         # Exclude children that are in busy states.
         children = self.get_descendents()
 
-        # FIXME(jathan): This can potentially be very slow if the gap between
-        # parent and child networks is large, say, on the order of /8.
-        # Something to keep in mind if it comes up in practical application,
-        # especially with IPv6 networks, which is still not heavily tested.
-        wanted = []  # Subnets we want.
-        dirty = []   # Dirty subnets (have children)
-        children_seen = []  # For child networks we've already processed.
+        # Pre-filter children and store the `.ip_network` property up front.
+        children = [
+            c.ip_network for c in children if (
+                c.state not in self.BUSY_STATES
+            )
+        ]
+
+        # Prepopulate children_seen with networks that have the same prefix
+        # length as wanted `prefix_length`.
+        children_seen = [
+            c for c in children if (
+                c.prefixlen == prefix_length
+            )
+        ]
+
+        # Dirty subnets cannot be used. Pre-seed w/ children_seen.
+        dirty = children_seen[:]
+
+        # Pre-filter any pre-seeded dirty subnets as a generator.
+        subnets = (s for s in subnets if s not in dirty)
+
+        # Subnets we want.
+        wanted = []
 
         # Keep iterating until we've found the number of networks we want.
         while len(wanted) < num:
@@ -850,14 +869,15 @@ class Network(Resource):
             except StopIteration:
                 break
 
-            # We can't allocate ourself.
-            if next_subnet == cidr:
+            log.debug('>> CHILDREN_SEEN: %s items, DIRTY: %s items',
+                      len(children_seen), len(dirty))
+
+            # Skip dirty subnets immediately.
+            if next_subnet in dirty:
                 continue
 
             # Never return 1st/last addresses if prefix is for an address,
             # unless it's an interconnect (aka point-to-point).
-            # FIXME(jathan): Revisit why we made this decision. It seems
-            # arbitrary.
             if cidr.prefixlen in settings.NETWORK_INTERCONNECT_PREFIXES:
                 pass
             elif (next_subnet.prefixlen in settings.HOST_PREFIXES and
@@ -870,39 +890,17 @@ class Network(Resource):
 
             # Iterate the children and if we make it to the end, we've found a
             # keeper!
-            for child in children:
-                # This child is busy; mark it as seen.
-                if child.state in self.BUSY_STATES:
-                    children_seen.append(child.ip_network)
-                    continue
-
-                # Network is already wanted; skip it!
-                if next_subnet in wanted:
-                    log.debug('Network %s already wanted; skipping',
-                              next_subnet)
-                    break
-
-                # This child has already been seen; skip it!
-                if child.ip_network in children_seen:
-                    continue
+            unseen_children = set(children).difference(children_seen)
+            log.debug('>> UNSEEN_CHILDREN: %s items', len(unseen_children))
+            for child in unseen_children:
 
                 # This network is already in use/allocated; skip it!
-                # TODO(jathan): Decide if we want 'allocated' to also be a busy
-                # state for the purpose of allocation? Yes, that's confusing,
-                # but why not just treat this as a busy state? What about
-                # orphaned state?
-                if child.ip_network.overlaps(next_subnet):
-                    log.debug('Child %s network overlaps w/ next_subnet %s',
-                              child.ip_network, next_subnet)
-                    children_seen.append(child.ip_network)
+                if child.overlaps(next_subnet):
+                    children_seen.append(child)
                     continue
 
             # We *might* want this subnet. But make sure it's clean first.
             else:
-                # Skip dirty subnets.
-                if next_subnet in dirty:
-                    continue
-
                 # Check all the children we've seen; if next_subnet contains
                 # it, mark it as dirty.
                 for child in children_seen:
@@ -925,6 +923,8 @@ class Network(Resource):
 
         log.info('>> WANTED = %s', wanted)
 
+        elapsed_time = time.time() - start_time
+        log.debug('>> ELAPSED TIME: %s' % elapsed_time)
         return wanted if as_objects else [unicode(w) for w in wanted]
 
     def get_next_address(self, num=None, as_objects=True):

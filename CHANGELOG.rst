@@ -5,6 +5,20 @@ Changelog
 Version History
 ===============
 
+.. _v1.0.6:
+
+1.0.6 (2016-10-18)
+------------------
+
+* Improve performance in Network.get_next_network() for large prefixes
+
+  + The fix in #224 introduced a notable performance bug due to iterating
+    all descendents vs. only direct children.
+  + This patch addresses the performance issue by attempting to pre-seed
+    the list of dirty networks via excluding ones with ineligible prefix
+    lengths as well as immediately checking whether a candidate subnet is
+    dirty BEFORE iterating child networks vs. AFTER.
+
 .. _v1.0.5:
 
 1.0.5 (2016-10-13)
