@@ -5,6 +5,17 @@ Changelog
 Version History
 ===============
 
+.. _v1.0.7:
+
+1.0.7 (2016-10-24)
+------------------
+
+* Implemented changes needed to upgrade to Django REST Framework v3.5.0
+* Added `fields = '__all__'` to all default model serializers used for
+  displaying objects
+* Changes required for django-filter>=0.15 were made for filtersets
+  using custom fields.
+
 .. _v1.0.6:
 
 1.0.6 (2016-10-18)
