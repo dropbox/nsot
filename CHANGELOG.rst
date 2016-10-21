@@ -5,6 +5,15 @@ Changelog
 Version History
 ===============
 
+.. _v1.0.8:
+
+1.0.8 (2016-10-24)
+------------------
+
+* Provides the ability to require uniqueness for results of queries using
+  the optional ``unique=true`` param. Queries with multiple results
+  that have this flag set will return an error. Implements #221.
+
 .. _v1.0.7:
 
 1.0.7 (2016-10-24)

@@ -216,7 +216,7 @@ class ResourceSetTheoryQuerySet(models.query.QuerySet):
 
         >>> qs = Device.objects.set_query('role=br +role=dr')
     """
-    def set_query(self, query, site_id=None):
+    def set_query(self, query, site_id=None, unique=False):
         """
         Filter objects by set theory attribute-value ``query`` patterns.
         """
@@ -231,11 +231,16 @@ class ResourceSetTheoryQuerySet(models.query.QuerySet):
                 'query': err.message
             })
 
+        resource_name = self.model.__name__
+
         # If there aren't any parsed attributes, don't return anything.
         if not attributes:
+            if unique:
+                raise exc.ValidationError({
+                    'query': 'Query empty, unable to provide %s'
+                    % resource_name
+                })
             return objects.none()
-
-        resource_name = self.model.__name__
 
         # Iterate a/v pairs and combine query results using MySQL-compatible
         # set operations w/ the ORM
@@ -301,8 +306,16 @@ class ResourceSetTheoryQuerySet(models.query.QuerySet):
                 raise exc.BadRequest('BAD SET QUERY: %r' % (action,))
             log.debug('QUERY [iter]: objects = %r', objects)
 
-        # Gotta call .distinct() or we might get dupes.
-        return objects.distinct()
+        count = objects.count()
+        if unique and count != 1:
+            # There can be only one
+            raise exc.ValidationError({
+                'query': 'Query returned %r results, but exactly 1 expected'
+                % count
+            })
+        else:
+            # Gotta call .distinct() or we might get dupes.
+            return objects.distinct()
 
     def by_attribute(self, name, value, site_id=None):
         """
@@ -335,22 +348,31 @@ class ResourceManager(models.Manager):
     def get_queryset(self):
         return self.queryset_class(self.model, using=self._db)
 
-    def set_query(self, query, site_id=None):
+    def set_query(self, query, site_id=None, unique=False):
         """
         Filter objects by set theory attribute-value string patterns.
 
         For example::
 
-            >>> Network.objects.set_query('owner=jathan +metro=lax'}
-            [<Device: foo-bar1>]
+            >>> Network.objects.set_query('owner=jathan +cluster=sjc'}
+            [<Device: foo-bar1>, <Device: foo-bar3>, <Device: foo-bar4>]
+
+            >>> Network.objects.set_query('owner=gary -cluster=sjc'}
+            [<Device: foo-bar2>]
+
+            >>> Network.objects.set_query('owner=jathan foo=baz', unique=True}
+            [<Device: foo-bar3>]
 
         :param query:
             Set theory query pattern
 
         :param site_id:
             ID of Site to filter results
+
+        :param unique:
+            Find exactly one match, error otherwise
         """
-        return self.get_queryset().set_query(query, site_id)
+        return self.get_queryset().set_query(query, site_id, unique)
 
     def by_attribute(self, name, value, site_id=None):
         """

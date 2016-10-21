@@ -467,6 +467,20 @@ def test_set_queries(client, site):
         expected
     )
 
+    # UNIQUE: vlan=300 scope=region
+    wanted = [dev1_eth0]
+    expected = filter_interfaces(interfaces, wanted)
+    assert_success(
+        client.retrieve(query_uri, query='vlan=300 scope=region', unique=True),
+        expected
+    )
+
+    # ERROR: not unique
+    assert_error(
+        client.retrieve(query_uri, query='scope=global +vlan=400', unique=True),
+        status.HTTP_400_BAD_REQUEST
+    )
+
     # ERROR: bad query
     assert_error(
         client.retrieve(query_uri, query='bacon=delicious'),
