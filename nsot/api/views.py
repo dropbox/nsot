@@ -673,6 +673,9 @@ class UserViewSet(BaseNsotViewSet, mixins.CreateModelMixin):
 
 class NotFoundViewSet(viewsets.GenericViewSet):
     """Catchall for bad API endpoints."""
+    def get_queryset(self):
+        return None
+
     def get(self, *args, **kwargs):
         raise exc.NotFound()
 
