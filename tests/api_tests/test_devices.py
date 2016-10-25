@@ -204,6 +204,26 @@ def test_set_queries(client, site):
         expected
     )
 
+    # UNIQUE: owner=jathan foo=bar
+    wanted = ['foo-bar1']
+    expected = filter_devices(devices, wanted)
+    assert_success(
+        client.retrieve(query_uri, query='owner=jathan foo=bar', unique=True),
+        expected
+    )
+
+    # ERROR: not unique
+    assert_error(
+        client.retrieve(query_uri, query='owner=jathan +foo=bar', unique=True),
+        status.HTTP_400_BAD_REQUEST
+    )
+
+    # ERROR: no results
+    assert_error(
+        client.retrieve(query_uri, query='owner=bob +foo=bar', unique=True),
+        status.HTTP_400_BAD_REQUEST
+    ) 
+
     # ERROR: bad query
     assert_error(
         client.retrieve(query_uri, query='chop=suey'),
