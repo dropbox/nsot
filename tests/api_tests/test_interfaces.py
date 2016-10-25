@@ -481,6 +481,12 @@ def test_set_queries(client, site):
         status.HTTP_400_BAD_REQUEST
     )
 
+    # ERROR: no result
+    assert_error(
+        client.retrieve(query_uri, query='scope=local vlan=400', unique=True),
+        status.HTTP_400_BAD_REQUEST
+    )
+
     # ERROR: bad query
     assert_error(
         client.retrieve(query_uri, query='bacon=delicious'),

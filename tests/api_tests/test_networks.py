@@ -308,6 +308,12 @@ def test_set_queries(client, site):
         status.HTTP_400_BAD_REQUEST
     )
 
+    # ERROR: no results
+    assert_error(
+        client.retrieve(query_uri, query='cluster owner=bob', unique=True),
+        status.HTTP_400_BAD_REQUEST
+    )
+
     # ERROR: bad query
     assert_error(
         client.retrieve(query_uri, query='fake=bad'),
