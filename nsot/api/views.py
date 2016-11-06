@@ -4,7 +4,8 @@ import logging
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from rest_framework import mixins, viewsets
+from django.shortcuts import get_object_or_404
+from rest_framework import mixins, status, viewsets
 from rest_framework.views import APIView
 from rest_framework.decorators import detail_route, list_route
 from rest_framework.response import Response
@@ -55,7 +56,7 @@ class BaseNsotViewSet(viewsets.ReadOnlyModelViewSet):
             )
         raise exc.NotFound(msg)
 
-    def success(self, data, status=200, headers=None):
+    def success(self, data, status=status.HTTP_200_OK, headers=None):
         return Response(data, status=status, headers=headers)
 
     def list(self, request, site_pk=None, queryset=None, *args, **kwargs):
@@ -193,7 +194,10 @@ class NsotViewSet(BaseNsotViewSet, viewsets.ModelViewSet):
         except exc.IntegrityError as err:
             raise exc.Conflict(err.message)
         except exc.ObjectDoesNotExist as err:
-            raise exc.BadRequest("Site with id number %s does not exist"%self.kwargs['site_pk'])
+            raise exc.BadRequest(
+                "Site with id number %s does not exist" %
+                self.kwargs['site_pk']
+            )
         else:
             # This is so that we can always work w/ objects as a list
             if not isinstance(objects, list):
@@ -380,6 +384,14 @@ class DeviceViewSet(ResourceViewSet):
         interfaces = device.interfaces.all()
 
         return self.list(request, queryset=interfaces, *args, **kwargs)
+
+    @detail_route(methods=['get'])
+    def circuits(self, request, pk=None, site_pk=None, *args, **kwargs):
+        """Return a list of Circuits for this Device"""
+        device = self.get_resource_object(pk, site_pk)
+        circuits = device.circuits
+
+        return self.list(request, queryset=circuits, *args, **kwargs)
 
 
 class NetworkViewSet(ResourceViewSet):
@@ -624,6 +636,124 @@ class InterfaceViewSet(ResourceViewSet):
         interface = self.get_resource_object(pk, site_pk)
 
         return self.list(request, queryset=interface.networks, *args, **kwargs)
+
+    @detail_route(methods=['get'])
+    def circuit(self, request, pk=None, site_pk=None, *args, **kwargs):
+        """Return the Circuit I am associated with"""
+        interface = self.get_resource_object(pk, site_pk)
+        try:
+            cir = serializers.CircuitSerializer(interface.circuit)
+            return self.success(cir.data)
+        except models.Circuit.DoesNotExist:
+            msg = 'No Circuit found at Interface (site_id, id) = ({}, {})'
+            msg = msg.format(site_pk, pk)
+            self.not_found(pk, msg=msg)
+
+
+class CircuitViewSet(ResourceViewSet):
+    """
+    API endpoint that allows Circuits to be viewed or edited.
+    """
+    queryset = models.Circuit.objects.all()
+    serializer_class = serializers.CircuitSerializer
+    filter_class = filters.CircuitFilter
+    natural_key = 'name'
+
+    # TODO(jathan): Revisit this if and when we upgrade or replace
+    # django-rest-framework-bulk==0.2.1
+    def bulk_update(self, request, *args, **kwargs):
+        """
+        Workaround for bulk update of objects with unique constraint.
+
+        At this time this is only required by the Circuit object, which is why
+        it is only defined here.
+
+        Credit: https://github.com/miki725/django-rest-framework-bulk/issues/30
+        Source: http://bit.ly/2ilboIQ
+        """
+        partial = kwargs.pop('partial', False)
+
+        # restrict the update to the filtered queryset
+        serializer = self.get_serializer(
+            self.filter_queryset(self.get_queryset()),
+            data=request.data,
+            many=True,
+            partial=partial,
+        )
+
+        validated_data = []
+        validation_errors = []
+
+        for item in request.data:
+            item_serializer = self.get_serializer(
+                get_object_or_404(
+                    self.filter_queryset(self.get_queryset()), pk=item['id']
+                ),
+                data=item,
+                partial=partial,
+            )
+
+            item_serializer.root = serializer
+            if not item_serializer.is_valid():
+                validation_errors.append(item_serializer.errors)
+
+            validated_data.append(item_serializer.validated_data)
+
+        if validation_errors:
+            raise exc.ValidationError(validation_errors)
+
+        serializer._validated_data = validated_data
+        self.perform_bulk_update(serializer)
+
+        return self.success(serializer.data)
+
+    @cache_response(cache_errors=False, key_func=cache.list_key_func)
+    def list(self, *args, **kwargs):
+        """Override default list so we can cache results."""
+        return super(CircuitViewSet, self).list(*args, **kwargs)
+
+    @cache_response(cache_errors=False, key_func=cache.object_key_func)
+    def retrieve(self, *args, **kwargs):
+        """Override default retrieve so we can cache results."""
+        return super(CircuitViewSet, self).retrieve(*args, **kwargs)
+
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return serializers.CircuitCreateSerializer
+        if self.request.method == 'PUT':
+            return serializers.CircuitUpdateSerializer
+        if self.request.method == 'PATCH':
+            return serializers.CircuitPartialUpdateSerializer
+
+        return self.serializer_class
+
+    def get_natural_key_kwargs(self, filter_value):
+        """Return a dict of kwargs for natural_key lookup."""
+        return {self.natural_key: filter_value}
+
+    @detail_route(methods=['get'])
+    def addresses(self, request, pk=None, site_pk=None, *args, **kwargs):
+        """Return a list of addresses for the interfaces on this Circuit."""
+        circuit = self.get_resource_object(pk, site_pk)
+        addresses = circuit.addresses
+
+        return self.list(request, queryset=addresses, *args, **kwargs)
+
+    @detail_route(methods=['get'])
+    def devices(self, request, pk=None, site_pk=None, *args, **kwargs):
+        """Return a list of devices for this Circuit."""
+        circuit = self.get_resource_object(pk, site_pk)
+        devices = circuit.devices
+
+        return self.list(request, queryset=devices, *args, **kwargs)
+
+    @detail_route(methods=['get'])
+    def interfaces(self, request, pk=None, site_pk=None, *args, **kwargs):
+        """Return a list of interfaces for this Circuit."""
+        circuit = self.get_resource_object(pk, site_pk)
+        interfaces = circuit.interfaces
+
+        return self.list(request, queryset=interfaces, *args, **kwargs)
 
 
 #: Namedtuple for retrieving pk and user object of current user.

@@ -28,7 +28,7 @@ log = logging.getLogger(__name__)
 # These are constants that becuase they are tied directly to the underlying
 # objects are explicitly NOT USER CONFIGURABLE.
 RESOURCE_BY_IDX = (
-    'Site', 'Network', 'Attribute', 'Device', 'Interface'
+    'Site', 'Network', 'Attribute', 'Device', 'Interface', 'Circuit'
 )
 RESOURCE_BY_NAME = {
     obj_type: idx
@@ -39,7 +39,7 @@ CHANGE_EVENTS = ('Create', 'Update', 'Delete')
 
 VALID_CHANGE_RESOURCES = set(RESOURCE_BY_IDX)
 VALID_ATTRIBUTE_RESOURCES = set([
-    'Network', 'Device', 'Interface'
+    'Network', 'Device', 'Interface', 'Circuit'
 ])
 
 # Lists of 2-tuples of (value, option) for displaying choices in certain model
@@ -554,6 +554,18 @@ class Device(Resource):
     class Meta:
         unique_together = ('site', 'hostname')
         index_together = unique_together
+
+    @property
+    def circuits(self):
+        """All circuits related to this Device."""
+        interfaces = self.interfaces.all()
+        circuits = []
+        for intf in interfaces:
+            try:
+                circuits.append(intf.circuit)
+            except Circuit.DoesNotExist:
+                continue
+        return circuits
 
     def clean_hostname(self, value):
         if not value:
@@ -1267,7 +1279,7 @@ class Interface(Resource):
     # lldp_remote_system_name
 
     def __unicode__(self):
-        return u'device=%s, name=%s' % (self.device.id, self.name)
+        return u'%s:%s' % (self.device_hostname, self.name)
 
     class Meta:
         unique_together = ('device', 'name')
@@ -1282,6 +1294,17 @@ class Interface(Resource):
         return Network.objects.filter(
             id__in=self.addresses.values_list('parent')
         ).distinct()
+
+    @property
+    def circuit(self):
+        """Return the Circuit I am associated with"""
+        try:
+            return self.circuit_a
+        except Circuit.DoesNotExist:
+            try:
+                return self.circuit_z
+            except Circuit.DoesNotExist:
+                raise
 
     def _purge_addresses(self):
         """Delete all of my addresses (and therefore assignments)."""
@@ -1492,6 +1515,121 @@ class Interface(Resource):
         }
 
 
+class Circuit(Resource):
+    """Represents two network Interfaces that are connected"""
+
+    # A-side endpoint interface
+    endpoint_a = models.OneToOneField(
+        Interface, on_delete=models.PROTECT, db_index=True, null=False,
+        related_name='circuit_a', verbose_name='A-side endpoint Interface',
+        help_text='Unique ID of Interface at the A-side.'
+    )
+
+    # Z-side endpoint interface
+    endpoint_z = models.OneToOneField(
+        Interface, on_delete=models.PROTECT, db_index=True, null=True,
+        related_name='circuit_z', verbose_name='Z-side endpoint Interface',
+        help_text='Unique ID of Interface at the Z-side.'
+    )
+
+    # We are currently inferring the site_id from the parent (A-side) Interface
+    # in the .save() method
+    site = models.ForeignKey(
+        Site, db_index=True, related_name='circuits', on_delete=models.PROTECT,
+        help_text='Unique ID of the Site this Circuit is under.'
+    )
+
+    name = models.CharField(
+        max_length=255, unique=True, default='',
+        help_text=(
+            'Unique display name of the Circuit. If not provided, defaults to '
+            "'{device_a}:{interface_a}_{device_z}:{interface_z}'"
+        )
+    )
+
+    def __unicode__(self):
+        return u'%s' % self.name
+
+    class Meta:
+        # TODO(jathan): Benchmark queries on a large database to identify
+        # whether we need explicit indices for this model. In my initial testing
+        # all of the common lookup fields are already indexed so this may not be
+        # necessary.
+        '''
+        index_together = [
+            ('endpoint_a', 'endpoint_z'),
+            ('site', 'name'),
+        ]
+        '''
+
+    @property
+    def interfaces(self):
+        """Return interfaces associated with this circuit."""
+        intf_list = [self.endpoint_a, self.endpoint_z]
+        return [i for i in intf_list if i is not None]
+
+    @property
+    def addresses(self):
+        """Return addresses associated with this circuit."""
+        addresses = [a for i in self.interfaces for a in i.addresses.all()]
+        return addresses
+
+    @property
+    def devices(self):
+        """Return devices associated with this circuit."""
+        return [i.device for i in self.interfaces]
+
+    def clean_site(self, value):
+        """Always enforce that site is set."""
+        if value is None:
+            return self.endpoint_a.site_id
+
+        return value
+
+    def clean_endpoint_a(self, value):
+        if Circuit.objects.filter(endpoint_z=value).exists():
+            raise exc.ValidationError({
+                'endpoint_a': 'Interface already used as an endpoint_z'
+            })
+
+        return self.endpoint_a
+
+    def clean_endpoint_z(self, value):
+        if Circuit.objects.filter(endpoint_a=value).exists():
+            raise exc.ValidationError({
+                'endpoint_z': 'Interface already used as an endpoint_a'
+            })
+
+        return self.endpoint_z
+
+    def clean_name(self, value):
+        if value:
+            return value
+
+        # Add display name of hostname:intf_hostname:intf
+        name = '{}_{}'.format(self.endpoint_a, self.endpoint_z)
+        return name
+
+    def clean_fields(self, exclude=None):
+        self.site_id = self.clean_site(self.site_id)
+        self.endpoint_a = self.clean_endpoint_a(self.endpoint_a_id)
+        self.endpoint_z = self.clean_endpoint_z(self.endpoint_z_id)
+        self.name = self.clean_name(self.name)
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super(Circuit, self).save(*args, **kwargs)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'endpoint_a': self.endpoint_a_id,
+            'endpoint_z': self.endpoint_z_id,
+            'attributes': self.get_attributes(),
+        }
+
+
 class Assignment(models.Model):
     """
     DB object for assignment of addresses to interfaces (on devices).
@@ -1541,7 +1679,7 @@ class Assignment(models.Model):
         return {
             'id': self.id,
             'device': self.interface.device.id,
-            'hostname': self.interface.device.hostname,
+            'hostname': self.interface.device_hostname,
             'interface': self.interface.id,
             'interface_name': self.interface.name,
             'address': self.address.cidr,

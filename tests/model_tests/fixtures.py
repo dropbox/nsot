@@ -38,3 +38,29 @@ def device(site):
     """Create and return a Device object bound to ``site``."""
     device = models.Device.objects.create(site=site, hostname='foo-bar1')
     return device
+
+
+@pytest.fixture
+def circuit(site):
+    """Create and return a Circuit object bound to ``site``."""
+    device_a = models.Device.objects.create(site=site, hostname='foo-bar1')
+    device_z = models.Device.objects.create(site=site, hostname='foo-bar2')
+
+    # Create a network for interface assignments
+    network = models.Network.objects.create(
+        cidr='10.32.0.0/24', site=site,
+    )
+
+    # Create A/Z-side interfaces
+    iface_a = models.Interface.objects.create(
+        device=device_a, name='eth0', addresses=['10.32.0.1/32']
+    )
+    iface_z = models.Interface.objects.create(
+        device=device_z, name='eth0', addresses=['10.32.0.2/32']
+    )
+
+    # Create the circuit
+    circuit = models.Circuit.objects.create(
+        endpoint_a=iface_a, endpoint_z=iface_z
+    )
+    return circuit
