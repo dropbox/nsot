@@ -31,3 +31,6 @@ MarkupSafe==0.23
 netaddr==0.7.18
 PyYAML==3.11
 static3==0.6.1
+django-rest-hooks==1.3.1
+requests==2.11.1
+urllib3==1.19

@@ -354,3 +354,80 @@ an error will be returned.
         }
     }
 
+Resthooks
+=========
+
+NSoT implements resthooks_ for subscribing to adds, changes, and removals of
+resource types. To do this, the hook needs to be created with a valid event
+name and target to receive the update
+
+.. _resthooks: http://resthooks.org/
+
+Event names are in the format of ``resource_name.action``. Current valid
+actions are:
+
+* ``added``
+* ``changed``
+* ``removed``
+
+Creating a hook:
+
+.. code-block:: http
+
+    POST /api/hooks/
+
+.. code-block:: javascript
+
+    {
+        "event": "network.added",
+        "target": "http://netwatcher.company.com"
+    }
+
+Checking details of a hook:
+
+.. code-block:: http
+
+    GET /api/hooks/:id
+
+.. code-block:: javascript
+
+    {
+        "id": 2,
+        "created": "2016-11-06T01:15:32.259000",
+        "updated": "2016-11-06T01:16:50.925442",
+        "event": "network.added",
+        "target": "http://localhost:8888",
+        "user": 1
+    }
+
+Payload target server can expect to receive:
+
+.. code-block:: http
+
+    POST /
+
+.. code-block:: javascript
+
+    {
+        "hook": {
+            "target": "http://localhost:8888",
+            "id": 2,
+            "event": "network.added"
+        },
+        "data": {
+            "parent_id": 6,
+            "state": "allocated",
+            "prefix_length": 16,
+            "is_ip": false,
+            "ip_version": "4",
+            "network_address": "192.168.0.0",
+            "attributes": {},
+            "site_id": 1,
+            "id": 7
+        }
+    }
+
+Things to note
+--------------
+
+* Pushes will not retry currently

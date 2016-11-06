@@ -9,6 +9,8 @@ from django.db.models.query_utils import Q
 from django.conf import settings
 from django.core.cache import cache as djcache
 from django.utils import timezone
+from rest_hooks.models import Hook
+from rest_hooks.signals import raw_hook_event
 import ipaddress
 import json
 import logging
@@ -1914,6 +1916,7 @@ class Change(models.Model):
     def save(self, *args, **kwargs):
         self.full_clean()  # First validate fields are correct
         super(Change, self).save(*args, **kwargs)
+        self.send_hook()
 
     def to_dict(self):
         resource = None
@@ -1930,6 +1933,29 @@ class Change(models.Model):
             'resource_id': self.resource_id,
             'resource': resource,
         }
+
+    def send_hook(self):
+        """
+        Send raw hook event for resource being changed
+
+        This will work for any resource that goes through the Change pipeline.
+        The only other requirement is adding the model name to HOOK_MODELS in
+        settings
+
+        Works by matching event_name to the generated HOOK_EVENTS keys
+        """
+        # Get cosmetic hook action name from action
+        action = settings.HOOK_ACTIONS[self.event.lower()]
+        event_name = '{}.{}'.format(self.resource_name.lower(), action)
+
+        # Needed to deliver hook regardless of user
+        hooks = Hook.objects.filter(event=event_name)
+        for hook in hooks:
+            payload = {
+                'hook': hook.dict(),
+                'data': self.resource,
+            }
+            hook.deliver_hook(None, payload_override=payload)
 
 
 # Signals

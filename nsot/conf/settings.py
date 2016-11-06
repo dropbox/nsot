@@ -39,6 +39,7 @@ INSTALLED_APPS = (
     'smart_selects',
     'rest_framework',
     'rest_framework_swagger',
+    'rest_hooks',
     'custom_user',
     'nsot',
 )
@@ -425,7 +426,35 @@ HOST_PREFIXES = (32, 128)
 IP_VERSIONS = ('4', '6')
 
 # Whether to compress IPv6 for display purposes, for example:
-# - Exploded (default): 2620:0100:6000:0000:0000:0000:0000:0000/40 
+# - Exploded (default): 2620:0100:6000:0000:0000:0000:0000:0000/40
 # - Compressed: 2620:100:6000::/40
 # Default: True
 NSOT_COMPRESS_IPV6 = True
+
+#########
+# Hooks #
+#########
+# from nsot.util.core import hook_delivery
+
+# Map actual model action names to cosmetic event names
+# E.g: resource.added => will trigger for created action
+HOOK_ACTIONS = {
+    'create': 'added',
+    'update': 'changed',
+    'delete': 'removed',
+}
+HOOK_MODELS = [
+    'Attribute',
+    'Device',
+    'Interface',
+    'Network',
+    'Site',
+]
+# Map action to each model we want hook-ability for. Mapped to None because we
+# implement custom hooks on the Change model. Every NSoT change goes through
+# there so we trigger hooks on Change.save()
+HOOK_EVENTS = {
+    '{}.{}'.format(model.lower(), action): None
+    for model in HOOK_MODELS
+    for action in HOOK_ACTIONS.values()
+}

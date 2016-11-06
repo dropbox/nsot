@@ -19,6 +19,7 @@ router.register(r'interfaces', views.InterfaceViewSet)
 router.register(r'networks', views.NetworkViewSet)
 router.register(r'users', views.UserViewSet)
 router.register(r'values', views.ValueViewSet)
+router.register(r'hooks', views.HookViewSet)
 
 # Nested router for resources under /sites
 sites_router = routers.BulkNestedRouter(

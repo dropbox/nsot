@@ -7,6 +7,7 @@ import logging
 from django.contrib.auth import get_user_model
 from rest_framework import fields, serializers
 from rest_framework_bulk import BulkSerializerMixin, BulkListSerializer
+from rest_hooks.models import Hook
 
 from . import auth
 from .. import exc, models, validators
@@ -523,3 +524,13 @@ class AuthTokenSerializer(serializers.Serializer):
         else:
             msg = 'Must include "email" and "secret_key"'
             raise exc.ValidationError(msg)
+
+
+#######
+# Hooks
+#######
+class HookSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Hook
+        fields = '__all__'
+        read_only_fields = ('user',)

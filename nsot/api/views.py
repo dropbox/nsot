@@ -10,6 +10,7 @@ from rest_framework.decorators import detail_route, list_route
 from rest_framework.response import Response
 from rest_framework_bulk import mixins as bulk_mixins
 from rest_framework_extensions.cache.decorators import cache_response
+from rest_hooks.models import Hook
 
 from . import auth, filters, serializers
 from .. import exc, models
@@ -723,3 +724,12 @@ class AuthTokenVerifyView(APIView):
                 ('data', True),
             ])
         )
+
+
+class HookViewSet(viewsets.ModelViewSet):
+    model = Hook
+    serializer_class = serializers.HookSerializer
+    queryset = Hook.objects.all()
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
