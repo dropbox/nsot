@@ -614,6 +614,35 @@ class InterfaceViewSet(ResourceViewSet):
         return self.list(request, queryset=interface.networks, *args, **kwargs)
 
 
+class CircuitViewSet(ResourceViewSet):
+    """
+    API endpoint that allows Circuits to be viewed or edited.
+    """
+    queryset = models.Circuit.objects.all()
+    serializer_class = serializers.CircuitSerializer
+    filter_class = filters.CircuitFilter
+
+    @cache_response(cache_errors=False, key_func=cache.list_key_func)
+    def list(self, *args, **kwargs):
+        """Override default list so we can cache results."""
+        return super(CircuitViewSet, self).list(*args, **kwargs)
+
+    @cache_response(cache_errors=False, key_func=cache.object_key_func)
+    def retrieve(self, *args, **kwargs):
+        """Override default retrieve so we can cache results."""
+        return super(CircuitViewSet, self).retrieve(*args, **kwargs)
+
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return serializers.CircuitCreateSerializer
+        if self.request.method == 'PUT':
+            return serializers.CircuitUpdateSerializer
+        if self.request.method == 'PATCH':
+            return serializers.CircuitPartialUpdateSerializer
+
+        return self.serializer_class
+
+
 #: Namedtuple for retrieving pk and user object of current user.
 UserPkInfo = namedtuple('UserPkInfo', 'user pk')
 

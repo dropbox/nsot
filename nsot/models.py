@@ -28,7 +28,7 @@ log = logging.getLogger(__name__)
 # These are constants that becuase they are tied directly to the underlying
 # objects are explicitly NOT USER CONFIGURABLE.
 RESOURCE_BY_IDX = (
-    'Site', 'Network', 'Attribute', 'Device', 'Interface'
+    'Site', 'Network', 'Attribute', 'Device', 'Interface', 'Circuit'
 )
 RESOURCE_BY_NAME = {
     obj_type: idx
@@ -39,7 +39,7 @@ CHANGE_EVENTS = ('Create', 'Update', 'Delete')
 
 VALID_CHANGE_RESOURCES = set(RESOURCE_BY_IDX)
 VALID_ATTRIBUTE_RESOURCES = set([
-    'Network', 'Device', 'Interface'
+    'Network', 'Device', 'Interface', 'Circuit'
 ])
 
 # Lists of 2-tuples of (value, option) for displaying choices in certain model
@@ -1254,7 +1254,7 @@ class Interface(Resource):
     # lldp_remote_system_name
 
     def __unicode__(self):
-        return u'device=%s, name=%s' % (self.device.id, self.name)
+        return u'%s:%s' % (self.device.hostname, self.name)
 
     class Meta:
         unique_together = ('device', 'name')
@@ -1466,6 +1466,93 @@ class Interface(Resource):
             'mac_address': self.get_mac_address(),
             'speed': self.speed,
             'type': self.type,
+            'attributes': self.get_attributes(),
+        }
+
+
+class Circuit(Resource):
+    """Represents two network Interfaces that are connected"""
+
+    # a_endpoint interface
+    a_endpoint = models.ForeignKey(
+        Interface, db_index=True, related_name='circuits_a',
+        null=False, verbose_name='A-side Interface',
+        help_text='Unique ID of interface at the A-side'
+    )
+
+    # z_endpoint interface
+    z_endpoint = models.ForeignKey(
+        Interface, db_index=True, related_name='circuits_z',
+        null=True, verbose_name='Z-side Interface',
+        help_text='Unique ID of interface at the Z-side'
+    )
+
+    # We are currently inferring the site_id from the parent (A-side) Interface
+    # in the .save() method
+    site = models.ForeignKey(
+        Site, db_index=True, related_name='circuits',
+        on_delete=models.PROTECT,
+        help_text='Unique ID of the Site this Circuit is under'
+    )
+
+    display_name = models.CharField(
+        max_length=255, unique=True, help_text='Unique display name of circuit'
+    )
+
+    def __unicode__(self):
+        return u'%s' % self.display_name
+
+    class Meta:
+        unique_together = ('a_endpoint', 'z_endpoint')
+        index_together = unique_together
+
+    def clean_site(self, value):
+        """Always enforce that site is set."""
+        if value is None:
+            try:
+                return self.a_endpoint.device.site_id
+            except Device.DoesNotExist:
+                return Device.objects.get(id=self.a_endpoint.device_id).site_id
+
+        return value
+
+    def clean_display_name(self, value, delimeter='--'):
+        """Always enforce that display_name is set"""
+        # Add display name of hostname:intf::hostname:intf
+        # '--' as default delimeter because an intf name may contain '-'
+        if value is None:
+            a_display_name = '{}:{}'.format(
+                self.a_endpoint.device.hostname,
+                self.a_endpoint.name,
+            )
+            if getattr(self.z_endpoint.name):
+                z_display_name = '{}:{}'.format(
+                    self.z_endpoint.device.hostname,
+                    self.z_endpoint.name,
+                )
+            else:
+                z_display_name = None
+
+            return a_display_name + delimeter + z_display_name
+
+        return value
+
+    def clean_fields(self, exclude=None):
+        self.site_id = self.clean_site(self.site_id)
+        self.display_name = self.clean_display_name(self.display_name)
+
+    def save(self, *args, **kwargs):
+        # We don't want to validate unique because we want the IntegrityError
+        # to fall through so we can catch it an raise a 409 CONFLICT.
+        self.full_clean(validate_unique=False)
+        super(Circuit, self).save(*args, **kwargs)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'display_name': self.display_name,
+            'a_endpoint': self.a_endpoint_id,
+            'z_endpoint': self.z_endpoint_id,
             'attributes': self.get_attributes(),
         }
 
