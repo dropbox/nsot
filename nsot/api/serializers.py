@@ -505,21 +505,37 @@ class CircuitSerializer(ResourceSerializer):
         log.debug('CircuitCreateSerializer.create() validated_data = %r',
                   validated_data)
 
+        # Create the base object to the database, but don't save attributes
+        # yet.
         obj = super(CircuitSerializer, self).create(
             validated_data, commit=False
         )
-        obj.save()
+
+        # Try to populate the related fields and if there are any validation
+        # problems, delete the object and re-raise the error. If not, save the
+        # changes.
+        try:
+            obj.set_name()
+        except exc.ValidationError:
+            obj.delete()
+            raise
+        else:
+            obj.save()
 
         return obj
 
     def update(self, instance, validated_data):
-        log.debug('CircuitUpdateSerializer.update() validated_data = %r',
+        log.debug('CircuitUpdateSerializer.create() validated_data = %r',
                   validated_data)
 
+        # Update the attributes in the database, but don't save them yet.
         obj = super(CircuitSerializer, self).update(
             instance, validated_data, commit=False
         )
+
+        obj.set_name()
         obj.save()
+
         return obj
 
 

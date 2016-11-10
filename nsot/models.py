@@ -1495,62 +1495,74 @@ class Circuit(Resource):
         help_text='Unique ID of the Site this Circuit is under'
     )
 
-    display_name = models.CharField(
-        max_length=255, unique=True, help_text='Unique display name of circuit'
+    name = models.CharField(
+        max_length=255, unique=True,
+        help_text='Unique display name of circuit',
+        default='',
     )
 
     def __unicode__(self):
-        return u'%s' % self.display_name
+        return u'%s' % self.name
 
     class Meta:
-        unique_together = ('a_endpoint', 'z_endpoint')
+        # An interface shouldn't be able to be part of multiple circuits. This
+        # fixes the problem... mostly
+        #
+        # This doesn't solve an interface from being in one a_endpoint and
+        # another z_endpoint, but solves the others
+        unique_together = (
+            ('a_endpoint', 'z_endpoint'),
+            ('a_endpoint',),
+            ('z_endpoint',),
+        )
         index_together = unique_together
+
+    @property
+    def interfaces(self):
+        intf_list = [self.a_endpoint, self.z_endpoint]
+        intf_list = [i for i in intf_list if i]
+        return intf_list
 
     def clean_site(self, value):
         """Always enforce that site is set."""
         if value is None:
-            try:
-                return self.a_endpoint.device.site_id
-            except Device.DoesNotExist:
-                return Device.objects.get(id=self.a_endpoint.device_id).site_id
+            return self.a_endpoint.site_id
 
         return value
 
-    def clean_display_name(self, value, delimeter='--'):
-        """Always enforce that display_name is set"""
+    def set_name(self):
+        if self.name:
+            return False
+
         # Add display name of hostname:intf::hostname:intf
-        # '--' as default delimeter because an intf name may contain '-'
-        if value is None:
-            a_display_name = '{}:{}'.format(
-                self.a_endpoint.device.hostname,
-                self.a_endpoint.name,
+        a_name = '{}:{}'.format(
+            self.a_endpoint.device.hostname,
+            self.a_endpoint.name,
+        )
+        if getattr(self, 'z_endpoint'):
+            z_name = '{}:{}'.format(
+                self.z_endpoint.device.hostname,
+                self.z_endpoint.name,
             )
-            if getattr(self.z_endpoint.name):
-                z_display_name = '{}:{}'.format(
-                    self.z_endpoint.device.hostname,
-                    self.z_endpoint.name,
-                )
-            else:
-                z_display_name = None
+        else:
+            z_name = 'None'
 
-            return a_display_name + delimeter + z_display_name
-
-        return value
+        # '--' as delimeter because an intf name may contain '-'
+        self.name = '{}--{}'.format(a_name, z_name)
+        return True
 
     def clean_fields(self, exclude=None):
         self.site_id = self.clean_site(self.site_id)
-        self.display_name = self.clean_display_name(self.display_name)
 
     def save(self, *args, **kwargs):
-        # We don't want to validate unique because we want the IntegrityError
-        # to fall through so we can catch it an raise a 409 CONFLICT.
-        self.full_clean(validate_unique=False)
+        self.full_clean()
+        self.clean_fields()
         super(Circuit, self).save(*args, **kwargs)
 
     def to_dict(self):
         return {
             'id': self.id,
-            'display_name': self.display_name,
+            'name': self.name,
             'a_endpoint': self.a_endpoint_id,
             'z_endpoint': self.z_endpoint_id,
             'attributes': self.get_attributes(),
