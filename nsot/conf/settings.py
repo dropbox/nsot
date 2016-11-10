@@ -438,12 +438,12 @@ NSOT_COMPRESS_IPV6 = True
 
 # Map actual model action names to cosmetic event names
 # E.g: resource.added => will trigger for created action
-HOOK_ACTIONS = {
+NSOT_HOOK_ACTIONS = {
     'create': 'added',
     'update': 'changed',
     'delete': 'removed',
 }
-HOOK_MODELS = [
+NSOT_HOOK_MODELS = [
     'Attribute',
     'Device',
     'Interface',
@@ -455,6 +455,6 @@ HOOK_MODELS = [
 # there so we trigger hooks on Change.save()
 HOOK_EVENTS = {
     '{}.{}'.format(model.lower(), action): None
-    for model in HOOK_MODELS
-    for action in HOOK_ACTIONS.values()
+    for model in NSOT_HOOK_MODELS
+    for action in NSOT_HOOK_ACTIONS.values()
 }

@@ -1939,13 +1939,13 @@ class Change(models.Model):
         Send raw hook event for resource being changed
 
         This will work for any resource that goes through the Change pipeline.
-        The only other requirement is adding the model name to HOOK_MODELS in
-        settings
+        The only other requirement is adding the model name to NSOT_HOOK_MODELS
+        in settings
 
         Works by matching event_name to the generated HOOK_EVENTS keys
         """
         # Get cosmetic hook action name from action
-        action = settings.HOOK_ACTIONS[self.event.lower()]
+        action = settings.NSOT_HOOK_ACTIONS[self.event.lower()]
         event_name = '{}.{}'.format(self.resource_name.lower(), action)
 
         # Needed to deliver hook regardless of user
