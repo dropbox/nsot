@@ -379,6 +379,14 @@ class DeviceViewSet(ResourceViewSet):
 
         return self.list(request, queryset=interfaces, *args, **kwargs)
 
+    @detail_route(methods=['get'])
+    def circuits(self, request, pk=None, site_pk=None, *args, **kwargs):
+        """Return a list of Circuits for this Device"""
+        device = self.get_resource_object(pk, site_pk)
+        circuits = device.circuits
+
+        return self.list(request, queryset=circuits, *args, **kwargs)
+
 
 class NetworkViewSet(ResourceViewSet):
     """

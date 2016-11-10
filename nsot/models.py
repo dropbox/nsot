@@ -555,6 +555,17 @@ class Device(Resource):
         unique_together = ('site', 'hostname')
         index_together = unique_together
 
+    @property
+    def circuits(self):
+        interfaces = self.interfaces.all()
+        circuits = []
+        for intf in interfaces:
+            try:
+                circuits.append(intf.circuit)
+            except Circuit.DoesNotExist:
+                continue
+        return circuits
+
     def clean_hostname(self, value):
         if not value:
             raise exc.ValidationError({
