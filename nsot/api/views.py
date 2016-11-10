@@ -617,21 +617,13 @@ class InterfaceViewSet(ResourceViewSet):
     def circuit(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return the Circuit I am associated with"""
         interface = self.get_resource_object(pk, site_pk)
-        cir_a = interface.circuits_a.all()
-        if cir_a:
-            cir_a = serializers.CircuitSerializer(cir_a[0])
-            return self.success(cir_a.data)
-
-        cir_z = interface.circuits_z.all()
-        if cir_z:
-            cir_z = serializers.CircuitSerializer(cir_z[0])
-            return self.success(cir_z.data)
-
-        msg = 'No Circuit found at Interface (site_id, id) = ({}, {})'.format(
-            site_pk,
-            pk,
-        )
-        self.not_found(pk, msg=msg)
+        try:
+            cir = serializers.CircuitSerializer(interface.circuit)
+            return self.success(cir.data)
+        except models.Circuit.DoesNotExist:
+            msg = 'No Circuit found at Interface (site_id, id) = ({}, {})'
+            msg = msg.format(site_pk, pk)
+            self.not_found(pk, msg=msg)
 
 
 class CircuitViewSet(ResourceViewSet):
@@ -674,12 +666,7 @@ class CircuitViewSet(ResourceViewSet):
     def addresses(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return a list of addresses for this interfaces on this Circuit"""
         circuit = self.get_resource_object(pk, site_pk)
-        interfaces = circuit.interfaces
-        addresses = [
-            addr
-            for intf in interfaces
-            for addr in intf.addresses.all()
-        ]
+        addresses = circuit.addresses
 
         return self.list(request, queryset=addresses, *args, **kwargs)
 
@@ -687,8 +674,7 @@ class CircuitViewSet(ResourceViewSet):
     def devices(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return a list of devices for this Circuit"""
         circuit = self.get_resource_object(pk, site_pk)
-        interfaces = circuit.interfaces
-        devices = [intf.device for intf in interfaces]
+        devices = circuit.devices
 
         return self.list(request, queryset=devices, *args, **kwargs)
 

@@ -1267,6 +1267,19 @@ class Interface(Resource):
             id__in=self.addresses.values_list('parent')
         ).distinct()
 
+    @property
+    def circuit(self):
+        """Return the Circuit I am associated with"""
+        try:
+            cir = self.circuit_a
+            return cir
+        except Circuit.DoesNotExist:
+            try:
+                cir = self.circuit_z
+                return cir
+            except Circuit.DoesNotExist:
+                raise
+
     def _purge_addresses(self):
         """Delete all of my addresses (and therefore assignments)."""
         self.addresses.all().delete()
@@ -1474,16 +1487,24 @@ class Circuit(Resource):
     """Represents two network Interfaces that are connected"""
 
     # a_endpoint interface
-    a_endpoint = models.ForeignKey(
-        Interface, db_index=True, related_name='circuits_a',
-        null=False, verbose_name='A-side Interface',
+    a_endpoint = models.OneToOneField(
+        Interface,
+        on_delete=models.CASCADE,
+        db_index=True,
+        null=False,
+        related_name='circuit_a',
+        verbose_name='A-side Interface',
         help_text='Unique ID of interface at the A-side'
     )
 
     # z_endpoint interface
-    z_endpoint = models.ForeignKey(
-        Interface, db_index=True, related_name='circuits_z',
-        null=True, verbose_name='Z-side Interface',
+    z_endpoint = models.OneToOneField(
+        Interface,
+        on_delete=models.CASCADE,
+        db_index=True,
+        null=True,
+        related_name='circuit_z',
+        verbose_name='Z-side Interface',
         help_text='Unique ID of interface at the Z-side'
     )
 
@@ -1504,24 +1525,27 @@ class Circuit(Resource):
     def __unicode__(self):
         return u'%s' % self.name
 
-    class Meta:
-        # An interface shouldn't be able to be part of multiple circuits. This
-        # fixes the problem... mostly
-        #
-        # This doesn't solve an interface from being in one a_endpoint and
-        # another z_endpoint, but solves the others
-        unique_together = (
-            ('a_endpoint', 'z_endpoint'),
-            ('a_endpoint',),
-            ('z_endpoint',),
-        )
-        index_together = unique_together
-
     @property
     def interfaces(self):
         intf_list = [self.a_endpoint, self.z_endpoint]
         intf_list = [i for i in intf_list if i]
         return intf_list
+
+    @property
+    def addresses(self):
+        interfaces = self.interfaces
+        addresses = [
+            addr
+            for intf in interfaces
+            for addr in intf.addresses.all()
+        ]
+        return addresses
+
+    @property
+    def devices(self):
+        circuit = self.get_resource_object(pk, site_pk)
+        devices = [intf.device for intf in self.interfaces]
+        return devices
 
     def clean_site(self, value):
         """Always enforce that site is set."""
@@ -1547,8 +1571,7 @@ class Circuit(Resource):
         else:
             z_name = 'None'
 
-        # '--' as delimeter because an intf name may contain '-'
-        self.name = '{}--{}'.format(a_name, z_name)
+        self.name = '{}_{}'.format(a_name, z_name)
         return True
 
     def clean_fields(self, exclude=None):
@@ -1556,7 +1579,6 @@ class Circuit(Resource):
 
     def save(self, *args, **kwargs):
         self.full_clean()
-        self.clean_fields()
         super(Circuit, self).save(*args, **kwargs)
 
     def to_dict(self):
