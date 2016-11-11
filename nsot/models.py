@@ -1554,7 +1554,6 @@ class Circuit(Resource):
 
     @property
     def devices(self):
-        circuit = self.get_resource_object(pk, site_pk)
         devices = [intf.device for intf in self.interfaces]
         return devices
 
@@ -1564,6 +1563,22 @@ class Circuit(Resource):
             return self.a_endpoint.site_id
 
         return value
+
+    def clean_a_endpoint(self, value):
+        if Circuit.objects.filter(z_endpoint=value).exists():
+            raise exc.ValidationError({
+                'a_endpoint': 'Interface already used as a z_endpoint'
+            })
+
+        return self.a_endpoint
+
+    def clean_z_endpoint(self, value):
+        if Circuit.objects.filter(a_endpoint=value).exists():
+            raise exc.ValidationError({
+                'z_endpoint': 'Interface already used as a a_endpoint'
+            })
+
+        return self.z_endpoint
 
     def set_name(self):
         if self.name:
@@ -1587,6 +1602,8 @@ class Circuit(Resource):
 
     def clean_fields(self, exclude=None):
         self.site_id = self.clean_site(self.site_id)
+        self.a_endpoint = self.clean_a_endpoint(self.a_endpoint_id)
+        self.z_endpoint = self.clean_z_endpoint(self.z_endpoint_id)
 
     def save(self, *args, **kwargs):
         self.full_clean()
