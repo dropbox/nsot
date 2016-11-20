@@ -327,6 +327,7 @@ class ResourceSetTheoryQuerySet(models.query.QuerySet):
                 name=name, value=value, resource_name=resource_name
             ).values_list('resource_id', flat=True)
         )
+
         if site_id is not None:
             query = query.filter(site=site_id)
 
@@ -1576,7 +1577,6 @@ class Attribute(models.Model):
         help_text='The name of the Resource to which this Attribute is bound.'
     )
 
-
     def __unicode__(self):
         return u'%s %s (site_id: %s)' % (
             self.resource_name, self.name, self.site_id
@@ -2080,9 +2080,3 @@ models.signals.post_delete.connect(
     change_api_updated_at, sender=Interface,
     dispatch_uid='invalidate_cache_post_delete_interface'
 )
-
-
-
-
-
-
