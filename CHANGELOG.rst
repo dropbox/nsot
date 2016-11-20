@@ -5,6 +5,40 @@ Changelog
 Version History
 ===============
 
+.. _v1.0.8:
+
+1.0.8 (2016-10-24)
+------------------
+
+* Provides the ability to require uniqueness for results of queries using
+  the optional ``unique=true`` param. Queries with multiple results
+  that have this flag set will return an error. Implements #221.
+
+.. _v1.0.7:
+
+1.0.7 (2016-10-24)
+------------------
+
+* Implemented changes needed to upgrade to Django REST Framework v3.5.0
+* Added `fields = '__all__'` to all default model serializers used for
+  displaying objects
+* Changes required for django-filter>=0.15 were made for filtersets
+  using custom fields.
+
+.. _v1.0.6:
+
+1.0.6 (2016-10-18)
+------------------
+
+* Improve performance in Network.get_next_network() for large prefixes
+
+  + The fix in #224 introduced a notable performance bug due to iterating
+    all descendents vs. only direct children.
+  + This patch addresses the performance issue by attempting to pre-seed
+    the list of dirty networks via excluding ones with ineligible prefix
+    lengths as well as immediately checking whether a candidate subnet is
+    dirty BEFORE iterating child networks vs. AFTER.
+
 .. _v1.0.5:
 
 1.0.5 (2016-10-13)

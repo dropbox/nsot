@@ -294,6 +294,26 @@ def test_set_queries(client, site):
         expected
     )
 
+    # UNIQUE: hostname=foo-bar1 vlan=300
+    wanted = ['192.168.0.1/32']
+    expected = filter_networks(networks, wanted)
+    assert_success(
+        client.retrieve(query_uri, query='hostname=foo-bar1 vlan=300', unique=True),
+        expected
+    )
+
+    # ERROR: not unique
+    assert_error(
+        client.retrieve(query_uri, query='cluster +foo=baz', unique=True),
+        status.HTTP_400_BAD_REQUEST
+    )
+
+    # ERROR: no results
+    assert_error(
+        client.retrieve(query_uri, query='cluster owner=bob', unique=True),
+        status.HTTP_400_BAD_REQUEST
+    )
+
     # ERROR: bad query
     assert_error(
         client.retrieve(query_uri, query='fake=bad'),

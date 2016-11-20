@@ -2,17 +2,16 @@ from __future__ import unicode_literals
 import logging
 
 from django.db.models import Q
-import django_filters  # django-filters is NOT optional for NSoT
-from rest_framework import filters
+import django_filters
 
-from .. import models
+from .. import fields, models
 from ..util import qpbool
 
 
 log = logging.getLogger(__name__)
 
 
-class ResourceFilter(filters.FilterSet):
+class ResourceFilter(django_filters.rest_framework.FilterSet):
     """Attribute-aware filtering for Resource objects."""
     attributes = django_filters.MethodFilter()
 
@@ -59,9 +58,15 @@ class NetworkFilter(ResourceFilter):
     """Filter for Network objects."""
     include_networks = django_filters.MethodFilter()
     include_ips = django_filters.MethodFilter()
-    network_address = django_filters.CharFilter()
     cidr = django_filters.MethodFilter()
     root_only = django_filters.MethodFilter()
+
+    # Field override for the `network_address` field.
+    filter_overrides = {
+        fields.BinaryIPAddressField: {
+            'filter_class': django_filters.CharFilter,
+        },
+    }
 
     class Meta:
         model = models.Network
@@ -123,7 +128,13 @@ class InterfaceFilter(ResourceFilter):
     Includes a custom override for filtering on mac_address because this is not
     a Django built-in field.
     """
-    mac_address = django_filters.MethodFilter()
+
+    # Field override for the `mac_address` field.
+    filter_overrides = {
+        fields.MACAddressField: {
+            'filter_class': django_filters.MethodFilter,
+        },
+    }
 
     class Meta:
         model = models.Interface

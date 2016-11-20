@@ -294,3 +294,63 @@ For example:
             "id": 5
         }
     ]
+
+The optional ``unique`` argument can also be provided in order to ensure only
+a single object is returned, otherwise an error is returned.
+
+**Request**:
+
+.. code-block:: http
+
+   GET /api/devices/query/?query=metro=iad&unique=true
+
+**Response**:
+
+.. code-block:: javascript
+
+    HTTP 200 OK
+    Allow: GET, HEAD, OPTIONS
+    Content-Type: application/json
+    Vary: Accept
+
+    [
+        {
+            "attributes": {
+                "owner": "jathan",
+                "vendor": "juniper",
+                "hw_type": "router",
+                "metro": "iad"
+            },
+            "hostname": "iad-r1",
+            "site_id": 1,
+            "id": 5
+        }
+    ]
+
+If multiple results match the query, when ``unique`` has been specified,
+an error will be returned.
+
+**Request**:
+
+.. code-block:: http
+
+   GET /api/devices/query/?query=vendor=juniper
+
+**Response**:
+
+.. code-block:: javascript
+
+    HTTP 400 Bad Request
+    Allow: GET, HEAD, OPTIONS
+    Content-Type: application/json
+    Vary: Accept
+
+    {
+        "error": {
+            "message": {
+                "query": "Query returned 2 results, but exactly 1 expected"
+            },
+            "code": 400
+        }
+    }
+

@@ -307,8 +307,9 @@ class ResourceViewSet(NsotBulkUpdateModelMixin, NsotViewSet,
     def query(self, request, site_pk=None, *args, **kwargs):
         """Perform a set query."""
         query = request.query_params.get('query', '')
+        unique = request.query_params.get('unique', False)
 
-        qs = self.queryset.set_query(query, site_id=site_pk)
+        qs = self.queryset.set_query(query, site_id=site_pk, unique=unique)
         objects = self.filter_queryset(qs)
         return self.list(request, queryset=objects, *args, **kwargs)
 
@@ -721,6 +722,9 @@ class UserViewSet(BaseNsotViewSet, mixins.CreateModelMixin):
 
 class NotFoundViewSet(viewsets.GenericViewSet):
     """Catchall for bad API endpoints."""
+    def get_queryset(self):
+        return None
+
     def get(self, *args, **kwargs):
         raise exc.NotFound()
 

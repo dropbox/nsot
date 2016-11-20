@@ -255,3 +255,15 @@ def test_set_query(site):
     union = models.Device.objects.set_query('role=br +role=dr').order_by('id')
     regex = models.Device.objects.set_query('role_regex=[bd]r').order_by('id')
     assert list(union) == list(regex)
+
+    # Test unique set queries
+    # Bad query, too many results
+    with pytest.raises(exc.ValidationError):
+        models.Device.objects.set_query('role=br +role=dr', unique=True)
+    # Bad query, no results
+    with pytest.raises(exc.ValidationError):
+        models.Device.objects.set_query('role=cc', unique=True)
+    # Successful with single result
+    devices = models.Device.objects.set_query('role=br', unique=True)
+    assert list(devices) == [device1]
+

@@ -146,7 +146,9 @@ NSOT_API_VERSION = '1.0'
 
 # Settings for Django REST Framework (DRF)
 REST_FRAMEWORK = {
-    'DEFAULT_FILTER_BACKENDS': ('rest_framework.filters.DjangoFilterBackend',),
+    'DEFAULT_FILTER_BACKENDS': (
+        'django_filters.rest_framework.DjangoFilterBackend',
+    ),
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',
         'nsot.api.renderers.FilterlessBrowsableAPIRenderer',
@@ -312,7 +314,6 @@ STATIC_ROOT = os.path.realpath(os.path.join(BASE_DIR, 'staticfiles'))
 SWAGGER_SETTINGS = {
     'exclude_namespaces': ['index'],
 }
-
 
 ###########
 # Logging #

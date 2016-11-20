@@ -134,6 +134,7 @@ class UserSerializer(serializers.ModelSerializer):
 class SiteSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Site
+        fields = '__all__'
 
 
 #########
@@ -143,6 +144,7 @@ class ChangeSerializer(NsotSerializer):
     """Used for displaying Change events."""
     class Meta:
         model = models.Change
+        fields = '__all__'
 
 
 ###########
@@ -152,6 +154,7 @@ class AttributeSerializer(NsotSerializer):
     """Used for GET, DELETE on Attributes."""
     class Meta:
         model = models.Attribute
+        fields = '__all__'
 
 
 class AttributeCreateSerializer(AttributeSerializer):
@@ -278,6 +281,7 @@ class DeviceSerializer(ResourceSerializer):
     """Used for GET, DELETE on Devices."""
     class Meta:
         model = models.Device
+        fields = '__all__'
 
 
 class DeviceCreateSerializer(DeviceSerializer):
@@ -321,6 +325,7 @@ class NetworkSerializer(ResourceSerializer):
     """Used for GET, DELETE on Networks."""
     class Meta:
         model = models.Network
+        fields = '__all__'
 
 
 class NetworkCreateSerializer(NetworkSerializer):
@@ -394,6 +399,7 @@ class InterfaceSerializer(ResourceSerializer):
 
     class Meta:
         model = models.Interface
+        fields = '__all__'
 
     def create(self, validated_data):
         log.debug('InterfaceCreateSerializer.create() validated_data = %r',
