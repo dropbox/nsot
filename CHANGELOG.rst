@@ -5,6 +5,16 @@ Changelog
 Version History
 ===============
 
+.. _v1.0.9:
+
+1.0.9 (2016-11-23)
+------------------
+
+* Added missing database migrations related to having changed or added the
+  ``verbose_name`` on a bunch of model fields prior to 1.0 release. No schema
+  changes are actually made in the migration. This is being released so that
+  some pending pull requests can be merged in more cleanly.
+
 .. _v1.0.8:
 
 1.0.8 (2016-10-24)
