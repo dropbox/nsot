@@ -5,6 +5,14 @@ Changelog
 Version History
 ===============
 
+.. _v1.0.10:
+
+1.0.10 (2016-12-05)
+-------------------
+
+* Fix for handling IPAddress defaults in migrations, to avoid attempting
+  validation of a NULL default.
+
 .. _v1.0.9:
 
 1.0.9 (2016-11-23)

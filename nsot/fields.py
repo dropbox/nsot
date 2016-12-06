@@ -79,6 +79,10 @@ class BinaryIPAddressField(models.Field):
 
     def get_db_prep_value(self, value, connection, prepared=False):
         """Python -> DB."""
+        # To account for null defaults when performing migrations
+        if value is None:
+            return None
+
         engine = connection.settings_dict['ENGINE']
 
         # Send the value as-is to Postgres.
