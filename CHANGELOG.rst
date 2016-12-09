@@ -5,6 +5,17 @@ Changelog
 Version History
 ===============
 
+.. _v1.0.13:
+
+1.0.13 (2017-01-12)
+-------------------
+
+* Provides the ability to more efficiently access the device hostname
+  associated with an interface, using the cached ``device_hostname`` field.
+* Provides the ability access interface objects by natural key of
+  ``device_hostname:name``.
+  Ex. ``foo-bar1:eth1``
+
 .. _v1.0.12:
 
 1.0.12 (2017-01-12)

@@ -571,6 +571,16 @@ class InterfaceViewSet(ResourceViewSet):
     queryset = models.Interface.objects.all()
     serializer_class = serializers.InterfaceSerializer
     filter_class = filters.InterfaceFilter
+    # Match on device_hostname:name or pk id
+    # Being pretty vague here, so as to be minimally prescriptive
+    lookup_value_regex = '[^:]+:([^/]+|.+[0-9])|[0-9]+'
+    natural_key = ('device_hostname', 'name')
+
+    def get_natural_key_kwargs(self, filter_value):
+        """Return a dict of kwargs for natural_key lookup."""
+        # Breakout the device and interface
+        device, interface = filter_value.split(":", 1)
+        return dict(device_hostname=device, name=interface)
 
     @cache_response(cache_errors=False, key_func=cache.list_key_func)
     def list(self, *args, **kwargs):
