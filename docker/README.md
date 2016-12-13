@@ -11,7 +11,7 @@ like:
 ```bash
 
 $ NSOT_SECRET='X9HqplzM_0E3Ghf3QOPDnO2k5VpVHkfzsZsVer4OeKA='
-$ docker run -p 8990:8990 -d --name=nsot -e NSOT_SECRET=$NSOT_SECRET dropbox/nsot:0.15.4
+$ docker run -p 8990:8990 -d --name=nsot -e NSOT_SECRET=$NSOT_SECRET nsot/nsot:0.15.4
 ```
 
 `nsot-server --config=/etc/nsot/nsot.conf.py` is the image entrypoint, so the
@@ -19,7 +19,7 @@ command passed to docker run becomes CLI parameters. This is equivalent to what
 the default is:
 
 ```
-$ docker run -p 8990:8990 -d --name=nsot dropbox/nsot start --noinput
+$ docker run -p 8990:8990 -d --name=nsot nsot/nsot start --noinput
 ```
 
 If you have an established database and you don't wish to attempt to upgrade it
@@ -29,7 +29,7 @@ If you wanted to do interactive debugging, use the docker run flags `-ti` and
 pass the relevant options:
 
 ```bash
-$ docker run -p 8990:8990 -ti --rm dropbox/nsot dbshell
+$ docker run -p 8990:8990 -ti --rm nsot/nsot dbshell
     SQLite version 3.8.2 2013-12-06 14:53:30
     Enter ".help" for instructions
     Enter SQL statements terminated with a ";"
@@ -37,7 +37,7 @@ $ docker run -p 8990:8990 -ti --rm dropbox/nsot dbshell
 
 OR
 
-$ docker run -p 8990:8990 -ti --rm dropbox/nsot shell_plus
+$ docker run -p 8990:8990 -ti --rm nsot/nsot shell_plus
     # Shell Plus Model Imports
     from django.contrib.admin.models import LogEntry
     from django.contrib.auth.models import Group, Permission
