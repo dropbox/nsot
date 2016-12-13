@@ -12,7 +12,7 @@ Quick start
 .. code-block:: bash
 
    $ cd docker
-   $ docker run -p 8990:8990 -d --name=nsot dropbox/nsot start --noinput
+   $ docker run -p 8990:8990 -d --name=nsot nsot/nsot start --noinput
 
 README
 ======
