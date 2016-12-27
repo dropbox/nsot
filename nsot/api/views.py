@@ -192,6 +192,8 @@ class NsotViewSet(BaseNsotViewSet, viewsets.ModelViewSet):
             raise exc.ValidationError(err.message_dict)
         except exc.IntegrityError as err:
             raise exc.Conflict(err.message)
+        except exc.ObjectDoesNotExist as err:
+            raise exc.BadRequest("Site with id number %s does not exist"%self.kwargs['site_pk'])
         else:
             # This is so that we can always work w/ objects as a list
             if not isinstance(objects, list):
