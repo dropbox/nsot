@@ -34,6 +34,7 @@ sites_router.register(r'devices', views.DeviceViewSet)
 sites_router.register(r'interfaces', views.InterfaceViewSet)
 sites_router.register(r'networks', views.NetworkViewSet)
 sites_router.register(r'values', views.ValueViewSet)
+sites_router.register(r'sites',views.SiteViewSet)
 
 # Wire up our API using automatic URL routing.
 # Additionally, we include login URLs for the browsable API.

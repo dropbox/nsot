@@ -61,6 +61,12 @@ class Site(models.Model):
     description = models.TextField(
         default='', blank=True, help_text='A helpful description for the Site.'
     )
+    parent = models.ForeignKey(
+        'self', db_index=True, related_name='parent_site', on_delete=models.PROTECT,
+        verbose_name='Parent site',
+        help_text='ID of a site that this site is nested in',
+        null=True
+    )
 
     def __unicode__(self):
         return self.name
@@ -68,8 +74,16 @@ class Site(models.Model):
     def clean_name(self, value):
         return validators.validate_name(value)
 
+    def clean_foreign_key(self, value):
+        if value != None and value.name == self.name:
+            raise exc.ValidationError({
+                'parent': 'A site cannot be nested in itself'
+            })
+        return value
+
     def clean_fields(self, exclude=None):
         self.name = self.clean_name(self.name)
+        self.site = self.clean_foreign_key(self.parent)
 
     def save(self, *args, **kwargs):
         self.full_clean()  # First validate fields are correct
