@@ -52,3 +52,4 @@ nosetests.xml
 
 docs/_build
 .*sw?
+.vagrant
