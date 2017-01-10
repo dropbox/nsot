@@ -2,8 +2,8 @@
 Vagrant
 #######
 
-The `Vagrantfile` in this directory creates a fresh Vagrant box running Ubuntu
-and NSoT.
+The `Vagrantfile` in the root of this repo creates a fresh Vagrant box running
+Ubuntu and NSoT.
 
 Prerequisites
 =============
@@ -27,7 +27,7 @@ To provision the virtual machine open a command prompt, and run the
 following command from this directory:
 
 .. code-block:: bash
-          
+
     $ vagrant up
 
 This will build a new Vagrant box, and pre-install NSoT for you.
