@@ -858,7 +858,13 @@ class Network(Resource):
         # Exclude children that are in busy states.
         children = self.get_descendents()
 
-        # Pre-filter children and store the `.ip_network` property up front.
+        # Partition children into busy children and non-busy children, storing
+        # the `.ip_network` property up front.
+        busy_children = [
+            c.ip_network for c in children if (
+                c.state in self.BUSY_STATES
+            )
+        ]
         children = [
             c.ip_network for c in children if (
                 c.state not in self.BUSY_STATES
@@ -873,8 +879,8 @@ class Network(Resource):
             )
         ]
 
-        # Dirty subnets cannot be used. Pre-seed w/ children_seen.
-        dirty = children_seen[:]
+        # Dirty subnets cannot be used. Pre-seed w/ busy children.
+        dirty = [c for c in busy_children if (c.prefixlen == prefix_length)]
 
         # Pre-filter any pre-seeded dirty subnets as a generator.
         subnets = (s for s in subnets if s not in dirty)
