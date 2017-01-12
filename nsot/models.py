@@ -74,16 +74,25 @@ class Site(models.Model):
     def clean_name(self, value):
         return validators.validate_name(value)
 
-    def clean_foreign_key(self, value):
+    def clean_foreign_key(self, value):            
         if value != None and value.name == self.name:
             raise exc.ValidationError({
                 'parent': 'A site cannot be nested in itself'
             })
-        return value
+        return validators.validate_parent(self.id, value)
 
     def clean_fields(self, exclude=None):
         self.name = self.clean_name(self.name)
-        self.site = self.clean_foreign_key(self.parent)
+        # if self.id is None then we are creating a site
+        if not self.id is None:
+            # check if we are changing name or description of site
+            s = Site.objects.filter(id=self.id)[0]
+            if s.name != self.name or s.description != self.description:
+                # we are not upating a site's parent
+                return 
+            else:
+                # other wise we are updating a site's parent
+                self.parent = self.clean_foreign_key(self.parent)
 
     def save(self, *args, **kwargs):
         self.full_clean()  # First validate fields are correct
@@ -94,6 +103,7 @@ class Site(models.Model):
             'id': self.id,
             'name': self.name,
             'description': self.description,
+            'parent': self.parent
         }
 
 

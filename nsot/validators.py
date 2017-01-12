@@ -69,3 +69,14 @@ def validate_email(value):
             'email': err.message
         })
     return value
+
+
+def validate_parent(site_id, value):
+    v = value
+    while v != None:
+        if v.id == site_id:
+            raise exc.ValidationError({
+                'parent': 'Site with id %d is a child or grand child of site with id %d'%(value.id, site_id)    
+            })
+        v = v.parent
+    return value
