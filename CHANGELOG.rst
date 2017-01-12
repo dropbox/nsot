@@ -5,6 +5,24 @@ Changelog
 Version History
 ===============
 
+.. _v1.0.12:
+
+1.0.12 (2017-01-12)
+-------------------
+
+* Fix #252 - Fixes bug in ``get_next_network`` for assigned networks of
+	different prefix lengths
+
+.. _v1.0.11:
+
+1.0.11 (2017-01-10)
+-------------------
+
+* Fix #250 - Improves treatment of ``get_next_network`` and assigned state
+* Fix #238 - Update to Docker instructions
+* Fix #219 - Better handling of attempts to create objects in non-existent sites
+* Moved Vagrantfile to root of repo
+
 .. _v1.0.10:
 
 1.0.10 (2016-12-05)
