@@ -858,7 +858,7 @@ class Network(Resource):
         # Exclude children that are in busy states.
         children = self.get_descendents()
 
-        # Partition children into busy children and non-busy children, storing
+        # Partition children into busy children and all children, storing
         # the `.ip_network` property up front.
         busy_children = [
             c.ip_network for c in children if (
@@ -866,9 +866,7 @@ class Network(Resource):
             )
         ]
         children = [
-            c.ip_network for c in children if (
-                c.state not in self.BUSY_STATES
-            )
+            c.ip_network for c in children
         ]
 
         # Prepopulate children_seen with networks that have the same prefix
