@@ -72,6 +72,11 @@ def test_creation(site, client):
     # Verify successful get of single Interface
     assert_success(client.get(ifc1_obj_uri), ifc1)
 
+    # Verify successful get of single Interface by natural key
+    natural_key = ":".join([ifc1['device_hostname'], ifc1['name']])
+    ifc1_natural_uri = site.detail_uri('interface', id=natural_key)
+    assert_success(client.get(ifc1_natural_uri), ifc1)
+
     # Verify successful retrieval of all Interfaces
     interfaces = [ifc1, ifc2]
     expected = interfaces
@@ -197,6 +202,16 @@ def test_update(site, client):
         ifc2
     )
 
+    # Assign addresses by natural key
+    natural_key = ":".join([ifc2['device_hostname'], ifc2['name']])
+    ifc2_natural_uri = site.detail_uri('interface', id=natural_key)
+    params['name'] = 'eth3'
+    ifc2.update(params)
+    assert_success(
+        client.update(ifc2_natural_uri, **params),
+        ifc2
+    )
+
 
 def test_partial_update(site, client):
     """Test PATCH operations to partially update an Interface."""
@@ -246,6 +261,31 @@ def test_partial_update(site, client):
         client.partial_update(ifc_pk_uri, **params),
         payload
     )
+
+    # Update attributes by natural key
+    natural_key = ":".join([payload['device_hostname'], payload['name']])
+    ifc_natural_uri = site.detail_uri('interface', id=natural_key)
+    params = {'attributes': {'attr1': 'bar'}}
+    payload.update(params)
+    assert_success(
+        client.partial_update(ifc_natural_uri, **params),
+        payload
+    )
+
+    # Update name and confirm natural key change
+    params = {'name': 'xe-1/2/3:10.0'}
+    payload.update(params)
+    assert_success(
+        client.partial_update(ifc_natural_uri, **params),
+        payload
+    )
+    # Old natural key URI should fail
+    assert_error(client.get(ifc_natural_uri), status.HTTP_404_NOT_FOUND)
+    # Build new natural key
+    natural_key = ":".join([payload['device_hostname'], payload['name']])
+    ifc_natural_uri = site.detail_uri('interface', id=natural_key)
+    # Confirm new URI works
+    assert_success(client.get(ifc_natural_uri), payload)
 
     # Update only addresses
     params = {'addresses': ['10.1.1.2/32']}
@@ -331,11 +371,19 @@ def test_filters(site, client):
         expected
     )
 
-    # Test filter by device__hostname
+    # Test filter by device__hostname (on device)
     wanted = [dev1_eth0, dev1_eth1]
     expected = filter_interfaces(interfaces, wanted)
     assert_success(
         client.retrieve(ifc_uri, device__hostname=dev1['hostname']),
+        expected
+    )
+
+    # Test filter by device_hostname (on interface)
+    wanted = [dev1_eth0, dev1_eth1]
+    expected = filter_interfaces(interfaces, wanted)
+    assert_success(
+        client.retrieve(ifc_uri, device_hostname=dev1['hostname']),
         expected
     )
 
@@ -522,6 +570,13 @@ def test_deletion(site, client):
     # And safely delete the parent Network
     assert_deleted(client.delete(dev1_eth0_uri))
 
+    # Delete based on natural key
+    dev1_eth2_resp = client.create(ifc_uri, device=dev1['id'], name='eth2')
+    dev1_eth2 = get_result(dev1_eth2_resp)
+    natural_key = ":".join([dev1_eth2['device_hostname'], dev1_eth2['name']])
+    dev1_eth2_natural_uri = site.detail_uri('interface', id=natural_key)
+    assert_deleted(client.delete(dev1_eth2_natural_uri))
+
 
 def test_detail_routes(site, client):
     """Test detail routes for Interfaces objects."""
@@ -534,6 +589,8 @@ def test_detail_routes(site, client):
 
     net_resp = client.create(net_uri, cidr='10.1.1.0/24')
     net = get_result(net_resp)
+
+    # Create a simple interface with addresses
 
     set_addresses = ['10.1.1.1/32', '10.1.1.2/32', '10.1.1.3/32']
 
@@ -554,10 +611,41 @@ def test_detail_routes(site, client):
     addresses_uri = reverse('interface-addresses', args=(site.id, ifc['id']))
     assert_success(client.retrieve(addresses_uri), expected)
 
+    # Verify Interface.addresses by natural key
+    natural_key = ":".join([ifc['device_hostname'], ifc['name']])
+    addresses_natural_uri = reverse(
+        'interface-addresses', args=(site.id, natural_key))
+    assert_success(client.retrieve(addresses_natural_uri), expected)
+
     # Verify Interface.networks
     networks_uri = reverse('interface-networks', args=(site.id, ifc['id']))
     expected = [net]
     assert_success(client.retrieve(networks_uri), expected)
+
+    # Verify Interface.networks by natural key
+    networks_natural_uri = reverse(
+        'interface-networks', args=(site.id, natural_key))
+    assert_success(client.retrieve(networks_natural_uri), expected)
+
+    # Update the interface name to be more complex, and test again to verify
+    # detail routes for more complex interface names
+    params = {'name': 'xe-1/2/3:10.0'}
+    ifc_resp = client.partial_update(ifc_obj_uri, **params)
+    ifc = get_result(ifc_resp)
+    # Build the new natual key
+    natural_key = ":".join([ifc['device_hostname'], ifc['name']])
+
+    # Verify Interface.addresses by natural key with a complex interface name
+    addresses_natural_uri = reverse(
+        'interface-addresses', args=(site.id, natural_key))
+    expected = addresses
+    assert_success(client.retrieve(addresses_natural_uri), expected)
+
+    # Verify Interface.networks by natural key with a complex interface name
+    networks_natural_uri = reverse(
+        'interface-networks', args=(site.id, natural_key))
+    expected = [net]
+    assert_success(client.retrieve(networks_natural_uri), expected)
 
     # Verify assignments
     # FIXME(jathan): Assignments detail route testing is NYI!

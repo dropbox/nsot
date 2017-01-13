@@ -1182,6 +1182,15 @@ class Interface(Resource):
         verbose_name='Device', help_text='Unique ID of the connected Device.'
     )
 
+    # Cached hostname of the associated device
+    device_hostname = models.CharField(
+        max_length=255, null=False, blank=True, db_index=True, editable=False,
+        help_text=(
+            'The hostname of the Device to which the interface is bound. '
+            '(Internal use only)'
+        )
+    )
+
     # if_type - Integer of interface type id (Ethernet, LAG, etc.)
     # SNMP: ifType
     type = models.IntegerField(
@@ -1262,7 +1271,10 @@ class Interface(Resource):
 
     class Meta:
         unique_together = ('device', 'name')
-        index_together = unique_together
+        index_together = [
+            unique_together,
+            ('device_hostname', 'name')
+        ]
 
     @property
     def networks(self):
@@ -1431,12 +1443,17 @@ class Interface(Resource):
         """Enforce valid mac_address."""
         return validators.validate_mac_address(value)
 
+    def clean_device_hostname(self, device):
+        """Extract hostname from device"""
+        return device.hostname
+
     def clean_fields(self, exclude=None):
         self.site_id = self.clean_site(self.site_id)
         self.name = self.clean_name(self.name)
         self.type = self.clean_type(self.type)
         self.speed = self.clean_speed(self.speed)
         self.mac_address = self.clean_mac_address(self.mac_address)
+        self.device_hostname = self.clean_device_hostname(self.device)
 
     def save(self, *args, **kwargs):
         # We don't want to validate unique because we want the IntegrityError
@@ -1464,6 +1481,7 @@ class Interface(Resource):
             'parent_id': self.parent_id,
             'name': self.name,
             'device': self.device_id,
+            'device_hostname': self.device_hostname,
             'description': self.description,
             'addresses': self.get_addresses(),
             'networks': self.get_networks(),
@@ -1947,6 +1965,12 @@ def change_api_updated_at(sender=None, instance=None, *args, **kwargs):
     djcache.set('api_updated_at_timestamp', timezone.now())
 
 
+def update_device_interfaces(sender, instance, **kwargs):
+    """Anytime a device is saved, update device_hostname on its interfaces"""
+    interfaces = Interface.objects.filter(device=instance)
+    interfaces.update(device_hostname=instance.hostname)
+
+
 # Register signals
 resource_subclasses = Resource.__subclasses__()
 for model_class in resource_subclasses:
@@ -1966,4 +1990,8 @@ models.signals.post_save.connect(
 models.signals.post_delete.connect(
     change_api_updated_at, sender=Interface,
     dispatch_uid='invalidate_cache_post_delete_interface'
+)
+models.signals.post_save.connect(
+    update_device_interfaces, sender=Device,
+    dispatch_uid='update_interface_post_save_device'
 )
