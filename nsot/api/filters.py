@@ -148,3 +148,10 @@ class InterfaceFilter(ResourceFilter):
         built-in field type.
         """
         return queryset.filter(mac_address=value)
+
+
+class CircuitFilter(ResourceFilter):
+    """Filter for Circuit objects."""
+    class Meta:
+        model = models.Circuit
+        fields = ['a_endpoint', 'z_endpoint', 'attributes']

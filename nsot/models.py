@@ -28,7 +28,7 @@ log = logging.getLogger(__name__)
 # These are constants that becuase they are tied directly to the underlying
 # objects are explicitly NOT USER CONFIGURABLE.
 RESOURCE_BY_IDX = (
-    'Site', 'Network', 'Attribute', 'Device', 'Interface'
+    'Site', 'Network', 'Attribute', 'Device', 'Interface', 'Circuit'
 )
 RESOURCE_BY_NAME = {
     obj_type: idx
@@ -39,7 +39,7 @@ CHANGE_EVENTS = ('Create', 'Update', 'Delete')
 
 VALID_CHANGE_RESOURCES = set(RESOURCE_BY_IDX)
 VALID_ATTRIBUTE_RESOURCES = set([
-    'Network', 'Device', 'Interface'
+    'Network', 'Device', 'Interface', 'Circuit'
 ])
 
 # Lists of 2-tuples of (value, option) for displaying choices in certain model
@@ -554,6 +554,17 @@ class Device(Resource):
     class Meta:
         unique_together = ('site', 'hostname')
         index_together = unique_together
+
+    @property
+    def circuits(self):
+        interfaces = self.interfaces.all()
+        circuits = []
+        for intf in interfaces:
+            try:
+                circuits.append(intf.circuit)
+            except Circuit.DoesNotExist:
+                continue
+        return circuits
 
     def clean_hostname(self, value):
         if not value:
@@ -1267,7 +1278,7 @@ class Interface(Resource):
     # lldp_remote_system_name
 
     def __unicode__(self):
-        return u'device=%s, name=%s' % (self.device.id, self.name)
+        return u'%s:%s' % (self.device.hostname, self.name)
 
     class Meta:
         unique_together = ('device', 'name')
@@ -1282,6 +1293,19 @@ class Interface(Resource):
         return Network.objects.filter(
             id__in=self.addresses.values_list('parent')
         ).distinct()
+
+    @property
+    def circuit(self):
+        """Return the Circuit I am associated with"""
+        try:
+            cir = self.circuit_a
+            return cir
+        except Circuit.DoesNotExist:
+            try:
+                cir = self.circuit_z
+                return cir
+            except Circuit.DoesNotExist:
+                raise
 
     def _purge_addresses(self):
         """Delete all of my addresses (and therefore assignments)."""
@@ -1488,6 +1512,131 @@ class Interface(Resource):
             'mac_address': self.get_mac_address(),
             'speed': self.speed,
             'type': self.type,
+            'attributes': self.get_attributes(),
+        }
+
+
+class Circuit(Resource):
+    """Represents two network Interfaces that are connected"""
+
+    # a_endpoint interface
+    a_endpoint = models.OneToOneField(
+        Interface,
+        on_delete=models.CASCADE,
+        db_index=True,
+        null=False,
+        related_name='circuit_a',
+        verbose_name='A-side Interface',
+        help_text='Unique ID of interface at the A-side'
+    )
+
+    # z_endpoint interface
+    z_endpoint = models.OneToOneField(
+        Interface,
+        on_delete=models.CASCADE,
+        db_index=True,
+        null=True,
+        related_name='circuit_z',
+        verbose_name='Z-side Interface',
+        help_text='Unique ID of interface at the Z-side'
+    )
+
+    # We are currently inferring the site_id from the parent (A-side) Interface
+    # in the .save() method
+    site = models.ForeignKey(
+        Site, db_index=True, related_name='circuits',
+        on_delete=models.PROTECT,
+        help_text='Unique ID of the Site this Circuit is under'
+    )
+
+    name = models.CharField(
+        max_length=255, unique=True,
+        help_text='Unique display name of circuit',
+        default='',
+    )
+
+    def __unicode__(self):
+        return u'%s' % self.name
+
+    @property
+    def interfaces(self):
+        intf_list = [self.a_endpoint, self.z_endpoint]
+        intf_list = [i for i in intf_list if i]
+        return intf_list
+
+    @property
+    def addresses(self):
+        interfaces = self.interfaces
+        addresses = [
+            addr
+            for intf in interfaces
+            for addr in intf.addresses.all()
+        ]
+        return addresses
+
+    @property
+    def devices(self):
+        devices = [intf.device for intf in self.interfaces]
+        return devices
+
+    def clean_site(self, value):
+        """Always enforce that site is set."""
+        if value is None:
+            return self.a_endpoint.site_id
+
+        return value
+
+    def clean_a_endpoint(self, value):
+        if Circuit.objects.filter(z_endpoint=value).exists():
+            raise exc.ValidationError({
+                'a_endpoint': 'Interface already used as a z_endpoint'
+            })
+
+        return self.a_endpoint
+
+    def clean_z_endpoint(self, value):
+        if Circuit.objects.filter(a_endpoint=value).exists():
+            raise exc.ValidationError({
+                'z_endpoint': 'Interface already used as a a_endpoint'
+            })
+
+        return self.z_endpoint
+
+    def set_name(self):
+        if self.name:
+            return False
+
+        # Add display name of hostname:intf::hostname:intf
+        a_name = '{}:{}'.format(
+            self.a_endpoint.device.hostname,
+            self.a_endpoint.name,
+        )
+        if getattr(self, 'z_endpoint'):
+            z_name = '{}:{}'.format(
+                self.z_endpoint.device.hostname,
+                self.z_endpoint.name,
+            )
+        else:
+            z_name = 'None'
+
+        self.name = '{}_{}'.format(a_name, z_name)
+        return True
+
+    def clean_fields(self, exclude=None):
+        self.site_id = self.clean_site(self.site_id)
+        self.a_endpoint = self.clean_a_endpoint(self.a_endpoint_id)
+        self.z_endpoint = self.clean_z_endpoint(self.z_endpoint_id)
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super(Circuit, self).save(*args, **kwargs)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'a_endpoint': self.a_endpoint_id,
+            'z_endpoint': self.z_endpoint_id,
             'attributes': self.get_attributes(),
         }
 

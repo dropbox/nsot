@@ -381,6 +381,14 @@ class DeviceViewSet(ResourceViewSet):
 
         return self.list(request, queryset=interfaces, *args, **kwargs)
 
+    @detail_route(methods=['get'])
+    def circuits(self, request, pk=None, site_pk=None, *args, **kwargs):
+        """Return a list of Circuits for this Device"""
+        device = self.get_resource_object(pk, site_pk)
+        circuits = device.circuits
+
+        return self.list(request, queryset=circuits, *args, **kwargs)
+
 
 class NetworkViewSet(ResourceViewSet):
     """
@@ -624,6 +632,71 @@ class InterfaceViewSet(ResourceViewSet):
         interface = self.get_resource_object(pk, site_pk)
 
         return self.list(request, queryset=interface.networks, *args, **kwargs)
+
+    @detail_route(methods=['get'])
+    def circuit(self, request, pk=None, site_pk=None, *args, **kwargs):
+        """Return the Circuit I am associated with"""
+        interface = self.get_resource_object(pk, site_pk)
+        try:
+            cir = serializers.CircuitSerializer(interface.circuit)
+            return self.success(cir.data)
+        except models.Circuit.DoesNotExist:
+            msg = 'No Circuit found at Interface (site_id, id) = ({}, {})'
+            msg = msg.format(site_pk, pk)
+            self.not_found(pk, msg=msg)
+
+
+class CircuitViewSet(ResourceViewSet):
+    """
+    API endpoint that allows Circuits to be viewed or edited.
+    """
+    queryset = models.Circuit.objects.all()
+    serializer_class = serializers.CircuitSerializer
+    filter_class = filters.CircuitFilter
+
+    @cache_response(cache_errors=False, key_func=cache.list_key_func)
+    def list(self, *args, **kwargs):
+        """Override default list so we can cache results."""
+        return super(CircuitViewSet, self).list(*args, **kwargs)
+
+    @cache_response(cache_errors=False, key_func=cache.object_key_func)
+    def retrieve(self, *args, **kwargs):
+        """Override default retrieve so we can cache results."""
+        return super(CircuitViewSet, self).retrieve(*args, **kwargs)
+
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return serializers.CircuitCreateSerializer
+        if self.request.method == 'PUT':
+            return serializers.CircuitUpdateSerializer
+        if self.request.method == 'PATCH':
+            return serializers.CircuitPartialUpdateSerializer
+
+        return self.serializer_class
+
+    @detail_route(methods=['get'])
+    def interfaces(self, request, pk=None, site_pk=None, *args, **kwargs):
+        """Return a list of interfaces for this Circuit"""
+        circuit = self.get_resource_object(pk, site_pk)
+        interfaces = circuit.interfaces
+
+        return self.list(request, queryset=interfaces, *args, **kwargs)
+
+    @detail_route(methods=['get'])
+    def addresses(self, request, pk=None, site_pk=None, *args, **kwargs):
+        """Return a list of addresses for this interfaces on this Circuit"""
+        circuit = self.get_resource_object(pk, site_pk)
+        addresses = circuit.addresses
+
+        return self.list(request, queryset=addresses, *args, **kwargs)
+
+    @detail_route(methods=['get'])
+    def devices(self, request, pk=None, site_pk=None, *args, **kwargs):
+        """Return a list of devices for this Circuit"""
+        circuit = self.get_resource_object(pk, site_pk)
+        devices = circuit.devices
+
+        return self.list(request, queryset=devices, *args, **kwargs)
 
 
 #: Namedtuple for retrieving pk and user object of current user.

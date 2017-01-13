@@ -491,6 +491,85 @@ class InterfacePartialUpdateSerializer(BulkSerializerMixin,
                   'parent_id', 'addresses', 'attributes')
 
 
+#########
+# Circuit
+#########
+class CircuitSerializer(ResourceSerializer):
+    """Used for GET, DELETE on Circuits"""
+
+    class Meta:
+        model = models.Circuit
+        fields = '__all__'
+
+    def create(self, validated_data):
+        log.debug('CircuitCreateSerializer.create() validated_data = %r',
+                  validated_data)
+
+        # Create the base object to the database, but don't save attributes
+        # yet.
+        obj = super(CircuitSerializer, self).create(
+            validated_data, commit=False
+        )
+
+        # Try to populate the related fields and if there are any validation
+        # problems, delete the object and re-raise the error. If not, save the
+        # changes.
+        try:
+            obj.set_name()
+        except exc.ValidationError:
+            obj.delete()
+            raise
+        else:
+            obj.save()
+
+        return obj
+
+    def update(self, instance, validated_data):
+        log.debug('CircuitUpdateSerializer.create() validated_data = %r',
+                  validated_data)
+
+        # Update the attributes in the database, but don't save them yet.
+        obj = super(CircuitSerializer, self).update(
+            instance, validated_data, commit=False
+        )
+
+        obj.set_name()
+        obj.save()
+
+        return obj
+
+
+class CircuitCreateSerializer(CircuitSerializer):
+    """Used for POST on Circuits"""
+
+    class Meta:
+        model = models.Circuit
+        # Display name and site are auto-generated, don't include them here
+        fields = ('a_endpoint', 'z_endpoint', 'attributes')
+
+
+class CircuitUpdateSerializer(BulkSerializerMixin, CircuitCreateSerializer):
+    """Used for PUT on Circuits"""
+    attributes = JSONDictField(
+        required=True,
+        help_text='Dictionary of attributes to set.'
+    )
+
+    class Meta:
+        model = models.Circuit
+        list_serializer_class = BulkListSerializer
+        fields = ('id', 'a_endpoint', 'z_endpoint', 'attributes')
+
+
+class CircuitPartialUpdateSerializer(BulkSerializerMixin,
+                                     CircuitCreateSerializer):
+    "Used for PATCH on Circuits"""
+    class Meta:
+        model = models.Circuit
+        list_serializer_class = BulkListSerializer
+        fields = ('id', 'a_endpoint', 'z_endpoint', 'attributes')
+
+
 ###########
 # AuthToken
 ###########
