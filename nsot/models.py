@@ -83,7 +83,7 @@ class Site(models.Model):
 
     def clean_fields(self, exclude=None):
         self.name = self.clean_name(self.name)
-        # if self.id is None then we are creating a site
+        # if self.id is not None then we are creating a nested site
         if not self.id is None:
             # check if we are changing name or description of site
             s = Site.objects.filter(id=self.id)[0]
