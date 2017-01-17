@@ -841,7 +841,7 @@ class Network(Resource):
         except (TypeError, ValueError) as err:
             raise exc.ValidationError({'prefix_length': err.message})
 
-        if prefix_length < self.prefix_length:
+        if prefix_length <= self.prefix_length:
             raise exc.ValidationError({
                 'prefix_length': 'New prefix must be longer than %r' %
                 self.prefix_length
@@ -858,111 +858,70 @@ class Network(Resource):
 
         cidr = self.ip_network
 
-        # If this network is an interconnect network, generate the hosts as
-        # network objects, otherwise just subnet based on the prefix_length.
-        # This is so that .0 and .1 could be allocated from a /31, for example.
-        if cidr.prefixlen in settings.NETWORK_INTERCONNECT_PREFIXES:
-            log.debug('CIDR %s is an interconnect!', cidr)
-            subnets = (ipaddress.ip_network(ip) for ip in cidr)
-        else:
-            log.debug('cidr %s is NOT an interconnect!', cidr)
-            subnets = cidr.subnets(new_prefix=prefix_length)
+        children = [c.ip_network for c in self.get_children() 
+            if c.state not in self.BUSY_STATES]
 
-        # Exclude children that are in busy states.
-        children = self.get_descendants()
+        min_prefix_len = min(children, key = lambda c: c.prefixlen).prefixlen
+        min_prefix_len = min(min_prefix_len, prefix_length)
 
-        # Partition children into busy children and all children, storing
-        # the `.ip_network` property up front.
-        busy_children = [
-            c.ip_network for c in children if (
-                c.state in self.BUSY_STATES
-            )
-        ]
-        children = [
-            c.ip_network for c in children
-        ]
+        # do you want to return a network where this network would overlap
+        # one of this network objects children. If so keep this line, 
+        # otherwise get rid of it.
+        children = [c for c in children if c.prefixlen == min_prefix_len]
+        
+        exclude_nums = []
+        
+        network_prefix = cidr.network_address 
+        
+        a = int(network_prefix) >> (cidr.max_prefixlen - min_prefix_len)
+        for c in children:
+            b = int(c.network_address) >> (cidr.max_prefixlen - min_prefix_len)
+            exclude_nums.append(a ^ b)
 
-        # Prepopulate children_seen with networks that have the same prefix
-        # length as wanted `prefix_length`.
-        children_seen = [
-            c for c in children if (
-                c.prefixlen == prefix_length
-            )
-        ]
+        exclude_nums.sort()
+        
+        log.debug('min prefix is %d', min_prefix_len)
+        log.debug('excluded numbers are %s', exclude_nums)
 
-        # Dirty subnets cannot be used. Pre-seed w/ busy children.
-        dirty = [c for c in busy_children if (c.prefixlen == prefix_length)]
+        unallocated_subnets = []
+        left_shift_amt = cidr.max_prefixlen - min_prefix_len
+        parent_prefix_amt = int(network_prefix)
+        for i in xrange(0, 2 ** (min_prefix_len - self.prefix_length)):
+            if len(unallocated_subnets) == num:
+                return unallocated_subnets if as_objects else [unicode(x) for x in unallocated_subnets]
+            if len(exclude_nums) > 0 and exclude_nums[0] == i:
+                exclude_nums.pop(0)
+                continue
+            ip_num = parent_prefix_amt | i << left_shift_amt
+            if cidr.version == 4:
+                ip_obj = ipaddress.IPv4Network((ip_num, min_prefix_len))
+            else:
+                ip_obj = ipaddress.IPv6Network((ip_num, min_prefix_len))
+            unallocated_subnets.append(ip_obj)
 
-        # Pre-filter any pre-seeded dirty subnets as a generator.
-        subnets = (s for s in subnets if s not in dirty)
 
-        # Subnets we want.
+        log.debug('unallocated prefixes %s', unallocated_subnets)
+
         wanted = []
 
-        # Keep iterating until we've found the number of networks we want.
-        while len(wanted) < num:
-            try:
-                next_subnet = next(subnets)
-            except ValueError as err:
-                raise exc.ValidationError({'prefix_length': err.message})
-            except StopIteration:
-                break
-
-            log.debug('>> CHILDREN_SEEN: %s items, DIRTY: %s items',
-                      len(children_seen), len(dirty))
-
-            # Skip dirty subnets immediately.
-            if next_subnet in dirty:
-                continue
-
-            # Never return 1st/last addresses if prefix is for an address,
-            # unless it's an interconnect (aka point-to-point).
-            if cidr.prefixlen in settings.NETWORK_INTERCONNECT_PREFIXES:
-                pass
-            elif (next_subnet.prefixlen in settings.HOST_PREFIXES and
-                    (next_subnet.network_address == cidr.network_address or
-                        next_subnet.broadcast_address ==
-                        cidr.broadcast_address)):
-                continue
-
-            log.debug('>> NEXT_SUBNET: %s', next_subnet)
-
-            # Iterate the children and if we make it to the end, we've found a
-            # keeper!
-            unseen_children = set(children).difference(children_seen)
-            log.debug('>> UNSEEN_CHILDREN: %s items', len(unseen_children))
-            for child in unseen_children:
-
-                # This network is already in use/allocated; skip it!
-                if child.overlaps(next_subnet):
-                    children_seen.append(child)
-                    continue
-
-            # We *might* want this subnet. But make sure it's clean first.
+        for unallocated_subnet in unallocated_subnets:
+            if unallocated_subnet in settings.NETWORK_INTERCONNECT_PREFIXES:
+                log.debug('CIDR %s is an interconnect!', cidr)
+                subnets = (ipaddress.ip_network(ip) for ip in unallocated_subnet)
             else:
-                # Check all the children we've seen; if next_subnet contains
-                # it, mark it as dirty.
-                for child in children_seen:
-                    if child.subnet_of(next_subnet):
-                        log.debug(
-                            '>> NEXT_SUBNET %s is DIRTY. Contains: %s',
-                            next_subnet, child
-                        )
-                        dirty.append(next_subnet)
-                        break
-
-                # If we haven't seen it and it's not dirty, we want it!!
-                subnet_wanted = all([
-                    next_subnet not in children_seen,
-                    next_subnet not in dirty
-                ])
-                if subnet_wanted:
-                    log.info('>> NEXT_SUBNET %s is now wanted!', next_subnet)
-                    wanted.append(next_subnet)
-
-        log.info('>> WANTED = %s', wanted)
+                log.debug('cidr %s is NOT an interconnect!', cidr)
+                subnets = unallocated_subnet.subnets(new_prefix = prefix_length)
+            for subnet in subnets:
+                if len(wanted) == num:
+                    return wanted if as_objects else [unicode(x) for x in wanted]
+                if (subnet.prefixlen in settings.HOST_PREFIXES and
+                    (subnet.network_address == unallocated_subnet.network_address or
+                        subnet.broadcast_address == unallocated_subnet.broadcast_address)):
+                    continue
+                wanted.append(subnet) 
 
         elapsed_time = time.time() - start_time
+        log.debug('>> WANTED = %s', wanted)
         log.debug('>> ELAPSED TIME: %s' % elapsed_time)
         return wanted if as_objects else [unicode(w) for w in wanted]
 
