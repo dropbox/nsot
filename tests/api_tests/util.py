@@ -19,7 +19,7 @@ __all__ = (
     'get_result', 'assert_error', 'assert_success', 'assert_created',
     'assert_deleted', 'Client', 'TestSite', 'load_json', 'load',
     'filter_devices', 'filter_interfaces', 'filter_networks', 'filter_values',
-    'make_mac', 'mkcidr',
+    'filter_circuits', 'make_mac', 'mkcidr',
 )
 '''
 
@@ -225,11 +225,22 @@ def filter_interfaces(interfaces, wanted):
         list of Interface dicts
 
     :param name:
-        # list of interface objects you want
-        list of interface ids you want
+        list of Interface objects you want
     """
-    # return [i for i in interfaces if i['id'] in wanted]
     return [i for i in interfaces if i in wanted]
+
+
+def filter_circuits(circuits, wanted):
+    """
+    Return a list of desired Circuit objects.
+
+    :param circuits:
+        list of Circuit dicts
+
+    :param name:
+        list of Circuit objects you want
+    """
+    return [c for c in circuits if c in wanted]
 
 
 def filter_networks(networks, wanted):

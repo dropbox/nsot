@@ -161,3 +161,56 @@ We make use of bower's "main file" concept to distribute only "main" files.
 Most packages don't consider consider the minified versions of their project to
 be their main files so you'll likely also need to update the ``overrides``
 section of ``bower.json`` with which files to distribute.
+
+.. _versioning:
+
+Versioning
+----------
+
+We use `semantic versioning <http://semver.org>`_. Version numbers will
+follow this format::
+
+    Major version}.{Minor version}.{Revision number}.{Build number (optional)}
+
+Patch version numbers (0.0.x) are used for changes that are API compatible. You
+should be able to upgrade between minor point releases without any other code
+changes.
+
+Minor version numbers (0.x.0) may include API changes, in line with the
+:ref:`deprecation-policy`. You should read the release notes carefully before
+upgrading between minor point releases.
+
+Major version numbers (x.0.0) are reserved for substantial project milestones.
+
+.. _deprecation-policy:
+
+Deprecation policy
+------------------
+
+NSoT releases follow a formal deprecation policy, which is in line with
+`Django's deprecation policy <https://docs.djangoproject.com/en/stable/internals/release-process/#internal-release-deprecation-policy>`_.
+
+The timeline for deprecation of a feature present in version 1.0 would work as follows:
+
+* Version 1.1 would remain **fully backwards compatible** with 1.0, but would raise
+  Python ``PendingDeprecationWarning`` warnings if you use the feature that are
+  due to be deprecated. These warnings are **silent by default**, but can be
+  explicitly enabled when you're ready to start migrating any required changes.
+
+  Additionally, a ``WARN`` message will be logged to standard out from the
+  ``nsot-server`` process. 
+
+  Finally, a ``Warning`` header will be sent back in any response from the API.
+  For example::
+
+    Warning: 299 - "The `descendents` API endpoint is pending deprecation. Use
+    the `descendants` API endpoint instead."
+
+* Version 1.2 would escalate the Python warnings to ``DeprecationWarning``,
+  which is **loud by default**.
+* Version 1.3 would remove the deprecated bits of API entirely and accessing
+  any deprecated API endoints will result in a ``404`` error. 
+
+Note that in line with Django's policy, any parts of the framework not
+mentioned in the documentation should generally be considered private API, and
+may be subject to change.

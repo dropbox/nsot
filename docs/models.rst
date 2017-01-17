@@ -247,6 +247,11 @@ children
     The child networks of this network
 
 descendents
+    .. deprecated:: 1.1
+    Use *descendants* instead, which is the correctly spelled version of the
+    same method.
+
+descendants
     All children of the children of this network
 
 closest_parent
