@@ -55,6 +55,7 @@ class SDistWithBuildStatic(SDistCommand):
 class BuildStatic(Command):
     user_options = []
     description = 'builds all front end dependencies'
+
     def initialize_options(self):
         pass
 

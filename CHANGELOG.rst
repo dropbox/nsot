@@ -5,6 +5,35 @@ Changelog
 Version History
 ===============
 
+.. _v1.1:
+
+1.1 (2017-01-13)
+----------------
+
+* Implementation of Circuits as a resource object.
+
+  + A Circuit has one-to-one relationship with each of A and Z side
+    endpoint Interfaces.
+  + Circuits are resource objects and therefore may have attributes and
+    support set query lookups.
+  + A circuit must have at least an A-side endpoint defined. For circuits for
+    which you do not own the remote end, you may leave the Z-side empty and
+    specify the remote endpoint by customizing the circuit name.
+
+* Circuits have the following detail routes available in the API:
+
+  + ``circuits/:id/devices/`` - List peer devices on either end of circuit
+  + ``circuits/:id/interfaces/`` - List interfaces bound to the circuit
+  + ``circuits/:id/addresses/`` - List addresses bound to circuit interfaces
+
+* The Interface object unicode representation changed to
+  ``device_hostname:name`` so that it can more easily be used as a slug for
+  computing Circuit slug.
+* Interfaces have a new ``interfaces/:id/circuit/`` detail route that will
+  display the circuit to which an interface is bound.
+* Devices have a new ``devices/:id/circuits/`` detail route that will
+  display all circuits bound to interfaces on the device.
+
 .. _v1.0.13:
 
 1.0.13 (2017-01-12)

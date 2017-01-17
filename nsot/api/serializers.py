@@ -491,6 +491,47 @@ class InterfacePartialUpdateSerializer(BulkSerializerMixin,
                   'parent_id', 'addresses', 'attributes')
 
 
+#########
+# Circuit
+#########
+class CircuitSerializer(ResourceSerializer):
+    """Used for GET, DELETE on Circuits"""
+
+    class Meta:
+        model = models.Circuit
+        fields = '__all__'
+
+
+class CircuitCreateSerializer(CircuitSerializer):
+    """Used for POST on Circuits."""
+
+    class Meta:
+        model = models.Circuit
+        # Display name and site are auto-generated, don't include them here
+        fields = ('endpoint_a', 'endpoint_z', 'name', 'attributes')
+
+
+class CircuitUpdateSerializer(BulkSerializerMixin, CircuitCreateSerializer):
+    """Used for PUT on Circuits."""
+    attributes = JSONDictField(
+        required=True, help_text='Dictionary of attributes to set.'
+    )
+
+    class Meta:
+        model = models.Circuit
+        list_serializer_class = BulkListSerializer
+        fields = ('id', 'endpoint_a', 'endpoint_z', 'name', 'attributes')
+
+
+class CircuitPartialUpdateSerializer(BulkSerializerMixin,
+                                     CircuitCreateSerializer):
+    """Used for PATCH on Circuits."""
+    class Meta:
+        model = models.Circuit
+        list_serializer_class = BulkListSerializer
+        fields = ('id', 'endpoint_a', 'endpoint_z', 'name', 'attributes')
+
+
 ###########
 # AuthToken
 ###########

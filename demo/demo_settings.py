@@ -31,4 +31,6 @@ NSOT_PORT = 8990
 
 # Enable DEBUG logging to console
 if os.getenv('NSOT_DEBUG'):
+    DEBUG = True
     LOGGING['loggers']['nsot']['level'] = 'DEBUG'
+    LOGGING['loggers']['django.db.backends'] = {'handlers': ['console'], 'level': 'DEBUG'}
