@@ -809,8 +809,6 @@ class Network(Resource):
             broadcast_address__lte=self.broadcast_address
         )
 
-    # FIXME(jathan): This entire implementation needs to be revisited. It feels
-    # as if it's too complicated. It may not be, but it feels like it is.
     def get_next_network(self, prefix_length, num=None, as_objects=True):
         """
         Return a list of the next available networks.
@@ -858,14 +856,17 @@ class Network(Resource):
 
         cidr = self.ip_network
 
+        # Exclude children that are in busy states.
         children = [c.ip_network for c in self.get_children() 
             if c.state not in self.BUSY_STATES]
 
+        # get the minimum prefix length amongst all children of this parent
         min_prefix_len = min(children, key = lambda c: c.prefixlen).prefixlen
+        # if requested prefix length is smaller then set that as min_prefix_len
         min_prefix_len = min(min_prefix_len, prefix_length)
 
         # do you want to return a network where this network would overlap
-        # one of this network objects children. If so keep this line, 
+        # one of this network object's child. If so keep this line, 
         # otherwise get rid of it.
         children = [c for c in children if c.prefixlen == min_prefix_len]
         
@@ -873,22 +874,33 @@ class Network(Resource):
         
         network_prefix = cidr.network_address 
         
+        # idea here is to isolate all the bits between parent network prefix length
+        # and min_prefix_len, so for instance if we have the following 3 networks
+        #
+        #   10.2.1.0/24 <-- Parent Network
+        #   10.2.1.0/27 <-- Child Network #1
+        #   10.2.1.192/28 <-- Child Network #2
+        #
+        # We would want the bits between the 8th bit counting from the right and the 
+        # 6th bit counting from right, inclusive. So for the above example we would 
+        # have 000 & 110. We want to exclude ip addresses that have these sequence of
+        # bits in between the 8th and 6th bits inclusive
         a = int(network_prefix) >> (cidr.max_prefixlen - min_prefix_len)
         for c in children:
             b = int(c.network_address) >> (cidr.max_prefixlen - min_prefix_len)
             exclude_nums.append(a ^ b)
 
         exclude_nums.sort()
-        
-        log.debug('min prefix is %d', min_prefix_len)
-        log.debug('excluded numbers are %s', exclude_nums)
 
+        # we filter out the ip addresses that have the sequence of bits in the numbers in exclude_nums
+        # in the gap between the parent prefix and the lower of the minimum of all its children
+        # prefix_lengths and the prefix_length argument.
         unallocated_subnets = []
         left_shift_amt = cidr.max_prefixlen - min_prefix_len
         parent_prefix_amt = int(network_prefix)
         for i in xrange(0, 2 ** (min_prefix_len - self.prefix_length)):
             if len(unallocated_subnets) == num:
-                return unallocated_subnets if as_objects else [unicode(x) for x in unallocated_subnets]
+                break
             if len(exclude_nums) > 0 and exclude_nums[0] == i:
                 exclude_nums.pop(0)
                 continue
@@ -899,24 +911,31 @@ class Network(Resource):
                 ip_obj = ipaddress.IPv6Network((ip_num, min_prefix_len))
             unallocated_subnets.append(ip_obj)
 
-
-        log.debug('unallocated prefixes %s', unallocated_subnets)
-
         wanted = []
 
+        # for each unallocated_subnet, we generate all the  subnets that
+        # have a prefix equal to prefix_length. We store the valid ones in 
+        # wanted
         for unallocated_subnet in unallocated_subnets:
-            if unallocated_subnet in settings.NETWORK_INTERCONNECT_PREFIXES:
-                log.debug('CIDR %s is an interconnect!', cidr)
+            if len(wanted) == num:
+                break
+            # If this network is an interconnect network, generate the hosts as
+            # network objects, otherwise just subnet based on the prefix_length.
+            # This is so that .0 and .1 could be allocated from a /31, for example.
+            if unallocated_subnet.prefixlen in settings.NETWORK_INTERCONNECT_PREFIXES:
+                log.debug('CIDR %s is an interconnect!', unallocated_subnet)
                 subnets = (ipaddress.ip_network(ip) for ip in unallocated_subnet)
             else:
-                log.debug('cidr %s is NOT an interconnect!', cidr)
+                log.debug('cidr %s is NOT an interconnect!', unallocated_subnet)
                 subnets = unallocated_subnet.subnets(new_prefix = prefix_length)
             for subnet in subnets:
                 if len(wanted) == num:
-                    return wanted if as_objects else [unicode(x) for x in wanted]
-                if (subnet.prefixlen in settings.HOST_PREFIXES and
-                    (subnet.network_address == unallocated_subnet.network_address or
-                        subnet.broadcast_address == unallocated_subnet.broadcast_address)):
+                    break
+                if unallocated_subnet.prefixlen in settings.NETWORK_INTERCONNECT_PREFIXES:
+                    pass
+                elif (subnet.prefixlen in settings.HOST_PREFIXES and
+                     (subnet.network_address == unallocated_subnet.network_address or
+                      subnet.broadcast_address == unallocated_subnet.broadcast_address)):
                     continue
                 wanted.append(subnet) 
 
