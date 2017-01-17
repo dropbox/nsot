@@ -861,9 +861,12 @@ class Network(Resource):
             if c.state not in self.BUSY_STATES]
 
         # get the minimum prefix length amongst all children of this parent
-        min_prefix_len = min(children, key = lambda c: c.prefixlen).prefixlen
-        # if requested prefix length is smaller then set that as min_prefix_len
-        min_prefix_len = min(min_prefix_len, prefix_length)
+        if len(children) > 0:
+            min_prefix_len = min(children, key = lambda c: c.prefixlen).prefixlen
+            # if requested prefix length is smaller then set that as min_prefix_len
+            min_prefix_len = min(min_prefix_len, prefix_length)
+        else:
+            min_prefix_len = prefix_length
 
         # do you want to return a network where this network would overlap
         # one of this network object's child. If so keep this line, 
@@ -922,7 +925,7 @@ class Network(Resource):
             # If this network is an interconnect network, generate the hosts as
             # network objects, otherwise just subnet based on the prefix_length.
             # This is so that .0 and .1 could be allocated from a /31, for example.
-            if unallocated_subnet.prefixlen in settings.NETWORK_INTERCONNECT_PREFIXES:
+            if cidr.prefixlen in settings.NETWORK_INTERCONNECT_PREFIXES:
                 log.debug('CIDR %s is an interconnect!', unallocated_subnet)
                 subnets = (ipaddress.ip_network(ip) for ip in unallocated_subnet)
             else:
@@ -931,11 +934,11 @@ class Network(Resource):
             for subnet in subnets:
                 if len(wanted) == num:
                     break
-                if unallocated_subnet.prefixlen in settings.NETWORK_INTERCONNECT_PREFIXES:
+                if cidr.prefixlen in settings.NETWORK_INTERCONNECT_PREFIXES:
                     pass
                 elif (subnet.prefixlen in settings.HOST_PREFIXES and
-                     (subnet.network_address == unallocated_subnet.network_address or
-                      subnet.broadcast_address == unallocated_subnet.broadcast_address)):
+                     (subnet.network_address == cidr.network_address or
+                      subnet.broadcast_address == cidr.broadcast_address)):
                     continue
                 wanted.append(subnet) 
 
