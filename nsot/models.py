@@ -871,9 +871,9 @@ class Network(Resource):
         # do you want to return a network where this network would overlap
         # one of this network object's child. If so keep this line, 
         # otherwise get rid of it.
-        children = [c for c in children if c.prefixlen == min_prefix_len]
+        # children = [c for c in children if c.prefixlen == min_prefix_len]
         
-        exclude_nums = []
+        exclude_nums = {}
         
         network_prefix = cidr.network_address 
         
@@ -891,9 +891,14 @@ class Network(Resource):
         a = int(network_prefix) >> (cidr.max_prefixlen - min_prefix_len)
         for c in children:
             b = int(c.network_address) >> (cidr.max_prefixlen - min_prefix_len)
-            exclude_nums.append(a ^ b)
+            exclude_nums[a ^ b] = 1
 
+        exclude_nums = [k for k, _  in exclude_nums.iteritems()]
         exclude_nums.sort()
+
+
+        log.debug('min_prefix_len %d'%min_prefix_len)
+        log.debug('exclude_nums %s'%exclude_nums)
 
         # we filter out the ip addresses that have the sequence of bits in the numbers in exclude_nums
         # in the gap between the parent prefix and the lower of the minimum of all its children
