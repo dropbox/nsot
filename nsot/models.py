@@ -862,8 +862,7 @@ class Network(Resource):
             except ValueError as err:
                 raise exc.ValidationError({'prefix_length': err.message})
 
-        # Exclude children that are in busy states.
-        children = [c.ip_network for c in self.get_children()]
+        children = [c.ip_network for c in self.get_descendents() if c.prefix_length >= prefix_length]
      
         exclude_nums = {}
         
@@ -873,11 +872,6 @@ class Network(Resource):
         for c in children:
             b = int(c.network_address) >> (cidr.max_prefixlen - prefix_length)
             exclude_nums[a ^ b] = 1
-
-        exclude_nums = [k for k, _  in exclude_nums.iteritems()]
-        exclude_nums.sort()
-
-        log.debug('exclude_nums %s'%exclude_nums)
 
         if cidr.prefixlen in settings.NETWORK_INTERCONNECT_PREFIXES:
             log.debug('CIDR %s is an interconnect!', cidr)
@@ -897,11 +891,9 @@ class Network(Resource):
                  (next_subnet.network_address == cidr.network_address or
                   next_subnet.broadcast_address == cidr.broadcast_address)):
                 continue
-
             b = int(next_subnet.network_address) >> (cidr.max_prefixlen - prefix_length)
             c = a ^ b
-            if len(exclude_nums) > 0 and exclude_nums[0] == c:
-                exclude_nums.pop(0)
+            if c in exclude_nums:
                 continue           
             wanted.append(next_subnet)
 
