@@ -839,7 +839,7 @@ class Network(Resource):
         except (TypeError, ValueError) as err:
             raise exc.ValidationError({'prefix_length': err.message})
 
-        if prefix_length <= self.prefix_length:
+        if prefix_length < self.prefix_length:
             raise exc.ValidationError({
                 'prefix_length': 'New prefix must be longer than %r' %
                 self.prefix_length
@@ -858,94 +858,52 @@ class Network(Resource):
 
         # Exclude children that are in busy states.
         children = [c.ip_network for c in self.get_children() 
-            if c.state not in self.BUSY_STATES]
-
-        # get the minimum prefix length amongst all children of this parent
-        if len(children) > 0:
-            min_prefix_len = min(children, key = lambda c: c.prefixlen).prefixlen
-            # if requested prefix length is smaller then set that as min_prefix_len
-            min_prefix_len = min(min_prefix_len, prefix_length)
-        else:
-            min_prefix_len = prefix_length
-
-        # do you want to return a network where this network would overlap
-        # one of this network object's child. If so keep this line, 
-        # otherwise get rid of it.
-        # children = [c for c in children if c.prefixlen == min_prefix_len]
-        
+                                    if c.prefix_length <= prefix_length]
+     
         exclude_nums = {}
         
         network_prefix = cidr.network_address 
         
-        # idea here is to isolate all the bits between parent network prefix length
-        # and min_prefix_len, so for instance if we have the following 3 networks
-        #
-        #   10.2.1.0/24 <-- Parent Network
-        #   10.2.1.0/27 <-- Child Network #1
-        #   10.2.1.192/28 <-- Child Network #2
-        #
-        # We would want the bits between the 8th bit counting from the right and the 
-        # 6th bit counting from right, inclusive. So for the above example we would 
-        # have 000 & 110. We want to exclude ip addresses that have these sequence of
-        # bits in between the 8th and 6th bits inclusive
-        a = int(network_prefix) >> (cidr.max_prefixlen - min_prefix_len)
+        a = int(network_prefix) >> (cidr.max_prefixlen - prefix_length)
         for c in children:
-            b = int(c.network_address) >> (cidr.max_prefixlen - min_prefix_len)
+            b = int(c.network_address) >> (cidr.max_prefixlen - prefix_length)
             exclude_nums[a ^ b] = 1
 
         exclude_nums = [k for k, _  in exclude_nums.iteritems()]
         exclude_nums.sort()
 
-
-        log.debug('min_prefix_len %d'%min_prefix_len)
         log.debug('exclude_nums %s'%exclude_nums)
 
-        # we filter out the ip addresses that have the sequence of bits in the numbers in exclude_nums
-        # in the gap between the parent prefix and the lower of the minimum of all its children
-        # prefix_lengths and the prefix_length argument.
-        unallocated_subnets = []
-        left_shift_amt = cidr.max_prefixlen - min_prefix_len
-        parent_prefix_amt = int(network_prefix)
-        for i in xrange(0, 2 ** (min_prefix_len - self.prefix_length)):
-            if len(unallocated_subnets) == num:
-                break
-            if len(exclude_nums) > 0 and exclude_nums[0] == i:
-                exclude_nums.pop(0)
-                continue
-            ip_num = parent_prefix_amt | i << left_shift_amt
-            if cidr.version == 4:
-                ip_obj = ipaddress.IPv4Network((ip_num, min_prefix_len))
-            else:
-                ip_obj = ipaddress.IPv6Network((ip_num, min_prefix_len))
-            unallocated_subnets.append(ip_obj)
+        if cidr.prefixlen in settings.NETWORK_INTERCONNECT_PREFIXES:
+            log.debug('CIDR %s is an interconnect!', cidr)
+            subnets = (ipaddress.ip_network(ip) for ip in cidr)
+        else:
+            log.debug('cidr %s is NOT an interconnect!', cidr)
+            subnets = cidr.subnets(new_prefix = prefix_length)
 
         wanted = []
 
-        # for each unallocated_subnet, we generate all the  subnets that
-        # have a prefix equal to prefix_length. We store the valid ones in 
-        # wanted
-        for unallocated_subnet in unallocated_subnets:
-            if len(wanted) == num:
+        while len(wanted) < num:
+            try:
+                next_subnet = next(subnets)
+            except ValueError as err:
+                raise exc.ValidationError({'prefix_length': err.message})
+            except StopIteration:
                 break
-            # If this network is an interconnect network, generate the hosts as
-            # network objects, otherwise just subnet based on the prefix_length.
-            # This is so that .0 and .1 could be allocated from a /31, for example.
+
             if cidr.prefixlen in settings.NETWORK_INTERCONNECT_PREFIXES:
-                log.debug('CIDR %s is an interconnect!', unallocated_subnet)
-                subnets = (ipaddress.ip_network(ip) for ip in unallocated_subnet)
-            else:
-                log.debug('cidr %s is NOT an interconnect!', unallocated_subnet)
-                subnets = unallocated_subnet.subnets(new_prefix = prefix_length)
-            for subnet in subnets:
-                if len(wanted) == num:
-                    break
-                if cidr.prefixlen in settings.NETWORK_INTERCONNECT_PREFIXES:
-                    pass
-                elif (subnet.prefixlen in settings.HOST_PREFIXES and
-                     (subnet.network_address == cidr.network_address or
-                      subnet.broadcast_address == cidr.broadcast_address)):
-                    continue
-                wanted.append(subnet) 
+                pass
+            elif (prefix_length in settings.HOST_PREFIXES and
+                 (next_subnet.network_address == cidr.network_address or
+                  next_subnet.broadcast_address == cidr.broadcast_address)):
+                continue
+
+            b = int(next_subnet.network_address) >> (cidr.max_prefixlen - prefix_length)
+            c = a ^ b
+            if len(exclude_nums) > 0 and exclude_nums[0] == c:
+                exclude_nums.pop(0)
+                continue           
+            wanted.append(next_subnet)
 
         elapsed_time = time.time() - start_time
         log.debug('>> WANTED = %s', wanted)
