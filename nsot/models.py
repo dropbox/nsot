@@ -868,7 +868,7 @@ class Network(Resource):
             subnets = cidr.subnets(new_prefix=prefix_length)
 
         # Exclude children that are in busy states.
-        children = self.get_descendents()
+        children = self.get_descendants()
 
         # Partition children into busy children and all children, storing
         # the `.ip_network` property up front.
@@ -1015,7 +1015,7 @@ class Network(Resource):
             'network_address', 'prefix_length'
         )
 
-    def get_descendents(self):
+    def get_descendants(self):
         """Return all of my children!"""
         return self.subnets(include_ips=True).order_by(
             'network_address', 'prefix_length'
@@ -1552,9 +1552,9 @@ class Circuit(Resource):
 
     class Meta:
         # TODO(jathan): Benchmark queries on a large database to identify
-        # whether we need explicit indices for this model. In my initial testing
-        # all of the common lookup fields are already indexed so this may not be
-        # necessary.
+        # whether we need explicit indices for this model. In my initial
+        # testing all of the common lookup fields are already indexed so this
+        # may not be necessary.
         '''
         index_together = [
             ('endpoint_a', 'endpoint_z'),
