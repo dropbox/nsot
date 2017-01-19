@@ -856,9 +856,14 @@ class Network(Resource):
 
         cidr = self.ip_network
 
+        if prefix_length > cidr.max_prefixlen:
+            try:
+                next(cidr.subnets(new_prefix = prefix_length))
+            except ValueError as err:
+                raise exc.ValidationError({'prefix_length': err.message})
+
         # Exclude children that are in busy states.
-        children = [c.ip_network for c in self.get_children() 
-                                    if c.prefix_length <= prefix_length]
+        children = [c.ip_network for c in self.get_children()]
      
         exclude_nums = {}
         
@@ -883,14 +888,9 @@ class Network(Resource):
 
         wanted = []
 
-        while len(wanted) < num:
-            try:
-                next_subnet = next(subnets)
-            except ValueError as err:
-                raise exc.ValidationError({'prefix_length': err.message})
-            except StopIteration:
+        for next_subnet in subnets:
+            if len(wanted) == num:
                 break
-
             if cidr.prefixlen in settings.NETWORK_INTERCONNECT_PREFIXES:
                 pass
             elif (prefix_length in settings.HOST_PREFIXES and
