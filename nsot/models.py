@@ -862,8 +862,8 @@ class Network(Resource):
             except ValueError as err:
                 raise exc.ValidationError({'prefix_length': err.message})
 
-        children = [c.ip_network for c in self.get_descendents() if c.prefix_length >= prefix_length]
-     
+        children = [c.ip_network for c in self.get_descendents()]
+        
         exclude_nums = {}
         
         network_prefix = cidr.network_address 
@@ -871,14 +871,7 @@ class Network(Resource):
         a = int(network_prefix) >> (cidr.max_prefixlen - prefix_length)
         for c in children:
             b = int(c.network_address) >> (cidr.max_prefixlen - prefix_length)
-            exclude_nums[a ^ b] = 1
-
-        if cidr.prefixlen in settings.NETWORK_INTERCONNECT_PREFIXES:
-            log.debug('CIDR %s is an interconnect!', cidr)
-            subnets = (ipaddress.ip_network(ip) for ip in cidr)
-        else:
-            log.debug('cidr %s is NOT an interconnect!', cidr)
-            subnets = cidr.subnets(new_prefix = prefix_length)
+            exclude_nums[a ^ b] = c.prefixlen
 
         wanted = []
 
@@ -887,7 +880,6 @@ class Network(Resource):
         upper = int(cidr.network_address) + 2 ** (cidr.max_prefixlen - cidr.prefixlen)
 
         while counter < upper:
-            #log.debug('%d %d'%(counter,upper))
             if len(wanted) == num:
                 break
             if cidr.version == 4:
@@ -897,9 +889,16 @@ class Network(Resource):
 
             b = counter >> (cidr.max_prefixlen - prefix_length)
             c = a ^ b
-            counter += 2 ** (cidr.max_prefixlen - prefix_length)
             if c in exclude_nums:
+                p = exclude_nums.pop(c)
+                if p < prefix_length:
+                    counter += 2 ** (cidr.max_prefixlen - p)
+                else:
+                    counter += 2 ** (cidr.max_prefixlen - prefix_length)
                 continue
+            else:
+                counter += 2 ** (cidr.max_prefixlen - prefix_length)
+
             if cidr.prefixlen in settings.NETWORK_INTERCONNECT_PREFIXES:
                 pass
             elif (prefix_length in settings.HOST_PREFIXES and
@@ -907,22 +906,7 @@ class Network(Resource):
                   next_subnet.broadcast_address == cidr.broadcast_address)):
                 continue
             wanted.append(next_subnet)
-        '''
-        for next_subnet in subnets:
-            if len(wanted) == num:
-                break
-            if cidr.prefixlen in settings.NETWORK_INTERCONNECT_PREFIXES:
-                pass
-            elif (prefix_length in settings.HOST_PREFIXES and
-                 (next_subnet.network_address == cidr.network_address or
-                  next_subnet.broadcast_address == cidr.broadcast_address)):
-                continue
-            b = int(next_subnet.network_address) >> (cidr.max_prefixlen - prefix_length)
-            c = a ^ b
-            if c in exclude_nums:
-                continue           
-            wanted.append(next_subnet)
-        '''
+ 
         elapsed_time = time.time() - start_time
         log.debug('>> WANTED = %s', wanted)
         log.debug('>> ELAPSED TIME: %s' % elapsed_time)
