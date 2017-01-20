@@ -862,7 +862,7 @@ class Network(Resource):
             except ValueError as err:
                 raise exc.ValidationError({'prefix_length': err.message})
 
-        children = [c.ip_network for c in self.get_descendents()]
+        children = [c.ip_network for c in self.get_children()]
         
         exclude_nums = {}
         
