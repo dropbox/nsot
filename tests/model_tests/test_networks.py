@@ -312,7 +312,7 @@ def test_get_next_address_interconnect(site):
 
     ## IPv4
     # /24 should return .1 and .2
-    slash24 = [u'10.20.30.1/32', u'10.20.30.2/32']
+    slash24 = [u'10.20.30.2/32', u'10.20.30.3/32']
     expected = [ipaddress.ip_network(n) for n in slash24]
     assert net_24.get_next_address(num=2) == expected
 
@@ -323,7 +323,7 @@ def test_get_next_address_interconnect(site):
 
     ## IPv6
     # /64 should return :1 and :2
-    slash64 = [u'2001:db8::1/128', u'2001:db8::2/128']
+    slash64 = [u'2001:db8::2/128', u'2001:db8::3/128']
     expected = [ipaddress.ip_network(n) for n in slash64]
     assert net_64.get_next_address(num=2) == expected
 
