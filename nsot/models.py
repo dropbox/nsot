@@ -882,6 +882,32 @@ class Network(Resource):
 
         wanted = []
 
+        counter = int(cidr.network_address)
+
+        upper = int(cidr.network_address) + 2 ** (cidr.max_prefixlen - cidr.prefixlen)
+
+        while counter < upper:
+            #log.debug('%d %d'%(counter,upper))
+            if len(wanted) == num:
+                break
+            if cidr.version == 4:
+                next_subnet = ipaddress.IPv4Network((counter, prefix_length))
+            else:             
+                next_subnet = ipaddress.IPv6Network((counter, prefix_length))
+
+            b = counter >> (cidr.max_prefixlen - prefix_length)
+            c = a ^ b
+            counter += 2 ** (cidr.max_prefixlen - prefix_length)
+            if c in exclude_nums:
+                continue
+            if cidr.prefixlen in settings.NETWORK_INTERCONNECT_PREFIXES:
+                pass
+            elif (prefix_length in settings.HOST_PREFIXES and
+                 (next_subnet.network_address == cidr.network_address or
+                  next_subnet.broadcast_address == cidr.broadcast_address)):
+                continue
+            wanted.append(next_subnet)
+        '''
         for next_subnet in subnets:
             if len(wanted) == num:
                 break
@@ -896,7 +922,7 @@ class Network(Resource):
             if c in exclude_nums:
                 continue           
             wanted.append(next_subnet)
-
+        '''
         elapsed_time = time.time() - start_time
         log.debug('>> WANTED = %s', wanted)
         log.debug('>> ELAPSED TIME: %s' % elapsed_time)
