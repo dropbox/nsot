@@ -352,3 +352,6 @@ def test_reservation(site):
 
     addresses = [u'192.168.3.1/32', u'192.168.3.2/32', u'192.168.3.3/32']
     assert reserved.get_next_address(num=3, as_objects=False) == addresses
+
+def test_strict_allocation(site):
+    pass

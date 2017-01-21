@@ -867,7 +867,8 @@ class Network(Resource):
         exclude_nums = {}
         
         network_prefix = cidr.network_address 
-        
+        # get all numbers formed by bits in child network address
+        # that do not exist in parent network address
         a = int(network_prefix) >> (cidr.max_prefixlen - prefix_length)
         for c in children:
             b = int(c.network_address) >> (cidr.max_prefixlen - prefix_length)
@@ -875,36 +876,46 @@ class Network(Resource):
 
         wanted = []
 
+        # keep a counter starting at integer value of parent network address 
         counter = int(cidr.network_address)
-
+        # the upper limit is parent network prefix + 1
         upper = int(cidr.network_address) + 2 ** (cidr.max_prefixlen - cidr.prefixlen)
 
         while counter < upper:
+            # if we have requested number of networks then we can break
             if len(wanted) == num:
                 break
             if cidr.version == 4:
                 next_subnet = ipaddress.IPv4Network((counter, prefix_length))
             else:             
                 next_subnet = ipaddress.IPv6Network((counter, prefix_length))
-
+            # shift the bits between parent prefix and requested prefix all the way to the right
             b = counter >> (cidr.max_prefixlen - prefix_length)
+            # remove the parent network address part
             c = a ^ b
             if c in exclude_nums:
+                # if this sequence of bits were seen before then we must skip this network
                 p = exclude_nums.pop(c)
                 if p < prefix_length:
+                    # If current network is possibly child of another child then we must skip 
+                    # overlapping child's range of addresses, this is so we can implement
+                    # strict allocation
                     counter += 2 ** (cidr.max_prefixlen - p)
                 else:
+                    # otherwise just skip to next network with requested prefix_length
                     counter += 2 ** (cidr.max_prefixlen - prefix_length)
                 continue
             else:
                 counter += 2 ** (cidr.max_prefixlen - prefix_length)
-
+            # if this is an interconnect network, we include first and last address in subnet
             if cidr.prefixlen in settings.NETWORK_INTERCONNECT_PREFIXES:
                 pass
             elif (prefix_length in settings.HOST_PREFIXES and
                  (next_subnet.network_address == cidr.network_address or
                   next_subnet.broadcast_address == cidr.broadcast_address)):
+                # otherwise we skip first and last address in subnet
                 continue
+            # add network to wanted list
             wanted.append(next_subnet)
  
         elapsed_time = time.time() - start_time
