@@ -177,7 +177,7 @@ def test_retrieve_networks(site):
 
 
 def test_mptt_methods(site):
-    """Test ancestor/children/descendents/root model methods."""
+    """Test ancestor/children/descendants/root model methods."""
     net_8 = models.Network.objects.create(site=site, cidr=u'10.0.0.0/8')
     net_12 = models.Network.objects.create(site=site, cidr=u'10.16.0.0/12')
     net_14 = models.Network.objects.create(site=site, cidr=u'10.16.0.0/14')
@@ -209,10 +209,10 @@ def test_mptt_methods(site):
     assert list(net_25.get_children()) == [ip1, ip2]
     assert list(net_12.get_children()) == [net_14]
 
-    # get_descendents()
-    assert list(net_8.get_descendents()) == [net_12, net_14, net_25, ip1, ip2]
-    assert list(net_14.get_descendents()) == [net_25, ip1, ip2]
-    assert list(ip2.get_descendents()) == []
+    # get_descendants()
+    assert list(net_8.get_descendants()) == [net_12, net_14, net_25, ip1, ip2]
+    assert list(net_14.get_descendants()) == [net_25, ip1, ip2]
+    assert list(ip2.get_descendants()) == []
 
     # get_root()
     assert ip1.get_root() == net_8

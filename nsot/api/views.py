@@ -1,11 +1,12 @@
 from __future__ import unicode_literals
 from collections import namedtuple, OrderedDict
 import logging
+import warnings
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
-from rest_framework import mixins, status, viewsets
+from rest_framework import mixins, status as status_codes, viewsets
 from rest_framework.views import APIView
 from rest_framework.decorators import detail_route, list_route
 from rest_framework.response import Response
@@ -56,7 +57,26 @@ class BaseNsotViewSet(viewsets.ReadOnlyModelViewSet):
             )
         raise exc.NotFound(msg)
 
-    def success(self, data, status=status.HTTP_200_OK, headers=None):
+    def success(self, data, status=None, headers=None):
+        """
+        Return a positive API response.
+
+        :param data:
+            Serialized data
+
+        :param status:
+            (Optional) HTTP status code
+
+        :param headers:
+            (Optional) Dict of extra headers
+        """
+        if headers is None:
+            headers = self.kwargs.get('headers')
+
+        # Default status 200 if not provided otherwise.
+        if status is None:
+            status = self.kwargs.get('status', status_codes.HTTP_200_OK)
+
         return Response(data, status=status, headers=headers)
 
     def list(self, request, site_pk=None, queryset=None, *args, **kwargs):
@@ -518,12 +538,41 @@ class NetworkViewSet(ResourceViewSet):
         return self.list(request, queryset=children, *args, **kwargs)
 
     @detail_route(methods=['get'])
-    def descendents(self, request, pk=None, site_pk=None, *args, **kwargs):
-        """Return descendents of this Network."""
+    def descendants(self, request, pk=None, site_pk=None, *args, **kwargs):
+        """Return descendants of this Network."""
         network = self.get_resource_object(pk, site_pk)
-        descendents = network.get_descendents()
+        descendants = network.get_descendants()
 
-        return self.list(request, queryset=descendents, *args, **kwargs)
+        return self.list(request, queryset=descendants, *args, **kwargs)
+
+    # TODO(jathan): Remove this no earlier than v1.3 release.
+    @detail_route(methods=['get'])
+    def descendents(self, request, pk=None, site_pk=None, *args, **kwargs):
+        """
+        Return descendants of this Network.
+
+        .. deprecated:: 1.1
+
+        This endpoint is pending deprecation. Use the ``descendants`` endpoint
+        instead.
+        """
+        warning_message = (
+            'The `descendents` API endpoint is pending deprecation. '
+            'Use the `descendants` API endpoint instead.'
+        )
+
+        # Display pending until v1.2, and remove in v1.3
+        warnings.warn(warning_message, PendingDeprecationWarning)
+        log.warn(warning_message)
+
+        # Inject the Warning header (per RFC 7234)
+        self.kwargs['headers'] = {
+            'Warning': '299 - "%s"' % warning_message
+        }
+
+        return self.descendants(
+            request, pk=pk, site_pk=site_pk, *args, **kwargs
+        )
 
     @detail_route(methods=['get'])
     def parent(self, request, pk=None, site_pk=None, *args, **kwargs):

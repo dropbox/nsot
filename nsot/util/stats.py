@@ -12,13 +12,13 @@ __all__ = ('calculate_network_utilization', 'get_network_utilization')
 
 def calculate_network_utilization(parent, hosts, as_string=False):
     """
-    Calculate utilization for a network and its descendents.
+    Calculate utilization for a network and its descendants.
 
     :param parent:
         The parent network
 
     :param hosts:
-        List of host IPs descendent from parent
+        List of host IPs descendant from parent
 
     :param as_string:
         Whether to return stats as a string
@@ -57,5 +57,5 @@ def get_network_utilization(network, as_string=False):
     :param as_string:
         Whether to return stats as a string
     """
-    descendents = network.get_descendents().filter(is_ip=True)
-    return calculate_network_utilization(network, descendents, as_string)
+    descendants = network.get_descendants().filter(is_ip=True)
+    return calculate_network_utilization(network, descendants, as_string)

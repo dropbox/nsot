@@ -7,10 +7,13 @@ Version History
 
 .. _v1.1:
 
-1.1 (2017-01-13)
+1.1 (2017-01-18)
 ----------------
 
-* Implementation of Circuits as a resource object.
+* A formal :ref:`deprecation-policy` has been implemented which dictates a
+  three-feature release cycle for removing deprecated API endpoints. Please see
+  the documentation on this topic for more details.
+* Fix #203 - Implementation of Circuits as a resource object.
 
   + A Circuit has one-to-one relationship with each of A and Z side
     endpoint Interfaces.
@@ -26,13 +29,15 @@ Version History
   + ``circuits/:id/interfaces/`` - List interfaces bound to the circuit
   + ``circuits/:id/addresses/`` - List addresses bound to circuit interfaces
 
-* The Interface object unicode representation changed to
-  ``device_hostname:name`` so that it can more easily be used as a slug for
-  computing Circuit slug.
 * Interfaces have a new ``interfaces/:id/circuit/`` detail route that will
   display the circuit to which an interface is bound.
 * Devices have a new ``devices/:id/circuits/`` detail route that will
   display all circuits bound to interfaces on the device.
+* Fix #191 - The Interface object unicode representation changed to
+  ``device_hostname:name`` so that it can more easily be used as a slug for
+  computing Circuit slug.
+* Fix #230 - The misspelled ``networks/:id/descendents/`` API endpoint is
+  pending deprecation in exchange for ``networks/:id/descendants/``.
 
 .. _v1.0.13:
 
