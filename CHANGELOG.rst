@@ -7,7 +7,7 @@ Version History
 
 .. _v1.1:
 
-1.1 (2017-01-18)
+1.1 (2017-01-23)
 ----------------
 
 * A formal :ref:`deprecation-policy` has been implemented which dictates a
