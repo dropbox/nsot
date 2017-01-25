@@ -1604,8 +1604,8 @@ class Circuit(Resource):
 
     def clean_name(self, value):
         if value:
-            # Disallow / or . in names since we use the name as the natural key and
-            # including those will screw with URLs
+            # Disallow / or . in names since we use the name as the natural key
+            # and including those will screw with URLs
             disallowed_chars = set(['.', '/'])
 
             if len(set(value) & disallowed_chars) != 0:
