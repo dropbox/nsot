@@ -718,7 +718,7 @@ class CircuitViewSet(ResourceViewSet):
     # end with 'None' (as is the case of a circuit without a Z side), or simply
     # not end with a letter (assuming that subcommands will always end with a
     # letter).
-    lookup_value_regex = '(?:.+(?:None|[^a-zA-Z]))|(?:[^\/]+)'
+    lookup_value_regex = '.+(?:None|[^a-zA-Z])|[^\/]+'
 
     # TODO(jathan): Revisit this if and when we upgrade or replace
     # django-rest-framework-bulk==0.2.1
