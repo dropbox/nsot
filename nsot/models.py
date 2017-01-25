@@ -1604,6 +1604,17 @@ class Circuit(Resource):
 
     def clean_name(self, value):
         if value:
+            # Disallow / or . in names since we use the name as the natural key and
+            # including those will screw with URLs
+            disallowed_chars = set(['.', '/'])
+
+            if len(set(value) & disallowed_chars) != 0:
+                raise exc.ValidationError({
+                    'name': 'Circuit name cannot contain any of: {}'.format(
+                        ', '.join(disallowed_chars)
+                    )
+                })
+
             return value
 
         # Add display name of hostname:intf_hostname:intf

@@ -632,10 +632,13 @@ class InterfaceViewSet(ResourceViewSet):
     queryset = models.Interface.objects.all()
     serializer_class = serializers.InterfaceSerializer
     filter_class = filters.InterfaceFilter
-    # Match on device_hostname:name or pk id
-    # Being pretty vague here, so as to be minimally prescriptive
-    lookup_value_regex = '[^:]+:([^/]+|.+[0-9])|[0-9]+'
     natural_key = ('device_hostname', 'name')
+
+    # Match on device_hostname:name or pk id
+    # Being pretty vague here, so as to be minimally prescriptive. The idea
+    # here being that if an Interface contains a / but ends in a number,
+    # it's an Interface and not a detail route.
+    lookup_value_regex = '[^:]+:([^/]+|.+[0-9])|[0-9]+'
 
     def get_natural_key_kwargs(self, filter_value):
         """Return a dict of kwargs for natural_key lookup."""
@@ -707,6 +710,15 @@ class CircuitViewSet(ResourceViewSet):
     serializer_class = serializers.CircuitSerializer
     filter_class = filters.CircuitFilter
     natural_key = 'name'
+
+    # This regex is tricky since the natural key is the Circuit name, which
+    # will either be the combination of two Interface natural keys separated
+    # by an underscore, or something entirely user-created. To be friendly to
+    # the routing, allow anything, but if it contains a slash, it must either
+    # end with 'None' (as is the case of a circuit without a Z side), or simply
+    # not end with a letter (assuming that subcommands will always end with a
+    # letter).
+    lookup_value_regex = '(?:.+(?:None|[^a-zA-Z]))|(?:[^\/]+)'
 
     # TODO(jathan): Revisit this if and when we upgrade or replace
     # django-rest-framework-bulk==0.2.1
