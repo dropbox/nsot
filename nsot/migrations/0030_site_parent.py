@@ -8,7 +8,7 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('nsot', '0028_populate_interface_device_hostname'),
+        ('nsot', '0029_auto__add_circuit'),
     ]
 
     operations = [
