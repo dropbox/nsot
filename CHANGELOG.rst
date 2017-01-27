@@ -5,6 +5,14 @@ Changelog
 Version History
 ===============
 
+.. _v1.1.1:
+
+1.1 (2017-01-27)
+----------------
+
+* Add `name_slug` field to Circuit, make it the natural key to fix a bug with
+  Circuit names that contain slashes
+
 .. _v1.1:
 
 1.1 (2017-01-23)

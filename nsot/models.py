@@ -20,7 +20,8 @@ import time
 from . import exc
 from . import fields
 from . import validators
-from .util import cidr_to_dict, generate_secret_key, parse_set_query, stats
+from .util import (cidr_to_dict, generate_secret_key, parse_set_query, slugify,
+                   stats)
 
 
 log = logging.getLogger(__name__)
@@ -1547,6 +1548,19 @@ class Circuit(Resource):
         )
     )
 
+    # This doesn't use the built-in SlugField since we're doing our own
+    # slugification (django.utils.text.slugify() is too agressive)
+    name_slug = models.CharField(
+        db_index=True,
+        editable=False,
+        max_length=255,
+        null=True,
+        unique=True,
+        help_text=(
+            'Slugified version of the name field, used for the natural key'
+        )
+    )
+
     def __unicode__(self):
         return u'%s' % self.name
 
@@ -1558,7 +1572,7 @@ class Circuit(Resource):
         '''
         index_together = [
             ('endpoint_a', 'endpoint_z'),
-            ('site', 'name'),
+            ('site', 'name_slug'),
         ]
         '''
 
@@ -1616,6 +1630,8 @@ class Circuit(Resource):
         self.endpoint_z = self.clean_endpoint_z(self.endpoint_z_id)
         self.name = self.clean_name(self.name)
 
+        self.name_slug = slugify(self.name)
+
     def save(self, *args, **kwargs):
         self.full_clean()
         super(Circuit, self).save(*args, **kwargs)
@@ -1624,6 +1640,7 @@ class Circuit(Resource):
         return {
             'id': self.id,
             'name': self.name,
+            'name_slug': self.name_slug,
             'endpoint_a': self.endpoint_a_id,
             'endpoint_z': self.endpoint_z_id,
             'attributes': self.get_attributes(),
