@@ -29,7 +29,7 @@ def test_creation(device):
     # A-side device/interface
     device_a = device
     iface_a = models.Interface.objects.create(
-        device=device_a, name='eth0', addresses=['10.32.0.1/32']
+        device=device_a, name='eth0/1', addresses=['10.32.0.1/32']
     )
 
     # Z-side device/interface
@@ -37,7 +37,7 @@ def test_creation(device):
         hostname='foo-bar2', site=site
     )
     iface_z = models.Interface.objects.create(
-        device=device_z, name='eth0', addresses=['10.32.0.2/32']
+        device=device_z, name='eth0/1', addresses=['10.32.0.2/32']
     )
 
     # Create the circuit
@@ -54,6 +54,9 @@ def test_creation(device):
         endpoint_a=iface_a, endpoint_z=iface_z
     )
     assert circuit.name == expected_name
+
+    # Name slug should be the slugified version of the name
+    assert circuit.name_slug == expected_name.replace('/', '_')
 
     # Assert property values
     assert circuit.interfaces == [iface_a, iface_z]
@@ -108,4 +111,3 @@ def test_attributes(circuit):
 
     with pytest.raises(exc.ValidationError):
         circuit.set_attributes({'made_up': 'value'})
-

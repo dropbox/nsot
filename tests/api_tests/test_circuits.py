@@ -147,6 +147,7 @@ def test_bulk_operations(site, client):
     updated = copy.deepcopy(expected)
     for item in updated:
         item['name'] = item['name'].replace('foo', 'wtf')
+        item['name_slug'] = item['name_slug'].replace('foo', 'wtf')
     updated_resp = client.put(cir_uri, data=json.dumps(updated))
     expected = updated_resp.json()
 
@@ -204,6 +205,9 @@ def test_update(site, client):
     params['endpoint_z'] = None
     params['name'] = 'foo-bar1:eth0_None'
     payload.update(params)
+
+    # Read-only computed parameters
+    payload['name_slug'] = 'foo-bar1:eth0_None'
 
     assert_success(
         client.update(cir_obj_uri, **params),
@@ -289,6 +293,8 @@ def test_partial_update(site, client):
     # Update only name
     payload = copy.deepcopy(cir)
     payload.update(params)
+    payload['name_slug'] = 'mycircuit'
+
     assert_success(
         client.partial_update(cir_obj_uri, **params),
         payload
