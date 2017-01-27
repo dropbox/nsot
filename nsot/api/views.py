@@ -706,7 +706,7 @@ class CircuitViewSet(ResourceViewSet):
     queryset = models.Circuit.objects.all()
     serializer_class = serializers.CircuitSerializer
     filter_class = filters.CircuitFilter
-    natural_key = 'name'
+    natural_key = 'name_slug'
 
     # TODO(jathan): Revisit this if and when we upgrade or replace
     # django-rest-framework-bulk==0.2.1

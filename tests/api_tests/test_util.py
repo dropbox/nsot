@@ -7,7 +7,7 @@ from __future__ import unicode_literals, print_function
 import pytest
 
 from nsot.util import SetQuery, parse_set_query
-from nsot.util import stats
+from nsot.util import slugify, stats
 
 
 def test_parse_set_query():
@@ -111,3 +111,18 @@ def test_stats_get_utilization(parent=PARENT, hosts=HOSTS):
     output = stats.calculate_network_utilization(parent, hosts, as_string=True)
 
     assert output == expected
+
+
+def test_slugify():
+    cases = [
+        ('/', '_'),
+        ('my cool string', 'my cool string'),
+        ('Ethernet1/2', 'Ethernet1_2'),
+        (
+            'foo-bar1:xe-0/0/0.0_foo-bar2:xe-0/0/0.0',
+            'foo-bar1:xe-0_0_0.0_foo-bar2:xe-0_0_0.0'
+        ),
+    ]
+
+    for case, expected in cases:
+        assert slugify(case) == expected
