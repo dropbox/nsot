@@ -927,7 +927,7 @@ class Network(Resource):
         log.debug('>> ELAPSED TIME: %s' % elapsed_time)
         return wanted if as_objects else [unicode(w) for w in wanted]
 
-    def get_next_address(self, num=None, as_objects=True):
+    def get_next_address(self, num=None, strict=False, as_objects=True):
         """
         Return a list of the next available addresses.
 
@@ -943,7 +943,7 @@ class Network(Resource):
         prefix_length = prefix_map.get(self.ip_version)
 
         return self.get_next_network(
-            prefix_length=prefix_length, num=num, as_objects=as_objects
+            prefix_length=prefix_length, num=num, strict=strict, as_objects=as_objects
         )
 
     def is_child_node(self):
