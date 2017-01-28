@@ -312,7 +312,7 @@ def test_get_next_address_interconnect(site):
 
     ## IPv4
     # /24 should return .1 and .2
-    slash24 = [u'10.20.30.2/32', u'10.20.30.3/32']
+    slash24 = [u'10.20.30.1/32', u'10.20.30.2/32']
     expected = [ipaddress.ip_network(n) for n in slash24]
     assert net_24.get_next_address(num=2) == expected
 
@@ -323,7 +323,7 @@ def test_get_next_address_interconnect(site):
 
     ## IPv6
     # /64 should return :1 and :2
-    slash64 = [u'2001:db8::2/128', u'2001:db8::3/128']
+    slash64 = [u'2001:db8::1/128', u'2001:db8::2/128']
     expected = [ipaddress.ip_network(n) for n in slash64]
     assert net_64.get_next_address(num=2) == expected
 
@@ -358,7 +358,7 @@ def test_strict_allocation_1(site):
     parent = models.Network.objects.create(site = site, cidr = u'10.1.2.0/24')
     child = models.Network.objects.create(site = site, cidr = u'10.1.2.0/25')
     expected = [ipaddress.ip_network(u'10.1.2.128/32')]
-    assert parent.get_next_network(32) == expected
+    assert parent.get_next_network(32, strict = True) == expected
 
 
 def test_strict_allocation_2(site):
@@ -369,11 +369,11 @@ def test_strict_allocation_2(site):
     c4 = models.Network.objects.create(site = site, cidr = u'10.2.1.0/25')
     expected = [u'10.2.1.160/28', u'10.2.1.176/28', u'10.2.1.192/28', u'10.2.1.208/28']
     expected = [ipaddress.ip_network(n) for n in expected]
-    assert parent.get_next_network(28, num = 4) == expected
+    assert parent.get_next_network(28, num = 4, strict = True) == expected
 
 
 def test_strict_allocation_3(site):
     parent = models.Network.objects.create(site = site, cidr = u'2001:db8:abcd:0012::0/96')
     child = models.Network.objects.create(site = site, cidr = u'2001:db8:abcd:0012::0/97')
     expected = [ipaddress.ip_network(u'2001:db8:abcd:12::8000:0/128')]
-    assert parent.get_next_network(128) == expected 
+    assert parent.get_next_network(128, strict = True) == expected 

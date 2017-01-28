@@ -809,7 +809,7 @@ class Network(Resource):
             broadcast_address__lte=self.broadcast_address
         )
 
-    def get_next_network(self, prefix_length, num=None, as_objects=True):
+    def get_next_network(self, prefix_length, num=None, strict=False, as_objects=True):
         """
         Return a list of the next available networks.
 
@@ -862,8 +862,12 @@ class Network(Resource):
             except ValueError as err:
                 raise exc.ValidationError({'prefix_length': err.message})
 
-        children = [c.ip_network for c in self.get_children()]
-        
+        if strict:
+            children = [c.ip_network for c in self.get_children()]
+        else:
+            children = [c.ip_network for c in self.get_descendants() 
+                            if c.prefix_length >= prefix_length]
+
         exclude_nums = {}
         
         network_prefix = cidr.network_address 

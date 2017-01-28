@@ -71,7 +71,7 @@ def test_next_network_bug_issues_224(site):
     parent = models.Network.objects.get_by_address('10.20.0.0/16')
 
     # We're expecting that the next /31 is going to be first_cidr
-    first_cidr = '10.20.30.0/31'
+    first_cidr = '10.20.0.0/31'
     expected = [ipaddress.ip_network(first_cidr)]
     first_31 = parent.get_next_network(prefix_length=31)
 
@@ -79,7 +79,7 @@ def test_next_network_bug_issues_224(site):
 
     # Create the first /31 and get the next one.
     models.Network.objects.create(cidr=first_cidr, site=site)
-    next_cidr = '10.20.30.2/31'
+    next_cidr = '10.20.0.2/31'
     expected = [ipaddress.ip_network(next_cidr)]
     next_31 = parent.get_next_network(prefix_length=31)
 
@@ -107,12 +107,12 @@ def test_next_network_bug_issues_247(site):
             state=models.Network.ASSIGNED
         )
 
-    expected_32 = [ipaddress.ip_network('10.20.30.0/32')]
+    expected_32 = [ipaddress.ip_network('10.20.0.5/32')]
     next_32 = parent.get_next_network(prefix_length=32)
 
     assert next_32 == expected_32
 
-    expected_31 = [ipaddress.ip_network('10.20.30.0/31')]
+    expected_31 = [ipaddress.ip_network('10.20.0.6/31')]
     next_31 = parent.get_next_network(prefix_length=31)
 
     assert next_31 == expected_31
