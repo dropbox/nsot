@@ -10,6 +10,8 @@ Vagrant.configure(2) do |config|
   # For a complete reference, please see the online documentation at
   # https://docs.vagrantup.com.
 
+  config.vm.hostname = 'nsot-dev'
+
   # Every Vagrant development environment requires a box. You can search for
   # boxes at https://atlas.hashicorp.com/search.
   config.vm.box = "hashicorp/precise32"
@@ -64,7 +66,7 @@ Vagrant.configure(2) do |config|
   # Enable provisioning with a shell script. Additional provisioners such as
   # Puppet, Chef, Ansible, Salt, and Docker are also available. Please see the
   # documentation for more information about their specific syntax and use.
-   config.vm.provision "shell", inline: <<-SHELL
+  config.vm.provision "shell", inline: <<-SHELL
 export DEBIAN_FRONTEND=noninteractive
 sudo apt-get -y update
 sudo apt-get -y install build-essential python-dev libffi-dev libssl-dev

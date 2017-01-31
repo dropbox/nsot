@@ -1,8 +1,8 @@
 ####
-nsot
+NSoT
 ####
 
-.. image:: docs/_static/logo_128.png
+.. image:: https://raw.githubusercontent.com/dropbox/nsot/master/docs/_static/logo_128.png
    :alt: Network Source of Truth
    :width: 128px
 

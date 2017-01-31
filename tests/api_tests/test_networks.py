@@ -437,7 +437,7 @@ def test_deletion(site, client):
 
 
 def test_mptt_detail_routes(site, client):
-    """Test detail routes for ancestor/children/descendents/root methods."""
+    """Test detail routes for ancestor/children/descendants/root methods."""
     net_uri = site.list_uri('network')
 
     client.create(net_uri, cidr='10.0.0.0/8')
@@ -496,28 +496,36 @@ def test_mptt_detail_routes(site, client):
     assert_success(client.retrieve(uri), expected)
     assert_success(client.retrieve(natural_uri), expected)
 
-    # descendents
-    uri = reverse('network-descendents', args=(site.id, net_8['id']))
-    natural_uri = reverse('network-descendents', args=(site.id, mkcidr(net_8)))
+    # descendants (spelled correctly)
+    uri = reverse('network-descendants', args=(site.id, net_8['id']))
+    natural_uri = reverse('network-descendants', args=(site.id, mkcidr(net_8)))
     wanted = [net_12, net_14, net_25, ip1, ip2]
     expected = wanted
     assert_success(client.retrieve(uri), expected)
     assert_success(client.retrieve(natural_uri), expected)
 
-    uri = reverse('network-descendents', args=(site.id, net_14['id']))
+    uri = reverse('network-descendants', args=(site.id, net_14['id']))
     natural_uri = reverse(
-        'network-descendents', args=(site.id, mkcidr(net_14))
+        'network-descendants', args=(site.id, mkcidr(net_14))
     )
     wanted = [net_25, ip1, ip2]
     expected = wanted
     assert_success(client.retrieve(uri), expected)
     assert_success(client.retrieve(natural_uri), expected)
 
-    uri = reverse('network-descendents', args=(site.id, ip2['id']))
-    natural_uri = reverse('network-descendents', args=(site.id, mkcidr(ip2)))
+    uri = reverse('network-descendants', args=(site.id, ip2['id']))
+    natural_uri = reverse('network-descendants', args=(site.id, mkcidr(ip2)))
     expected = []
     assert_success(client.retrieve(uri), expected)
     assert_success(client.retrieve(natural_uri), expected)
+
+    # descendents (spelled incorrectly) should send along a "Warning" header
+    # TODO(jathan): This should be removed no earlier than v1.3 release.
+    uri = reverse('network-descendents', args=(site.id, net_14['id']))
+    expected = [net_25, ip1, ip2]
+    response = client.retrieve(uri)
+    assert_success(response, expected)
+    assert response.headers.get('Warning') is not None
 
     # parent
     uri = reverse('network-parent', args=(site.id, ip2['id']))

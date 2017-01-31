@@ -138,9 +138,12 @@ class InterfaceFilter(ResourceFilter):
 
     class Meta:
         model = models.Interface
+        # TODO: Remove `device__hostname` in a future release after
+        #       updating pynsot to use `device_hostname`.
         fields = [
             'device', 'device__hostname', 'name', 'speed', 'type',
-            'mac_address', 'description', 'parent_id', 'attributes'
+            'mac_address', 'description', 'parent_id', 'attributes',
+            'device_hostname'
         ]
 
     def filter_mac_address(self, queryset, value):
@@ -151,3 +154,10 @@ class InterfaceFilter(ResourceFilter):
         built-in field type.
         """
         return queryset.filter(mac_address=value)
+
+
+class CircuitFilter(ResourceFilter):
+    """Filter for Circuit objects."""
+    class Meta:
+        model = models.Circuit
+        fields = ['endpoint_a', 'endpoint_z', 'name', 'attributes']

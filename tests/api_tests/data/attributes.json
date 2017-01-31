@@ -66,5 +66,15 @@
         "description": "Interface scope.", 
         "name": "scope", 
         "resource_name": "Interface"
+    },
+    {
+        "description": "Circuit ID.", 
+        "name": "cid", 
+        "resource_name": "Circuit"
+    } ,
+    {
+        "description": "Circuit Vendor.", 
+        "name": "vendor", 
+        "resource_name": "Circuit"
     } 
 ]

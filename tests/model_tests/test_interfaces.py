@@ -218,6 +218,23 @@ def test_assign_address(device):
     assert list(iface.assignments.all()) == []
 
 
+def test_device_hostname(device):
+    """Test the device_hostname convenience field"""
+    intf = models.Interface.objects.create(device=device, name='eth0')
+
+    assert intf.device.hostname == intf.device_hostname
+
+    # Ensure the name still matches after the device is updated
+    device.hostname = "foo-baz"
+    device.save()
+    intf.refresh_from_db()
+    assert intf.device.hostname == intf.device_hostname
+
+    # Ensure query by device_hostname works
+    intf == models.Interface.objects.get(device_hostname='foo-baz',
+                                         name='eth0')
+
+
 # TODO(jathan): This isn't implemented yet, but the idea is that there will be
 # pluggable parenting/inheritance strategies, with the "SNMP index" strategy as
 # the default/built-in (e.g. snmp_index, snmp_parent_index).

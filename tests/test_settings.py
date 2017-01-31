@@ -105,3 +105,12 @@ INTERFACE_DEFAULT_SPEED = 1000  # In Mbps (e.g. 1Gbps)
 # - Compressed: 2620:100:6000::/40
 # Default: True
 NSOT_COMPRESS_IPV6 = True
+
+# Temp debug logging
+if os.getenv('NSOT_DEBUG'):
+    DEBUG = True
+    LOGGING['loggers']['nsot']['level'] = 'DEBUG'
+    LOGGING['loggers']['django.db.backends'] = {
+        'handlers': ['console'],
+        'level': 'DEBUG'
+    }

@@ -20,7 +20,8 @@ import time
 from . import exc
 from . import fields
 from . import validators
-from .util import cidr_to_dict, generate_secret_key, parse_set_query, stats
+from .util import (cidr_to_dict, generate_secret_key, parse_set_query, slugify,
+                   stats)
 
 
 log = logging.getLogger(__name__)
@@ -28,7 +29,7 @@ log = logging.getLogger(__name__)
 # These are constants that becuase they are tied directly to the underlying
 # objects are explicitly NOT USER CONFIGURABLE.
 RESOURCE_BY_IDX = (
-    'Site', 'Network', 'Attribute', 'Device', 'Interface', 'Iterable', 'Itervalue'
+    'Site', 'Network', 'Attribute', 'Device', 'Interface', 'Circuit', 'Iterable', 'Itervalue'
 )
 RESOURCE_BY_NAME = {
     obj_type: idx
@@ -39,7 +40,7 @@ CHANGE_EVENTS = ('Create', 'Update', 'Delete')
 
 VALID_CHANGE_RESOURCES = set(RESOURCE_BY_IDX)
 VALID_ATTRIBUTE_RESOURCES = set([
-    'Network', 'Device', 'Interface', 'Itervalue' 
+    'Network', 'Device', 'Interface', 'Circuit', 'Itervalue' 
 ])
 
 # Lists of 2-tuples of (value, option) for displaying choices in certain model
@@ -555,6 +556,18 @@ class Device(Resource):
         unique_together = ('site', 'hostname')
         index_together = unique_together
 
+    @property
+    def circuits(self):
+        """All circuits related to this Device."""
+        interfaces = self.interfaces.all()
+        circuits = []
+        for intf in interfaces:
+            try:
+                circuits.append(intf.circuit)
+            except Circuit.DoesNotExist:
+                continue
+        return circuits
+
     def clean_hostname(self, value):
         if not value:
             raise exc.ValidationError({
@@ -856,13 +869,17 @@ class Network(Resource):
             subnets = cidr.subnets(new_prefix=prefix_length)
 
         # Exclude children that are in busy states.
-        children = self.get_descendents()
+        children = self.get_descendants()
 
-        # Pre-filter children and store the `.ip_network` property up front.
-        children = [
+        # Partition children into busy children and all children, storing
+        # the `.ip_network` property up front.
+        busy_children = [
             c.ip_network for c in children if (
-                c.state not in self.BUSY_STATES
+                c.state in self.BUSY_STATES
             )
+        ]
+        children = [
+            c.ip_network for c in children
         ]
 
         # Prepopulate children_seen with networks that have the same prefix
@@ -873,8 +890,8 @@ class Network(Resource):
             )
         ]
 
-        # Dirty subnets cannot be used. Pre-seed w/ children_seen.
-        dirty = children_seen[:]
+        # Dirty subnets cannot be used. Pre-seed w/ busy children.
+        dirty = [c for c in busy_children if (c.prefixlen == prefix_length)]
 
         # Pre-filter any pre-seeded dirty subnets as a generator.
         subnets = (s for s in subnets if s not in dirty)
@@ -999,7 +1016,7 @@ class Network(Resource):
             'network_address', 'prefix_length'
         )
 
-    def get_descendents(self):
+    def get_descendants(self):
         """Return all of my children!"""
         return self.subnets(include_ips=True).order_by(
             'network_address', 'prefix_length'
@@ -1178,6 +1195,15 @@ class Interface(Resource):
         verbose_name='Device', help_text='Unique ID of the connected Device.'
     )
 
+    # Cached hostname of the associated device
+    device_hostname = models.CharField(
+        max_length=255, null=False, blank=True, db_index=True, editable=False,
+        help_text=(
+            'The hostname of the Device to which the interface is bound. '
+            '(Internal use only)'
+        )
+    )
+
     # if_type - Integer of interface type id (Ethernet, LAG, etc.)
     # SNMP: ifType
     type = models.IntegerField(
@@ -1254,11 +1280,14 @@ class Interface(Resource):
     # lldp_remote_system_name
 
     def __unicode__(self):
-        return u'device=%s, name=%s' % (self.device.id, self.name)
+        return u'%s:%s' % (self.device_hostname, self.name)
 
     class Meta:
         unique_together = ('device', 'name')
-        index_together = unique_together
+        index_together = [
+            unique_together,
+            ('device_hostname', 'name')
+        ]
 
     @property
     def networks(self):
@@ -1266,6 +1295,17 @@ class Interface(Resource):
         return Network.objects.filter(
             id__in=self.addresses.values_list('parent')
         ).distinct()
+
+    @property
+    def circuit(self):
+        """Return the Circuit I am associated with"""
+        try:
+            return self.circuit_a
+        except Circuit.DoesNotExist:
+            try:
+                return self.circuit_z
+            except Circuit.DoesNotExist:
+                raise
 
     def _purge_addresses(self):
         """Delete all of my addresses (and therefore assignments)."""
@@ -1427,12 +1467,17 @@ class Interface(Resource):
         """Enforce valid mac_address."""
         return validators.validate_mac_address(value)
 
+    def clean_device_hostname(self, device):
+        """Extract hostname from device"""
+        return device.hostname
+
     def clean_fields(self, exclude=None):
         self.site_id = self.clean_site(self.site_id)
         self.name = self.clean_name(self.name)
         self.type = self.clean_type(self.type)
         self.speed = self.clean_speed(self.speed)
         self.mac_address = self.clean_mac_address(self.mac_address)
+        self.device_hostname = self.clean_device_hostname(self.device)
 
     def save(self, *args, **kwargs):
         # We don't want to validate unique because we want the IntegrityError
@@ -1460,12 +1505,144 @@ class Interface(Resource):
             'parent_id': self.parent_id,
             'name': self.name,
             'device': self.device_id,
+            'device_hostname': self.device_hostname,
             'description': self.description,
             'addresses': self.get_addresses(),
             'networks': self.get_networks(),
             'mac_address': self.get_mac_address(),
             'speed': self.speed,
             'type': self.type,
+            'attributes': self.get_attributes(),
+        }
+
+
+class Circuit(Resource):
+    """Represents two network Interfaces that are connected"""
+
+    # A-side endpoint interface
+    endpoint_a = models.OneToOneField(
+        Interface, on_delete=models.PROTECT, db_index=True, null=False,
+        related_name='circuit_a', verbose_name='A-side endpoint Interface',
+        help_text='Unique ID of Interface at the A-side.'
+    )
+
+    # Z-side endpoint interface
+    endpoint_z = models.OneToOneField(
+        Interface, on_delete=models.PROTECT, db_index=True, null=True,
+        related_name='circuit_z', verbose_name='Z-side endpoint Interface',
+        help_text='Unique ID of Interface at the Z-side.'
+    )
+
+    # We are currently inferring the site_id from the parent (A-side) Interface
+    # in the .save() method
+    site = models.ForeignKey(
+        Site, db_index=True, related_name='circuits', on_delete=models.PROTECT,
+        help_text='Unique ID of the Site this Circuit is under.'
+    )
+
+    name = models.CharField(
+        max_length=255, unique=True, default='',
+        help_text=(
+            'Unique display name of the Circuit. If not provided, defaults to '
+            "'{device_a}:{interface_a}_{device_z}:{interface_z}'"
+        )
+    )
+
+    # This doesn't use the built-in SlugField since we're doing our own
+    # slugification (django.utils.text.slugify() is too agressive)
+    name_slug = models.CharField(
+        db_index=True,
+        editable=False,
+        max_length=255,
+        null=True,
+        unique=True,
+        help_text=(
+            'Slugified version of the name field, used for the natural key'
+        )
+    )
+
+    def __unicode__(self):
+        return u'%s' % self.name
+
+    class Meta:
+        # TODO(jathan): Benchmark queries on a large database to identify
+        # whether we need explicit indices for this model. In my initial
+        # testing all of the common lookup fields are already indexed so this
+        # may not be necessary.
+        '''
+        index_together = [
+            ('endpoint_a', 'endpoint_z'),
+            ('site', 'name_slug'),
+        ]
+        '''
+
+    @property
+    def interfaces(self):
+        """Return interfaces associated with this circuit."""
+        intf_list = [self.endpoint_a, self.endpoint_z]
+        return [i for i in intf_list if i is not None]
+
+    @property
+    def addresses(self):
+        """Return addresses associated with this circuit."""
+        addresses = [a for i in self.interfaces for a in i.addresses.all()]
+        return addresses
+
+    @property
+    def devices(self):
+        """Return devices associated with this circuit."""
+        return [i.device for i in self.interfaces]
+
+    def clean_site(self, value):
+        """Always enforce that site is set."""
+        if value is None:
+            return self.endpoint_a.site_id
+
+        return value
+
+    def clean_endpoint_a(self, value):
+        if Circuit.objects.filter(endpoint_z=value).exists():
+            raise exc.ValidationError({
+                'endpoint_a': 'Interface already used as an endpoint_z'
+            })
+
+        return self.endpoint_a
+
+    def clean_endpoint_z(self, value):
+        if Circuit.objects.filter(endpoint_a=value).exists():
+            raise exc.ValidationError({
+                'endpoint_z': 'Interface already used as an endpoint_a'
+            })
+
+        return self.endpoint_z
+
+    def clean_name(self, value):
+        if value:
+            return value
+
+        # Add display name of hostname:intf_hostname:intf
+        name = '{}_{}'.format(self.endpoint_a, self.endpoint_z)
+        return name
+
+    def clean_fields(self, exclude=None):
+        self.site_id = self.clean_site(self.site_id)
+        self.endpoint_a = self.clean_endpoint_a(self.endpoint_a_id)
+        self.endpoint_z = self.clean_endpoint_z(self.endpoint_z_id)
+        self.name = self.clean_name(self.name)
+
+        self.name_slug = slugify(self.name)
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super(Circuit, self).save(*args, **kwargs)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'name_slug': self.name_slug,
+            'endpoint_a': self.endpoint_a_id,
+            'endpoint_z': self.endpoint_z_id,
             'attributes': self.get_attributes(),
         }
 
@@ -1519,7 +1696,7 @@ class Assignment(models.Model):
         return {
             'id': self.id,
             'device': self.interface.device.id,
-            'hostname': self.interface.device.hostname,
+            'hostname': self.interface.device_hostname,
             'interface': self.interface.id,
             'interface_name': self.interface.name,
             'address': self.address.cidr,
@@ -2060,6 +2237,12 @@ def change_api_updated_at(sender=None, instance=None, *args, **kwargs):
     djcache.set('api_updated_at_timestamp', timezone.now())
 
 
+def update_device_interfaces(sender, instance, **kwargs):
+    """Anytime a device is saved, update device_hostname on its interfaces"""
+    interfaces = Interface.objects.filter(device=instance)
+    interfaces.update(device_hostname=instance.hostname)
+
+
 # Register signals
 resource_subclasses = Resource.__subclasses__()
 for model_class in resource_subclasses:
@@ -2079,4 +2262,8 @@ models.signals.post_save.connect(
 models.signals.post_delete.connect(
     change_api_updated_at, sender=Interface,
     dispatch_uid='invalidate_cache_post_delete_interface'
+)
+models.signals.post_save.connect(
+    update_device_interfaces, sender=Device,
+    dispatch_uid='update_interface_post_save_device'
 )

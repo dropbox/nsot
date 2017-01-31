@@ -21,7 +21,7 @@ _TRUTHY = set([
 __all__ = (
     'qpbool', 'normalize_auth_header', 'generate_secret_key', 'get_field_attr',
     'SetQuery', 'parse_set_query', 'generate_settings', 'initialize_app',
-    'main', 'cidr_to_dict'
+    'main', 'cidr_to_dict', 'slugify'
 )
 
 
@@ -88,6 +88,32 @@ def cidr_to_dict(cidr):
         'network_address': cidr.network_address,
         'prefix_length': cidr.prefixlen,
     }
+
+
+def slugify(s):
+    """
+    Slugify a string.
+
+    This works in a less-agressive manner than Django's slugify, which simply
+    drops most drops most non-alphanumeric characters and lowercases the entire
+    string. It would likely to cause uniqueness conflicts for things like
+    interface names, such as Eth1/2/3 and Eth12/3, which would slugify to be
+    the same.
+
+    >>> slugify('switch-foo01:Ethernet1/2')
+    'switch-foo01:Ethernet1_2'
+
+    :param s:
+        String to slugify
+    """
+
+    disallowed_chars = ['/']
+    replacement = '_'
+
+    for char in disallowed_chars:
+        s = s.replace(char, replacement)
+
+    return s
 
 
 #: Namedtuple for resultant items from ``parse_set_query()``

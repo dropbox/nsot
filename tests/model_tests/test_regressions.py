@@ -84,3 +84,40 @@ def test_next_network_bug_issues_224(site):
     next_31 = parent.get_next_network(prefix_length=31)
 
     assert next_31 == expected
+
+
+def test_next_network_bug_issues_247(site):
+    """
+    Test for a bug where Network.get_next-network() returns an address that is
+    in the assigned state, but not any that are in the allocated state
+
+    Ref: https://github.com/dropbox/nsot/issues/247
+    """
+
+    objects = load_json('model_tests/data/networks.json')
+    [models.Network.objects.create(site=site, **n) for n in objects]
+
+    parent = models.Network.objects.get_by_address('10.20.0.0/16')
+
+    # Create some /32s to push our expected /32 up
+    for i in range(1, 5):
+        models.Network.objects.create(
+            site=site,
+            cidr='10.20.0.{}/32'.format(i),
+            state=models.Network.ASSIGNED
+        )
+
+    expected_32 = [ipaddress.ip_network('10.20.0.5/32')]
+    next_32 = parent.get_next_network(prefix_length=32)
+
+    assert next_32 == expected_32
+
+    expected_31 = [ipaddress.ip_network('10.20.0.6/31')]
+    next_31 = parent.get_next_network(prefix_length=31)
+
+    assert next_31 == expected_31
+
+    expected_24 = [ipaddress.ip_network('10.20.30.0/24')]
+    next_24 = parent.get_next_network(prefix_length=24)
+
+    assert next_24 == expected_24

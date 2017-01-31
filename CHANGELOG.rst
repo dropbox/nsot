@@ -5,6 +5,95 @@ Changelog
 Version History
 ===============
 
+.. _v1.1.1:
+
+1.1 (2017-01-27)
+----------------
+
+* Add `name_slug` field to Circuit, make it the natural key to fix a bug with
+  Circuit names that contain slashes
+
+.. _v1.1:
+
+1.1 (2017-01-23)
+----------------
+
+* A formal :ref:`deprecation-policy` has been implemented which dictates a
+  three-feature release cycle for removing deprecated API endpoints. Please see
+  the documentation on this topic for more details.
+* Fix #203 - Implementation of Circuits as a resource object.
+
+  + A Circuit has one-to-one relationship with each of A and Z side
+    endpoint Interfaces.
+  + Circuits are resource objects and therefore may have attributes and
+    support set query lookups.
+  + A circuit must have at least an A-side endpoint defined. For circuits for
+    which you do not own the remote end, you may leave the Z-side empty and
+    specify the remote endpoint by customizing the circuit name.
+
+* Circuits have the following detail routes available in the API:
+
+  + ``circuits/:id/devices/`` - List peer devices on either end of circuit
+  + ``circuits/:id/interfaces/`` - List interfaces bound to the circuit
+  + ``circuits/:id/addresses/`` - List addresses bound to circuit interfaces
+
+* Interfaces have a new ``interfaces/:id/circuit/`` detail route that will
+  display the circuit to which an interface is bound.
+* Devices have a new ``devices/:id/circuits/`` detail route that will
+  display all circuits bound to interfaces on the device.
+* Fix #191 - The Interface object unicode representation changed to
+  ``device_hostname:name`` so that it can more easily be used as a slug for
+  computing Circuit slug.
+* Fix #230 - The misspelled ``networks/:id/descendents/`` API endpoint is
+  pending deprecation in exchange for ``networks/:id/descendants/``.
+
+.. _v1.0.13:
+
+1.0.13 (2017-01-12)
+-------------------
+
+* Provides the ability to more efficiently access the device hostname
+  associated with an interface, using the cached ``device_hostname`` field.
+* Provides the ability access interface objects by natural key of
+  ``device_hostname:name``.
+  Ex. ``foo-bar1:eth1``
+
+.. _v1.0.12:
+
+1.0.12 (2017-01-12)
+-------------------
+
+* Fix #252 - Fixes bug in ``get_next_network`` for assigned networks of
+	different prefix lengths
+
+.. _v1.0.11:
+
+1.0.11 (2017-01-10)
+-------------------
+
+* Fix #250 - Improves treatment of ``get_next_network`` and assigned state
+* Fix #238 - Update to Docker instructions
+* Fix #219 - Better handling of attempts to create objects in non-existent sites
+* Moved Vagrantfile to root of repo
+
+.. _v1.0.10:
+
+1.0.10 (2016-12-05)
+-------------------
+
+* Fix for handling IPAddress defaults in migrations, to avoid attempting
+  validation of a NULL default.
+
+.. _v1.0.9:
+
+1.0.9 (2016-11-23)
+------------------
+
+* Added missing database migrations related to having changed or added the
+  ``verbose_name`` on a bunch of model fields prior to 1.0 release. No schema
+  changes are actually made in the migration. This is being released so that
+  some pending pull requests can be merged in more cleanly.
+
 .. _v1.0.8:
 
 1.0.8 (2016-10-24)
