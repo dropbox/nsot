@@ -10,8 +10,9 @@ Version History
 1.1.2 (2017-01-25)
 -------------------
 
-* Reimplements ``get_next_network`` method
-* ``get_next_network`` method now does strict allocation 
+* Reimplements the ``get_next_network`` method
+* ``get_next_network`` now optionally returns networks 
+  that can be strictly allocated
 
 .. _v1.1.1:
 

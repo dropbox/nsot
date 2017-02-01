@@ -823,6 +823,9 @@ class Network(Resource):
 
         :param as_objects:
             Whether to return IPNetwork objects or strings
+        
+        :param strict:
+            Whether to return networks for strict allocation
 
         :returns:
             list(IPNetwork)
