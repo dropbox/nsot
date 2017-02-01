@@ -874,13 +874,22 @@ class Network(Resource):
         exclude_nums = {}
         
         network_prefix = cidr.network_address 
-        # get all numbers formed by bits in child network address
-        # that do not exist in parent network address
+
+        # get integer value of network address of parent network 
+        # shifted (cidr.max_prefixlen - prefix_length) bits to the right
         a = int(network_prefix) >> (cidr.max_prefixlen - prefix_length)
         for c in children:
+            # for each child get integer value of network address shifted
+            # (cidr.max_prefixlen - prefix_length) bits to the right
             b = int(c.network_address) >> (cidr.max_prefixlen - prefix_length)
+            # get xor of parent network address and child network address
+            # this gets rid of the parent network address bits
             d = a ^ b
+            # store the child's prefix length in excluded_nums with the 
+            # variable d as the key
             if d in exclude_nums:
+                # if two children share the same key, then 
+                # store the shortest prefix length
                 if c.prefixlen < exclude_nums[d]:
                     exclude_nums[d] = c.prefixlen
             else:
