@@ -876,7 +876,12 @@ class Network(Resource):
         a = int(network_prefix) >> (cidr.max_prefixlen - prefix_length)
         for c in children:
             b = int(c.network_address) >> (cidr.max_prefixlen - prefix_length)
-            exclude_nums[a ^ b] = c.prefixlen
+            d = a ^ b
+            if d in exclude_nums:
+                if c.prefixlen < exclude_nums[d]:
+                    exclude_nums[d] = c.prefixlen
+            else:
+                exclude_nums[d] = c.prefixlen
 
         wanted = []
 
