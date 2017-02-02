@@ -352,3 +352,28 @@ def test_reservation(site):
 
     addresses = [u'192.168.3.1/32', u'192.168.3.2/32', u'192.168.3.3/32']
     assert reserved.get_next_address(num=3, as_objects=False) == addresses
+
+
+def test_strict_allocation_1(site):
+    parent = models.Network.objects.create(site = site, cidr = u'10.1.2.0/24')
+    child = models.Network.objects.create(site = site, cidr = u'10.1.2.0/25')
+    expected = [ipaddress.ip_network(u'10.1.2.128/32')]
+    assert parent.get_next_network(32, strict = True) == expected
+
+
+def test_strict_allocation_2(site):
+    parent = models.Network.objects.create(site = site, cidr = u'10.2.1.0/24')
+    c1 = models.Network.objects.create(site = site, cidr = u'10.2.1.128/27')
+    c2 = models.Network.objects.create(site = site, cidr = u'10.2.1.64/27')
+    c3 = models.Network.objects.create(site = site, cidr = u'10.2.1.96/27')
+    c4 = models.Network.objects.create(site = site, cidr = u'10.2.1.0/25')
+    expected = [u'10.2.1.160/28', u'10.2.1.176/28', u'10.2.1.192/28', u'10.2.1.208/28']
+    expected = [ipaddress.ip_network(n) for n in expected]
+    assert parent.get_next_network(28, num = 4, strict = True) == expected
+
+
+def test_strict_allocation_3(site):
+    parent = models.Network.objects.create(site = site, cidr = u'2001:db8:abcd:0012::0/96')
+    child = models.Network.objects.create(site = site, cidr = u'2001:db8:abcd:0012::0/97')
+    expected = [ipaddress.ip_network(u'2001:db8:abcd:12::8000:0/128')]
+    assert parent.get_next_network(128, strict = True) == expected 

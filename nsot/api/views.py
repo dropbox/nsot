@@ -503,9 +503,10 @@ class NetworkViewSet(ResourceViewSet):
         params = request.query_params
         prefix_length = params.get('prefix_length')
         num = params.get('num')
-
+        strict = params.get('strict_allocation', default=False)
+        strict = True if strict == u'True' else False
         networks = network.get_next_network(
-            prefix_length, num, as_objects=False
+            prefix_length, num, strict, as_objects=False
         )
 
         return self.success(networks)
@@ -516,7 +517,9 @@ class NetworkViewSet(ResourceViewSet):
         network = self.get_resource_object(pk, site_pk)
 
         num = request.query_params.get('num')
-        addresses = network.get_next_address(num, as_objects=False)
+        strict = request.query_params.get('strict_allocation', default=False)
+        strict = True if strict == u'True' else False
+        addresses = network.get_next_address(num, strict, as_objects=False)
 
         return self.success(addresses)
 

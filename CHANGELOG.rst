@@ -5,9 +5,18 @@ Changelog
 Version History
 ===============
 
+.. _v1.1.2:
+
+1.1.2 (2017-01-25)
+-------------------
+
+* Reimplements the ``get_next_network`` method
+* ``get_next_network`` now optionally returns networks 
+  that can be strictly allocated
+
 .. _v1.1.1:
 
-1.1 (2017-01-27)
+1.1.1 (2017-01-27)
 ----------------
 
 * Add `name_slug` field to Circuit, make it the natural key to fix a bug with
