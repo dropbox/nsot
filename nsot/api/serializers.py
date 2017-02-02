@@ -536,6 +536,7 @@ class ItervalueSerializer(ResourceSerializer):
     """Used for GET, DELETE on Itervalues."""
     class Meta:
         model = models.Itervalue
+        fields = '__all__'
 
 
 class ItervalueCreateSerializer(ItervalueSerializer):
