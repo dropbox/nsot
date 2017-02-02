@@ -497,7 +497,7 @@ class IterableSerializer(NsotSerializer):
     """Used for GET, DELETE on Iterables."""
     class Meta:
         model = models.Iterable
-
+        fields = '__all__'
 
 class IterableCreateSerializer(IterableSerializer):
     """Used for POST on Iterables."""
