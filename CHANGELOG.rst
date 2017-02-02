@@ -10,9 +10,12 @@ Version History
 1.1.2 (2017-01-25)
 -------------------
 
-* Reimplements the ``get_next_network`` method
-* ``get_next_network`` now optionally returns networks 
-  that can be strictly allocated
+* Reimplements the ``Network.get_next_network`` method
+* ``Network.get_next_network`` now optionally returns networks that can be
+  strictly allocated by passing the ``strict_allocation=True`` paremeter.
+* Fixed a minor bug in ``/api/:resource/:id/query/`` API endpoints where 
+  ``unique`` would always evaluate to ``True`` if present in the query
+  parameters.
 
 .. _v1.1.1:
 
