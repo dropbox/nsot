@@ -497,7 +497,7 @@ class NetworkViewSet(ResourceViewSet):
 
         return self.list(request, queryset=networks, *args, **kwargs)
 
-    @detail_route(methods=['get'])
+    @detail_route(methods=['get', 'post'])
     def next_network(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return next available networks from this Network."""
         network = self.get_resource_object(pk, site_pk)
@@ -506,13 +506,34 @@ class NetworkViewSet(ResourceViewSet):
         prefix_length = params.get('prefix_length')
         num = params.get('num')
         strict = qpbool(params.get('strict_allocation', False))
-        networks = network.get_next_network(
-            prefix_length, num, strict, as_objects=False
-        )
+        if request.method == 'POST':
+            log.debug('Recieved a post request in next_network')
+            networks = network.get_next_network(
+                prefix_length, num, strict, as_objects=True
+            )
+            for n in networks:
+                is_ip = True if prefix_length == 32 or prefix_length == 128 else False
+                obj = models.Network(network_address=n.network_address,
+                                     broadcast_address=n.broadcast_address,
+                                     prefix_length=prefix_length,
+                                     ip_version=n.version,
+                                     site=models.Site.objects.get(pk=site_pk),
+                                     parent=network,
+                                     state='allocated',
+                                     is_ip=is_ip)
+                obj.save()
+                models.Change.objects.create(
+                   obj=obj, user=self.request.user, event='Create'
+                )
+        else:
+            log.debug('Recieved a get method in next_network')
+            networks = network.get_next_network(
+                prefix_length, num, strict, as_objects=False
+            )
+            return self.success(networks)
+        return self.success([unicode(x) for x in networks])
 
-        return self.success(networks)
-
-    @detail_route(methods=['get'])
+    @detail_route(methods=['get', 'post'])
     def next_address(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return next available IPs from this Network."""
         network = self.get_resource_object(pk, site_pk)
@@ -520,9 +541,25 @@ class NetworkViewSet(ResourceViewSet):
         params = request.query_params
         num = params.get('num')
         strict = qpbool(params.get('strict_allocation', False))
-        addresses = network.get_next_address(num, strict, as_objects=False)
-
-        return self.success(addresses)
+        if request.method == 'POST':
+            addresses = network.get_next_address(num, strict, as_objects=True)
+            for n in addresses:
+                obj = models.Network(network_address=n.network_address,
+                                     broadcast_address=n.broadcast_address,
+                                     prefix_length=32,
+                                     ip_version=n.version,
+                                     site=models.Site.objects.get(pk=site_pk),
+                                     parent=network,
+                                     state='allocated',
+                                     is_ip=True)
+                obj.save()
+                models.Change.objects.create(
+                   obj=obj, user=self.request.user, event='Create'
+                )
+        else:
+            addresses = network.get_next_address(num, strict, as_objects=False)
+            return self.success(addresses)
+        return self.success([unicode(x) for x in addresses])
 
     @detail_route(methods=['get'])
     def ancestors(self, request, pk=None, site_pk=None, *args, **kwargs):
