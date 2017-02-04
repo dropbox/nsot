@@ -668,6 +668,46 @@ def test_get_next_detail_routes(site, client):
     )
 
 
+def test_next_network_allocation(site, client):
+    net_uri = site.list_uri('network')
+
+    client.create(net_uri, cidr='10.1.2.0/24')
+
+    net_24_resp = client.retrieve(net_uri, cidr='10.1.2.0/24')
+    net_24 = get_result(net_24_resp)[0]
+    net_24_obj_uri = site.detail_uri('network', id=net_24['id'])
+
+    uri = reverse('network-next-network', args=(site.id, net_24['id']))
+
+    client.post(uri, params={u'prefix_length': u'32'})
+    assert_success(client.retrieve(uri, prefix_length=32), [u'10.1.2.2/32'])
+
+    client.post(uri, params={u'prefix_length': u'32', u'reserve': u'True'})
+
+    uri = reverse('network-reserved', args=(site.id,))
+    assert get_result(client.retrieve(uri))[0]['network_address'] == u'10.1.2.2'
+
+
+def test_next_address_allocation(site, client):
+    net_uri = site.list_uri('network')
+
+    client.create(net_uri, cidr='10.1.2.0/24')
+
+    net_24_resp = client.retrieve(net_uri, cidr='10.1.2.0/24')
+    net_24 = get_result(net_24_resp)[0]
+    net_24_obj_uri = site.detail_uri('network', id=net_24['id'])
+
+    uri = reverse('network-next-address', args=(site.id, net_24['id']))
+
+    client.post(uri)
+    assert_success(client.retrieve(uri, prefix_length=32), [u'10.1.2.2/32'])
+
+    client.post(uri, params={u'reserve': u'True'})
+
+    uri = reverse('network-reserved', args=(site.id,))
+    assert get_result(client.retrieve(uri))[0]['network_address'] == u'10.1.2.2'
+
+
 def test_reservation_list_route(site, client):
     """Test the list route for getting reserved networks/addresses."""
     net_uri = site.list_uri('network')

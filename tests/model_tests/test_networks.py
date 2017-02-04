@@ -376,4 +376,6 @@ def test_strict_allocation_3(site):
     parent = models.Network.objects.create(site = site, cidr = u'2001:db8:abcd:0012::0/96')
     child = models.Network.objects.create(site = site, cidr = u'2001:db8:abcd:0012::0/97')
     expected = [ipaddress.ip_network(u'2001:db8:abcd:12::8000:0/128')]
-    assert parent.get_next_network(128, strict = True) == expected 
+    assert parent.get_next_network(128, strict = True) == expected
+
+    

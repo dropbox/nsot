@@ -508,18 +508,20 @@ class NetworkViewSet(ResourceViewSet):
         strict = qpbool(params.get('strict_allocation', False))
         if request.method == 'POST':
             log.debug('Recieved a post request in next_network')
+            state = 'reserved' if qpbool(params.get('reserve', False)) else 'allocated'
+            is_ip = True if prefix_length == 32 or prefix_length == 128 else False
             networks = network.get_next_network(
                 prefix_length, num, strict, as_objects=True
             )
+            log.debug('The state requested is %s'%state)
             for n in networks:
-                is_ip = True if prefix_length == 32 or prefix_length == 128 else False
                 obj = models.Network(network_address=n.network_address,
                                      broadcast_address=n.broadcast_address,
                                      prefix_length=prefix_length,
                                      ip_version=n.version,
                                      site=models.Site.objects.get(pk=site_pk),
                                      parent=network,
-                                     state='allocated',
+                                     state=state,
                                      is_ip=is_ip)
                 obj.save()
                 models.Change.objects.create(
@@ -543,14 +545,17 @@ class NetworkViewSet(ResourceViewSet):
         strict = qpbool(params.get('strict_allocation', False))
         if request.method == 'POST':
             addresses = network.get_next_address(num, strict, as_objects=True)
+            state = 'reserved' if qpbool(params.get('reserve', False)) else 'allocated'
+            log.debug('The state requested is %s'%state)
             for n in addresses:
+                prefix_length = 32 if n.version == 4 else 128
                 obj = models.Network(network_address=n.network_address,
                                      broadcast_address=n.broadcast_address,
-                                     prefix_length=32,
+                                     prefix_length=prefix_length,
                                      ip_version=n.version,
                                      site=models.Site.objects.get(pk=site_pk),
                                      parent=network,
-                                     state='allocated',
+                                     state=state,
                                      is_ip=True)
                 obj.save()
                 models.Change.objects.create(
