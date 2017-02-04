@@ -831,6 +831,8 @@ class Network(Resource):
         """
         start_time = time.time()  # For debugging
 
+        log.debug('Allocation type is %s'% ('strict' if strict else 'loose'))        
+
         # If we're reserved, automatically ZILCH!!
         # TODO(jathan): Should we raise an error instead?
         if self.state == Network.RESERVED:
