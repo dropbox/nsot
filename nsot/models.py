@@ -719,7 +719,7 @@ class Network(Resource):
         choices=IP_VERSION_CHOICES
     )
     is_ip = models.BooleanField(
-        null=False, default=False, db_index=True,
+        null=False, default=False, db_index=True, editable=False,
         help_text='Whether the Network is a host address or not.'
     )
     site = models.ForeignKey(
@@ -830,8 +830,6 @@ class Network(Resource):
             list(IPNetwork)
         """
         start_time = time.time()  # For debugging
-
-        log.debug('Allocation type is %s'% ('strict' if strict else 'loose'))        
 
         # If we're reserved, automatically ZILCH!!
         # TODO(jathan): Should we raise an error instead?
