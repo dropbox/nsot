@@ -426,6 +426,23 @@ class NetworkViewSet(ResourceViewSet):
     lookup_value_regex = '[a-fA-F0-9:.]+(?:\/\d+)?'
     natural_key = 'cidr'
 
+    def allocate_networks(self, networks, prefix_length, site_pk, parent, state='allocated'):
+        site = models.Site.objects.get(pk=site_pk)
+        for n in networks:
+            obj = models.Network(
+                network_address=n.network_address,
+                broadcast_address=n.broadcast_address,
+                prefix_length=prefix_length,
+                ip_version=n.version,
+                site=site,
+                parent=parent,
+                state=state
+            )
+            obj.save()
+            models.Change.objects.create(
+               obj=obj, user=self.request.user, event='Create'
+            )
+
     def get_serializer_class(self):
         if self.request.method == 'POST':
             return serializers.NetworkCreateSerializer
@@ -501,69 +518,40 @@ class NetworkViewSet(ResourceViewSet):
     def next_network(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return next available networks from this Network."""
         network = self.get_resource_object(pk, site_pk)
-
         params = request.query_params
         prefix_length = params.get('prefix_length')
         num = params.get('num')
         strict = qpbool(params.get('strict_allocation', False))
+        networks = network.get_next_network(
+            prefix_length, num, strict, as_objects=True
+        )
         if request.method == 'POST':
-            log.debug('Recieved a post request in next_network')
-            state = 'reserved' if qpbool(params.get('reserve', False)) else 'allocated'
-            is_ip = True if prefix_length == 32 or prefix_length == 128 else False
-            networks = network.get_next_network(
-                prefix_length, num, strict, as_objects=True
-            )
-            log.debug('The state requested is %s'%state)
-            for n in networks:
-                obj = models.Network(network_address=n.network_address,
-                                     broadcast_address=n.broadcast_address,
-                                     prefix_length=prefix_length,
-                                     ip_version=n.version,
-                                     site=models.Site.objects.get(pk=site_pk),
-                                     parent=network,
-                                     state=state,
-                                     is_ip=is_ip)
-                obj.save()
-                models.Change.objects.create(
-                   obj=obj, user=self.request.user, event='Create'
-                )
-        else:
-            log.debug('Recieved a get method in next_network')
-            networks = network.get_next_network(
-                prefix_length, num, strict, as_objects=False
-            )
-            return self.success(networks)
+            if qpbool(params.get('reserve', False)):
+                state = models.Network.RESERVED
+            else:
+                state = models.Network.ALLOCATED
+            self.allocate_networks(networks, prefix_length, site_pk, network, state=state)
         return self.success([unicode(x) for x in networks])
 
     @detail_route(methods=['get', 'post'])
     def next_address(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return next available IPs from this Network."""
         network = self.get_resource_object(pk, site_pk)
-
         params = request.query_params
         num = params.get('num')
         strict = qpbool(params.get('strict_allocation', False))
+        addresses = network.get_next_address(num, strict, as_objects=True)
         if request.method == 'POST':
-            addresses = network.get_next_address(num, strict, as_objects=True)
-            state = 'reserved' if qpbool(params.get('reserve', False)) else 'allocated'
-            log.debug('The state requested is %s'%state)
-            for n in addresses:
-                prefix_length = 32 if n.version == 4 else 128
-                obj = models.Network(network_address=n.network_address,
-                                     broadcast_address=n.broadcast_address,
-                                     prefix_length=prefix_length,
-                                     ip_version=n.version,
-                                     site=models.Site.objects.get(pk=site_pk),
-                                     parent=network,
-                                     state=state,
-                                     is_ip=True)
-                obj.save()
-                models.Change.objects.create(
-                   obj=obj, user=self.request.user, event='Create'
-                )
-        else:
-            addresses = network.get_next_address(num, strict, as_objects=False)
-            return self.success(addresses)
+            if qpbool(params.get('reserve', False)):
+                state = models.Network.RESERVED
+            else:
+                state = models.Network.ALLOCATED
+            if addresses != []:
+                if addresses[0].version == 4:
+                    prefix_length = 32
+                else:
+                    prefix_length = 128
+                self.allocate_networks(addresses, prefix_length, site_pk, network, state=state)
         return self.success([unicode(x) for x in addresses])
 
     @detail_route(methods=['get'])
