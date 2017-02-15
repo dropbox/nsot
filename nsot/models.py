@@ -2118,9 +2118,8 @@ class Iterable(models.Model):
     name = models.CharField(
         max_length=255, unique=True, help_text='The name of the Iterable.'
     )
-    description = models.TextField(
-        default='', blank=True, help_text='A helpful description for the Iterable.'
-    )
+    description = models.TextField(default='', blank=True, \
+    help_text='A helpful description for the Iterable')
     min_val = models.PositiveIntegerField(
         default=1, help_text='The minimum value of the Iterable.'
     )
@@ -2137,13 +2136,19 @@ class Iterable(models.Model):
     )
 
     def __unicode__(self):
-        return u'name=%s, min=%s, max=%s, increment=%s' % (self.name, self.min_val, self.max_val, self.increment ) 
+        return u'name=%s, min=%s, max=%s, increment=%s' % (self.name,
+                                                           self.min_val,
+                                                           self.max_val,
+                                                           self.increment
+        ) 
     
     def get_next_value(self):
         "Get the next value of the iterable"
         try:
-            " First try to generate the next value based on the current allocation"
-            curr_val = Itervalue.objects.filter(iterable=self.id).order_by('-value').values_list('value', flat=True)[0]
+            "First try to generate the next value based on the current \
+        allocation"
+            curr_val = Itervalue.objects.filter(iterable=self.id). \
+            order_by('-value').values_list('value', flat=True)[0]
             incr = self.increment
             next_val = curr_val + incr
             try:
@@ -2160,14 +2165,14 @@ class Iterable(models.Model):
                     'next_val': 'Out of range'
                 })
         except IndexError:
-            "Index Error implies that the table has not been intialized - so assign the first value"
+            "Index Error implies that the table has not been \
+                intialized - so assign the first value"
             return [self.min_val]
 
     def clean_fields(self, exclude=None):
         if not  self.increment <= self.max_val:
-            raise exc.ValidationError({
-                'increment': 'Increment should be less than the max value for it to be useable'
-                })
+            raise exc.ValidationError({ 'increment': 'Increment should \
+            be less than the max value for it to be useable' })
 
     def save(self, *args, **kwargs):
         self.full_clean()
@@ -2187,16 +2192,20 @@ class Iterable(models.Model):
 
 class Itervalue(Resource):
     """Value table for the generic iterable defined above"""
+    '''value = contains the value getnext = returns the next iterated
+    value for this particular Iterable This table uses the attribute:
+    The intention of attribute here is to associate a "service key"
+    that will keep track of the (potentially multiple iterable) values
+    associated with a particular automation instance (e.g an ansible
+    playbook that needs next available vlan numbers, portchannel
+    numbers etc). We can then use this service key to perform CRUD
+    operations on those values (in other words on the invocation
+    instance of the automation service/playbook) iterable = Foreign
+    key that ties the Iterable with the value
+
     '''
-    value = contains the value
-        getnext = returns the next iterated value for this particular Iterable
-    This table uses the attribute:
-        The intention of attribute here is to associate a "service key" that will keep track of the (potentially multiple iterable) values associated with 
-        a particular automation instance (e.g an ansible playbook that needs next available vlan numbers, portchannel numbers etc). We can then use this service key
-        to perform CRUD operations on those values (in other words on the invocation instance of the automation service/playbook)
-    iterable = Foreign key that ties the Iterable with the value
-    '''
-    iterable = models.ForeignKey(Iterable, on_delete=models.PROTECT, related_name='itervalue')
+    iterable = models.ForeignKey(Iterable, on_delete=models.PROTECT,
+                                 related_name='itervalue')
 
     value = models.IntegerField(
         default=1, help_text='The value of the iterable.'
