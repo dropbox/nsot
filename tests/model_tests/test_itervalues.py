@@ -57,14 +57,11 @@ def test_creation(site):
     with pytest.raises(exc.ValidationError):
         itrv1.set_attributes({'made_up': 'value'})
 
-
-
-
 def test_getnext(site):
     itr = models.Iterable.objects.create(
         name='test-vlan',
         description='test vlan for testing',
-        min_val = 50,
+        min_val = 5,
         max_val = 70,
         increment = 2,
         site = site
@@ -107,16 +104,16 @@ def test_getnext(site):
         site=site
     )
 
-    assert itr.get_next_value()[0] == 54
-    assert itrv2.value == 52
+    assert itr.get_next_value()[0] == 9
+    assert itrv2.value == 7
     assert itrv4.value == 1300
 
 def test_retrive(site):
     itr = models.Iterable.objects.create(
         name='test-vlan',
         description='test vlan for testing',
-        min_val = 50,
-        max_val = 70,
+        min_val = 150,
+        max_val = 170,
         increment = 2,
         site = site
     )
@@ -170,8 +167,8 @@ def test_save(site):
     itr = models.Iterable.objects.create(
         name='test-vlan',
         description='test vlan for testing',
-        min_val = 50,
-        max_val = 70,
+        min_val = 22,
+        max_val = 99,
         increment = 2,
         site = site
     )
@@ -181,13 +178,13 @@ def test_save(site):
         resource_name='Itervalue', name='service_key'
     )
 
-    itrv1 = models.Itervalue.objects.create(
+    itrvX = models.Itervalue.objects.create(
         value = itr.get_next_value()[0],
-        attributes={'service_key': 'skey_custB_02'},
+        attributes={'service_key': 'skey_custX_01'},
         iterable=itr,
         site=site
     )
-    itrv1.save()
+    itrvX.save()
 
 def test_delete(site):
     "Delete all rows in Itervalues given the service identifier criteria"
@@ -213,6 +210,43 @@ def test_delete(site):
     )
     site.itervalue.by_attribute('service_key', 'skey_custB_02').delete()
 
+def test_duplicate_values(site):
+    "Test that duplicate itervalues cannot exist"
+    itr = models.Iterable.objects.create(
+        name='test-vlan',
+        description='test vlan for testing',
+        min_val = 500,
+        max_val = 700,
+        increment = 2,
+        site = site
+    )
+    #Create the Attribute
+    models.Attribute.objects.create(
+        site=site,
+        resource_name='Itervalue', name='service_key'
+    )
+
+    itrv1 = models.Itervalue.objects.create(
+        value = itr.get_next_value()[0], #This should assign the value 50
+        attributes={'service_key': 'skey_custA_01'},
+        iterable=itr,
+        site=site
+
+    )
+    itrv1.save()
+
+    itrv2 = models.Itervalue.objects.create(
+        value = 500, #Try to manually assign duplicate value
+        attributes={'service_key': 'skey_custA_02'},
+        iterable=itr,
+        site=site
+    )
+    with pytest.raises(exc.ValidationError):
+        itrv2.save() #The model should catch the dupe and raise an E
+
+    site.itervalue.by_attribute('service_key', 'skey_custA_01').delete()
+
+
 
 def test_protected_delete(site):
     "Delete all rows in Itervalues given the service identifier criteria"
@@ -232,7 +266,7 @@ def test_protected_delete(site):
         increment = 100,
         site = site
     )
-    
+
     #Create the Attribute
     models.Attribute.objects.create(
         site=site,
@@ -270,4 +304,3 @@ def test_protected_delete(site):
     )
     with pytest.raises(exc.ProtectedError):
         models.Iterable.objects.all().delete()
-

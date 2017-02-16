@@ -40,7 +40,7 @@ CHANGE_EVENTS = ('Create', 'Update', 'Delete')
 
 VALID_CHANGE_RESOURCES = set(RESOURCE_BY_IDX)
 VALID_ATTRIBUTE_RESOURCES = set([
-    'Network', 'Device', 'Interface', 'Circuit', 'Itervalue' 
+    'Network', 'Device', 'Interface', 'Circuit', 'Itervalue'
 ])
 
 # Lists of 2-tuples of (value, option) for displaying choices in certain model
@@ -2086,7 +2086,7 @@ class Change(models.Model):
         serializer_class = self.get_serializer_for_resource(self.resource_name)
         serializer = serializer_class(obj)
         self._resource = serializer.data
-        
+
     def save(self, *args, **kwargs):
         self.full_clean()  # First validate fields are correct
         super(Change, self).save(*args, **kwargs)
@@ -2140,8 +2140,8 @@ class Iterable(models.Model):
                                                            self.min_val,
                                                            self.max_val,
                                                            self.increment
-        ) 
-    
+        )
+
     def get_next_value(self):
         "Get the next value of the iterable"
         try:
@@ -2192,9 +2192,13 @@ class Iterable(models.Model):
 
 class Itervalue(Resource):
     """Value table for the generic iterable defined above"""
-    '''value = contains the value getnext = returns the next iterated
-    value for this particular Iterable This table uses the attribute:
-    The intention of attribute here is to associate a "service key"
+    '''
+    value = contains the value
+    getnext = returns the next iterated value for this particular
+    Iterable.
+    This table uses the attribute.
+    The intention of attribute here is to potentially associate a
+    "service key" (or any other KV pairs),
     that will keep track of the (potentially multiple iterable) values
     associated with a particular automation instance (e.g an ansible
     playbook that needs next available vlan numbers, portchannel
@@ -2202,7 +2206,6 @@ class Itervalue(Resource):
     operations on those values (in other words on the invocation
     instance of the automation service/playbook) iterable = Foreign
     key that ties the Iterable with the value
-
     '''
     iterable = models.ForeignKey(Iterable, on_delete=models.PROTECT,
                                  related_name='itervalue')
@@ -2221,10 +2224,22 @@ class Itervalue(Resource):
     )
 
     class Meta:
+        """Itervalue Meta class"""
         verbose_name = "itervalue"
-       
+
     def __unicode__(self):
-        return u'value=%s,  iterable=%s' % (self.value,  self.iterable.name) 
+        return u'value=%s,  iterable=%s' % (self.value,  self.iterable.name)
+
+    def clean_fields(self, exclude=None):
+        query = Itervalue.objects.all()
+        dupe = query.filter(iterable=self.iterable,
+                            value = self.value)
+        if len(dupe) > 1: #dupe will have more than 1 element if
+            #duplicate exists
+            raise exc.ValidationError({'duplicate': 'Itervalue already exists'})
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super(Itervalue, self).save(*args, **kwargs)
 
     def to_dict(self):
         return {
