@@ -1239,7 +1239,7 @@ class Interface(Resource):
     )
 
     parent = fields.ChainedForeignKey(
-        'nsot.Interface', blank=True, null=True, related_name='children',
+        'self', blank=True, null=True, related_name='children',
         default=None, db_index=True, on_delete=models.PROTECT,
         chained_field='device', chained_model_field='device',
         verbose_name='Parent', help_text='Unique ID of the parent Interface.',
@@ -1396,8 +1396,43 @@ class Interface(Resource):
 
         self.clean_addresses()
 
+    def get_ancestors(self):
+        """Recursively get all parents of an interface"""
+        p = self.parent
+        ancestors = []
+        while p is not None:
+            ancestors.append(p)
+            p = p.parent
+        return ancestors
+
+    def get_children(self):
+        """Return the immediate children of an interface"""
+        return Interface.objects.filter(parent=self)
+
+    def get_descendants(self):
+        """Recursively return all the children of an interface"""
+        s = list(self.get_children())
+        children = []
+        while len(s) > 0:
+            top = s.pop()
+            children.append(top)
+            for c in top.get_children():
+                s.append(c)
+        return children
+
+    def get_root(self):
+        """Return the parent of all ancestors of an interface"""
+        root = self.parent
+        while root is not None and root.parent is not None:
+            root = root.parent
+        return [] if root is None else [root]
+
+    def get_siblings(self):
+        """Return the interfaces with same parent as an interface"""
+        return list(Interface.objects.filter(parent=self.parent).exclude(id=self.id))
+
     def get_assignments(self):
-        """Return a list of informatoin about my assigned addresses."""
+        """Return a list of information about my assigned addresses."""
         return [a.to_dict() for a in self.assignments.all()]
 
     def get_addresses(self):

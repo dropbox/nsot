@@ -689,6 +689,40 @@ class InterfaceViewSet(ResourceViewSet):
         return self.list(request, queryset=interface.networks, *args, **kwargs)
 
     @detail_route(methods=['get'])
+    def parent(self, request, pk=None, site_pk=None, *args, **kwargs):
+        """Return parent of interface"""
+        interface = self.get_resource_object(pk, site_pk)
+        parent = [] if interface.parent is None else [interface.parent]
+
+        return self.list(request, queryset=parent, *args, **kwargs)
+
+    @detail_route(methods=['get'])
+    def ancestors(self, request, pk=None, site_pk=None, *args, **kwargs):
+        """Return all ancestors of interface"""
+        interface = self.get_resource_object(pk, site_pk)
+        return self.list(request, queryset=interface.get_ancestors(), *args, **kwargs)
+
+    @detail_route(methods=['get'])
+    def children(self, request, pk=None, site_pk=None, *args, **kwargs):
+        interface = self.get_resource_object(pk, site_pk)
+        return self.list(request, queryset=interface.get_children(), *args, **kwargs)
+
+    @detail_route(methods=['get'])
+    def descendants(self, request, pk=None, site_pk=None, *args, **kwargs):
+        interface = self.get_resource_object(pk, site_pk)
+        return self.list(request, queryset=interface.get_descendants(), *args, **kwargs)
+
+    @detail_route(methods=['get'])
+    def siblings(self, request, pk=None, site_pk=None, *args, **kwargs):
+        interface = self.get_resource_object(pk, site_pk)
+        return self.list(request, queryset=interface.get_siblings(), *args, **kwargs)
+
+    @detail_route(methods=['get'])
+    def root(self, request, pk=None, site_pk=None, *args, **kwargs):
+        interface = self.get_resource_object(pk, site_pk)
+        return self.list(request, queryset=interface.get_root(), *args, **kwargs)
+
+    @detail_route(methods=['get'])
     def circuit(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return the Circuit I am associated with"""
         interface = self.get_resource_object(pk, site_pk)
