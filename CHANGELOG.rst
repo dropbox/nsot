@@ -5,9 +5,32 @@ Changelog
 Version History
 ===============
 
+.. _v1.1.3:
+
+1.1.3 (2017-02-03)
+-------------------
+
+* Bump ``django-smart-selects`` to version 1.3.x
+  * Fixes a regression that was introduced in version 1.2.9 when an XSS bug
+    was fixed
+* Change ``requirements.txt`` to use Compatible Release version specifiers and
+  track patch-level updates on all of our dependencies
+
+.. _v1.1.2:
+
+1.1.2 (2017-01-25)
+-------------------
+
+* Reimplements the ``Network.get_next_network`` method
+* ``Network.get_next_network`` now optionally returns networks that can be
+  strictly allocated by passing the ``strict_allocation=True`` paremeter.
+* Fixed a minor bug in ``/api/:resource/:id/query/`` API endpoints where
+  ``unique`` would always evaluate to ``True`` if present in the query
+  parameters.
+
 .. _v1.1.1:
 
-1.1 (2017-01-27)
+1.1.1 (2017-01-27)
 ----------------
 
 * Add `name_slug` field to Circuit, make it the natural key to fix a bug with

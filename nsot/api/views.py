@@ -333,7 +333,7 @@ class ResourceViewSet(NsotBulkUpdateModelMixin, NsotViewSet,
     def query(self, request, site_pk=None, *args, **kwargs):
         """Perform a set query."""
         query = request.query_params.get('query', '')
-        unique = request.query_params.get('unique', False)
+        unique = qpbool(request.query_params.get('unique', False))
 
         qs = self.queryset.set_query(query, site_id=site_pk, unique=unique)
         objects = self.filter_queryset(qs)
@@ -551,9 +551,9 @@ class NetworkViewSet(ResourceViewSet):
         params = request.query_params
         prefix_length = params.get('prefix_length')
         num = params.get('num')
-
+        strict = qpbool(params.get('strict_allocation', False))
         networks = network.get_next_network(
-            prefix_length, num, as_objects=False
+            prefix_length, num, strict, as_objects=False
         )
 
         return self.success(networks)
@@ -563,8 +563,10 @@ class NetworkViewSet(ResourceViewSet):
         """Return next available IPs from this Network."""
         network = self.get_resource_object(pk, site_pk)
 
-        num = request.query_params.get('num')
-        addresses = network.get_next_address(num, as_objects=False)
+        params = request.query_params
+        num = params.get('num')
+        strict = qpbool(params.get('strict_allocation', False))
+        addresses = network.get_next_address(num, strict, as_objects=False)
 
         return self.success(addresses)
 

@@ -1,6 +1,21 @@
 Development
 ===========
 
+Git Branches
+------------
+
+On the parent repo for NSoT, there are two important branches:
+
+- ``develop`` is the branch that all Pull Requests are opened against and
+  represents the bleeding edge of work being done on NSoT.
+- ``master`` is considered to be the 'stable' branch and no PRs should be
+  merged directly in to this branch. As features are merged into ``develop``,
+  releases are created off of that branch and then merged into ``master``. See
+  :ref:`release-process` for more information on how this is done.
+
+When developing on NSoT, you should be basing your work on the ``develop``
+branch.
+
 Setting up Your Environment
 ---------------------------
 
@@ -170,7 +185,7 @@ Versioning
 We use `semantic versioning <http://semver.org>`_. Version numbers will
 follow this format::
 
-    Major version}.{Minor version}.{Revision number}.{Build number (optional)}
+    {Major version}.{Minor version}.{Revision number}.{Build number (optional)}
 
 Patch version numbers (0.0.x) are used for changes that are API compatible. You
 should be able to upgrade between minor point releases without any other code
@@ -181,6 +196,38 @@ Minor version numbers (0.x.0) may include API changes, in line with the
 upgrading between minor point releases.
 
 Major version numbers (x.0.0) are reserved for substantial project milestones.
+
+.. _release-process:
+
+Release Process
+---------------
+
+When a new version is to be cut from the commits made on the ``develop``
+branch, the following process should be followed. This is meant to be done by
+project maintainers, who have push access to the parent repository.
+
+#. Create a branch off of the ``develop`` branch called ``release-vX.Y.Z``
+   where ``vX.Y.Z`` is the version you are releasing
+#. Use ``bump.sh`` to update the version in ``nsot/version.py`` and the
+   Dockerfile. Example:
+
+.. code-block:: bash
+
+    $ ./bump.sh -v X.Y.Z
+
+3. Update ``CHANGELOG.rst`` with what has changed since the last version. A
+   one-line summary for each change is sufficient, and often the summary from
+   each PR merge works.
+#. Commit these changes to your branch.
+#. Merge the release branch into ``develop`` and push that branch up
+#. Merge the release branch into ``master``
+#. Create a new git tag with this verison in the format of ``vX.Y.Z``
+#. Push the ``master`` branch up along with the new tag
+#. Create a new package and push it up to PyPI:
+
+.. code-block:: bash
+
+    $ python setup.py sdist upload
 
 .. _deprecation-policy:
 
@@ -198,7 +245,7 @@ The timeline for deprecation of a feature present in version 1.0 would work as f
   explicitly enabled when you're ready to start migrating any required changes.
 
   Additionally, a ``WARN`` message will be logged to standard out from the
-  ``nsot-server`` process. 
+  ``nsot-server`` process.
 
   Finally, a ``Warning`` header will be sent back in any response from the API.
   For example::
@@ -209,7 +256,7 @@ The timeline for deprecation of a feature present in version 1.0 would work as f
 * Version 1.2 would escalate the Python warnings to ``DeprecationWarning``,
   which is **loud by default**.
 * Version 1.3 would remove the deprecated bits of API entirely and accessing
-  any deprecated API endoints will result in a ``404`` error. 
+  any deprecated API endoints will result in a ``404`` error.
 
 Note that in line with Django's policy, any parts of the framework not
 mentioned in the documentation should generally be considered private API, and
