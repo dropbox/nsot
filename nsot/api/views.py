@@ -670,7 +670,6 @@ class InterfaceViewSet(ResourceViewSet):
         """Return a list of addresses for this Interface."""
         interface = self.get_resource_object(pk, site_pk)
         addresses = interface.addresses.all()
-
         return self.list(request, queryset=addresses, *args, **kwargs)
 
     @detail_route(methods=['get'])
@@ -678,14 +677,12 @@ class InterfaceViewSet(ResourceViewSet):
         """Return a list of information about my assigned addresses."""
         interface = self.get_resource_object(pk, site_pk)
         assignments = interface.assignments.all()
-
         return self.list(request, queryset=assignments, *args, **kwargs)
 
     @detail_route(methods=['get'])
     def networks(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return all the containing Networks for my assigned addresses."""
         interface = self.get_resource_object(pk, site_pk)
-
         return self.list(request, queryset=interface.networks, *args, **kwargs)
 
     @detail_route(methods=['get'])
@@ -693,7 +690,6 @@ class InterfaceViewSet(ResourceViewSet):
         """Return parent of interface"""
         interface = self.get_resource_object(pk, site_pk)
         parent = [] if interface.parent is None else [interface.parent]
-
         return self.list(request, queryset=parent, *args, **kwargs)
 
     @detail_route(methods=['get'])
