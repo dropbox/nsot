@@ -91,6 +91,9 @@ def test_tree_traversal(site, client):
     dev_resp = client.create(dev_uri, hostname='foo-bar1')
     dev = get_result(dev_resp)
 
+    dev_resp1 = client.create(dev_uri, hostname='foo-bar2')
+    dev1 = get_result(dev_resp1)
+
     ifc1_resp = client.create(
         ifc_uri, device=dev['id'], name='eth0', parent_id=None,
         mac_address=None,
@@ -141,6 +144,26 @@ def test_tree_traversal(site, client):
 
     assert_created(ifc5_resp, ifc5_obj_uri)
 
+    ifc6_resp = client.create(
+        ifc_uri, device = dev1['id'], name='eth0.4', parent_id=None,
+        mac_address = None
+    )
+
+    ifc6 = get_result(ifc6_resp)
+    ifc6_obj_uri = site.detail_uri('interface', id = ifc6['id'])
+
+    assert_created(ifc6_resp, ifc6_obj_uri)
+
+    ifc7_resp = client.create(
+        ifc_uri, device = dev1['id'], name='eth0.5', parent_id=None,
+        mac_address = None
+    )
+
+    ifc7 = get_result(ifc7_resp)
+    ifc7_obj_uri = site.detail_uri('interface', id = ifc7['id'])
+
+    assert_created(ifc7_resp, ifc7_obj_uri)
+
     # test Ancestors by calling it on ifc3
     expected = [ifc1, ifc2]
     uri = reverse('interface-ancestors', args = (site.id, ifc3['id']))
@@ -166,10 +189,22 @@ def test_tree_traversal(site, client):
     uri = reverse('interface-root', args=(site.id, ifc4['id']))
     assert_success(client.retrieve(uri), expected)
 
+    # test that root of ifc1 is ifc1
+    expected = ifc1
+    uri = reverse('interface-root', args=(site.id, ifc1['id']))
+    assert_success(client.retrieve(uri), expected)
+
     # test parent by calling it on ifc5
     expected = ifc2
     uri = reverse('interface-parent', args=(site.id, ifc5['id']))
     assert_success(client.retrieve(uri), expected)
+
+    # test sibling for interfaces with None as parent and attached
+    # to different devices
+    expected = [ifc7]
+    uri = reverse('interface-siblings', args=(site.id, ifc6['id']))
+    assert_success(client.retrieve(uri), expected)
+
 
 
 def test_creation_with_addresses(site, client):

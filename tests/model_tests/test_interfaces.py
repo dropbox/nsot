@@ -49,7 +49,7 @@ def test_tree_methods(device):
         device = device, name = 'eth0.3', parent = iface
     )
     assert iface1.parent.id is iface.id
-    assert iface3.get_root()[0].id is iface.id
+    assert iface3.get_root().id is iface.id
 
     children = [x.id for x in iface.get_children()]
     expected = [iface1.id, iface2.id, iface4.id]
@@ -74,7 +74,7 @@ def test_tree_methods(device):
     siblings.sort()
     expected.sort()
     assert siblings == expected
-    
+
 
 def test_speed(device):
     """Test interface speed."""
