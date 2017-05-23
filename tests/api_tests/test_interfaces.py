@@ -31,6 +31,9 @@ def test_creation(site, client):
     dev_resp = client.create(dev_uri, hostname='foo-bar1')
     dev = get_result(dev_resp)
 
+    dev_resp1 = client.create(dev_uri, hostname='foo-bar2')
+    dev1 = get_result(dev_resp1)
+
     net_resp = client.create(net_uri, cidr='10.1.1.0/24')
     net = get_result(net_resp)
 
@@ -55,6 +58,13 @@ def test_creation(site, client):
     ifc1_obj_uri = site.detail_uri('interface', id=ifc1['id'])
 
     assert_created(ifc1_resp, ifc1_obj_uri)
+
+    # Verify that creating a device with parent as
+    # ifc1 but device as foo-bar2 will cause error
+    assert_error(
+        client.create(ifc_uri, device=dev1['id'], name='eth0.1', parent_id=ifc1['id']),
+        status.HTTP_400_BAD_REQUEST
+    )
 
     # Make sure MAC is None
     assert ifc1['mac_address'] is None
@@ -199,12 +209,10 @@ def test_tree_traversal(site, client):
     uri = reverse('interface-parent', args=(site.id, ifc5['id']))
     assert_success(client.retrieve(uri), expected)
 
-    # test sibling for interfaces with None as parent and attached
-    # to different devices
+    # test sibling for interfaces with None as parent and attached to different devices
     expected = [ifc7]
     uri = reverse('interface-siblings', args=(site.id, ifc6['id']))
     assert_success(client.retrieve(uri), expected)
-
 
 
 def test_creation_with_addresses(site, client):

@@ -662,7 +662,6 @@ class InterfaceViewSet(ResourceViewSet):
             return serializers.InterfaceUpdateSerializer
         if self.request.method == 'PATCH':
             return serializers.InterfacePartialUpdateSerializer
-
         return self.serializer_class
 
     @detail_route(methods=['get'])

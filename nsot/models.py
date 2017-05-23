@@ -1508,6 +1508,16 @@ class Interface(Resource):
         """Extract hostname from device"""
         return device.hostname
 
+    def clean_parent(self, parent):
+        if parent is None:
+            return parent
+        if parent.device_hostname != self.device_hostname:
+            raise exc.ValidationError({
+                'parent': 'Parent\'s device does not match device with host name \"%s\"'%(self.device_hostname)
+            })
+        return parent
+
+
     def clean_fields(self, exclude=None):
         self.site_id = self.clean_site(self.site_id)
         self.name = self.clean_name(self.name)
@@ -1515,6 +1525,8 @@ class Interface(Resource):
         self.speed = self.clean_speed(self.speed)
         self.mac_address = self.clean_mac_address(self.mac_address)
         self.device_hostname = self.clean_device_hostname(self.device)
+        self.parent = self.clean_parent(self.parent)
+
 
     def save(self, *args, **kwargs):
         # We don't want to validate unique because we want the IntegrityError
