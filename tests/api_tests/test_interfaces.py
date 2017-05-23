@@ -162,12 +162,12 @@ def test_tree_traversal(site, client):
     assert_success(client.retrieve(uri), expected)
 
     # test root by calling it on ifc4
-    expected = [ifc1]
+    expected = ifc1
     uri = reverse('interface-root', args=(site.id, ifc4['id']))
     assert_success(client.retrieve(uri), expected)
 
     # test parent by calling it on ifc5
-    expected = [ifc2]
+    expected = ifc2
     uri = reverse('interface-parent', args=(site.id, ifc5['id']))
     assert_success(client.retrieve(uri), expected)
 

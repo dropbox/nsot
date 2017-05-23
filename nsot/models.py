@@ -1422,14 +1422,14 @@ class Interface(Resource):
 
     def get_root(self):
         """Return the parent of all ancestors of an interface"""
-        root = self.parent
-        while root is not None and root.parent is not None:
+        root = self
+        while root.parent is not None:
             root = root.parent
-        return [] if root is None else [root]
+        return root
 
     def get_siblings(self):
         """Return the interfaces with same parent as an interface"""
-        return list(Interface.objects.filter(parent=self.parent).exclude(id=self.id))
+        return list(Interface.objects.filter(parent=self.parent, device=self.device).exclude(id=self.id))
 
     def get_assignments(self):
         """Return a list of information about my assigned addresses."""

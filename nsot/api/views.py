@@ -689,8 +689,12 @@ class InterfaceViewSet(ResourceViewSet):
     def parent(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return parent of interface"""
         interface = self.get_resource_object(pk, site_pk)
-        parent = [] if interface.parent is None else [interface.parent]
-        return self.list(request, queryset=parent, *args, **kwargs)
+        parent = interface.parent
+        if parent is not None:
+            pk = interface.parent_id
+        else:
+            pk = None
+        return self.retrieve(request, pk, site_pk, *args, **kwargs)
 
     @detail_route(methods=['get'])
     def ancestors(self, request, pk=None, site_pk=None, *args, **kwargs):
@@ -716,7 +720,9 @@ class InterfaceViewSet(ResourceViewSet):
     @detail_route(methods=['get'])
     def root(self, request, pk=None, site_pk=None, *args, **kwargs):
         interface = self.get_resource_object(pk, site_pk)
-        return self.list(request, queryset=interface.get_root(), *args, **kwargs)
+        root = interface.get_root()
+        pk = root.id
+        return self.retrieve(request, pk, site_pk, *args, **kwargs)
 
     @detail_route(methods=['get'])
     def circuit(self, request, pk=None, site_pk=None, *args, **kwargs):
