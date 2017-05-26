@@ -8,7 +8,7 @@ NSoT
 
 |Build Status| |Documentation Status| |PyPI Status|
 
-Network Source of Truth (NSoT) a source of truth database and repository for
+Network Source of Truth (NSoT) is a source of truth database and repository for
 tracking inventory and metadata of network entities to ease management and
 automation of network infrastructure.
 
