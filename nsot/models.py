@@ -1397,38 +1397,40 @@ class Interface(Resource):
         self.clean_addresses()
 
     def get_ancestors(self):
-        """Recursively get all parents of an interface"""
+        """Return all ancestors of an Interface."""
         p = self.parent
         ancestors = []
         while p is not None:
             ancestors.append(p)
             p = p.parent
-        return ancestors
+        ancestor_ids = [a.id for a in ancestors]
+        return Interface.objects.filter(id__in=ancestor_ids)
 
     def get_children(self):
-        """Return the immediate children of an interface"""
+        """Return the immediate children of an Interface."""
         return Interface.objects.filter(parent=self)
 
     def get_descendants(self):
-        """Recursively return all the children of an interface"""
+        """Return all the descendants of an Interface."""
         s = list(self.get_children())
-        children = []
+        descendants = []
         while len(s) > 0:
             top = s.pop()
-            children.append(top)
+            descendants.append(top)
             for c in top.get_children():
                 s.append(c)
-        return children
+        descendant_ids = [c.id for c in descendants]
+        return Interface.objects.filter(id__in=descendant_ids)
 
     def get_root(self):
-        """Return the parent of all ancestors of an interface"""
+        """Return the parent of all ancestors of an Interface."""
         root = self
         while root.parent is not None:
             root = root.parent
         return root
 
     def get_siblings(self):
-        """Return the interfaces with same parent as an interface"""
+        """Return Interfaces with the same parent and device id as an Interface."""
         return Interface.objects.filter(parent=self.parent, device=self.device).exclude(id=self.id)
 
     def get_assignments(self):

@@ -703,7 +703,7 @@ class InterfaceViewSet(ResourceViewSet):
 
     @detail_route(methods=['get'])
     def children(self, request, pk=None, site_pk=None, *args, **kwargs):
-        """Return all the children of this Interface."""
+        """Return all the immediate children of this Interface."""
         interface = self.get_resource_object(pk, site_pk)
         return self.list(request, queryset=interface.get_children(), *args, **kwargs)
 
