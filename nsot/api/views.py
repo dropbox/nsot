@@ -686,7 +686,7 @@ class InterfaceViewSet(ResourceViewSet):
 
     @detail_route(methods=['get'])
     def parent(self, request, pk=None, site_pk=None, *args, **kwargs):
-        """Return parent of interface"""
+        """Return the parent of this Interface."""
         interface = self.get_resource_object(pk, site_pk)
         parent = interface.parent
         if parent is not None:
@@ -697,27 +697,31 @@ class InterfaceViewSet(ResourceViewSet):
 
     @detail_route(methods=['get'])
     def ancestors(self, request, pk=None, site_pk=None, *args, **kwargs):
-        """Return all ancestors of interface"""
+        """Return all the ancestors of this Interface."""
         interface = self.get_resource_object(pk, site_pk)
         return self.list(request, queryset=interface.get_ancestors(), *args, **kwargs)
 
     @detail_route(methods=['get'])
     def children(self, request, pk=None, site_pk=None, *args, **kwargs):
+        """Return all the children of this Interface."""
         interface = self.get_resource_object(pk, site_pk)
         return self.list(request, queryset=interface.get_children(), *args, **kwargs)
 
     @detail_route(methods=['get'])
     def descendants(self, request, pk=None, site_pk=None, *args, **kwargs):
+        """Return all the descendants of this Interface."""
         interface = self.get_resource_object(pk, site_pk)
         return self.list(request, queryset=interface.get_descendants(), *args, **kwargs)
 
     @detail_route(methods=['get'])
     def siblings(self, request, pk=None, site_pk=None, *args, **kwargs):
+        """Return all the siblings of this Interface."""
         interface = self.get_resource_object(pk, site_pk)
         return self.list(request, queryset=interface.get_siblings(), *args, **kwargs)
 
     @detail_route(methods=['get'])
     def root(self, request, pk=None, site_pk=None, *args, **kwargs):
+        """Return the root of the tree this Interface is part of."""
         interface = self.get_resource_object(pk, site_pk)
         root = interface.get_root()
         pk = root.id

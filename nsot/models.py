@@ -1429,7 +1429,7 @@ class Interface(Resource):
 
     def get_siblings(self):
         """Return the interfaces with same parent as an interface"""
-        return list(Interface.objects.filter(parent=self.parent, device=self.device).exclude(id=self.id))
+        return Interface.objects.filter(parent=self.parent, device=self.device).exclude(id=self.id)
 
     def get_assignments(self):
         """Return a list of information about my assigned addresses."""
@@ -1513,7 +1513,7 @@ class Interface(Resource):
             return parent
         if parent.device_hostname != self.device_hostname:
             raise exc.ValidationError({
-                'parent': 'Parent\'s device does not match device with host name \"%s\"'%(self.device_hostname)
+                'parent': "Parent's device does not match device with host name %r"%self.device_hostname
             })
         return parent
 
