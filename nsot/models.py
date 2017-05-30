@@ -1239,7 +1239,7 @@ class Interface(Resource):
     )
 
     parent = fields.ChainedForeignKey(
-        'nsot.Interface', blank=True, null=True, related_name='children',
+        'self', blank=True, null=True, related_name='children',
         default=None, db_index=True, on_delete=models.PROTECT,
         chained_field='device', chained_model_field='device',
         verbose_name='Parent', help_text='Unique ID of the parent Interface.',
@@ -1396,8 +1396,45 @@ class Interface(Resource):
 
         self.clean_addresses()
 
+    def get_ancestors(self):
+        """Return all ancestors of an Interface."""
+        p = self.parent
+        ancestors = []
+        while p is not None:
+            ancestors.append(p)
+            p = p.parent
+        ancestor_ids = [a.id for a in ancestors]
+        return Interface.objects.filter(id__in=ancestor_ids)
+
+    def get_children(self):
+        """Return the immediate children of an Interface."""
+        return Interface.objects.filter(parent=self)
+
+    def get_descendants(self):
+        """Return all the descendants of an Interface."""
+        s = list(self.get_children())
+        descendants = []
+        while len(s) > 0:
+            top = s.pop()
+            descendants.append(top)
+            for c in top.get_children():
+                s.append(c)
+        descendant_ids = [c.id for c in descendants]
+        return Interface.objects.filter(id__in=descendant_ids)
+
+    def get_root(self):
+        """Return the parent of all ancestors of an Interface."""
+        root = self
+        while root.parent is not None:
+            root = root.parent
+        return root
+
+    def get_siblings(self):
+        """Return Interfaces with the same parent and device id as an Interface."""
+        return Interface.objects.filter(parent=self.parent, device=self.device).exclude(id=self.id)
+
     def get_assignments(self):
-        """Return a list of informatoin about my assigned addresses."""
+        """Return a list of information about my assigned addresses."""
         return [a.to_dict() for a in self.assignments.all()]
 
     def get_addresses(self):
@@ -1473,6 +1510,16 @@ class Interface(Resource):
         """Extract hostname from device"""
         return device.hostname
 
+    def clean_parent(self, parent):
+        if parent is None:
+            return parent
+        if parent.device_hostname != self.device_hostname:
+            raise exc.ValidationError({
+                'parent': "Parent's device does not match device with host name %r"%self.device_hostname
+            })
+        return parent
+
+
     def clean_fields(self, exclude=None):
         self.site_id = self.clean_site(self.site_id)
         self.name = self.clean_name(self.name)
@@ -1480,6 +1527,8 @@ class Interface(Resource):
         self.speed = self.clean_speed(self.speed)
         self.mac_address = self.clean_mac_address(self.mac_address)
         self.device_hostname = self.clean_device_hostname(self.device)
+        self.parent = self.clean_parent(self.parent)
+
 
     def save(self, *args, **kwargs):
         # We don't want to validate unique because we want the IntegrityError

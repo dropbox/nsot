@@ -662,7 +662,6 @@ class InterfaceViewSet(ResourceViewSet):
             return serializers.InterfaceUpdateSerializer
         if self.request.method == 'PATCH':
             return serializers.InterfacePartialUpdateSerializer
-
         return self.serializer_class
 
     @detail_route(methods=['get'])
@@ -670,7 +669,6 @@ class InterfaceViewSet(ResourceViewSet):
         """Return a list of addresses for this Interface."""
         interface = self.get_resource_object(pk, site_pk)
         addresses = interface.addresses.all()
-
         return self.list(request, queryset=addresses, *args, **kwargs)
 
     @detail_route(methods=['get'])
@@ -678,15 +676,56 @@ class InterfaceViewSet(ResourceViewSet):
         """Return a list of information about my assigned addresses."""
         interface = self.get_resource_object(pk, site_pk)
         assignments = interface.assignments.all()
-
         return self.list(request, queryset=assignments, *args, **kwargs)
 
     @detail_route(methods=['get'])
     def networks(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return all the containing Networks for my assigned addresses."""
         interface = self.get_resource_object(pk, site_pk)
-
         return self.list(request, queryset=interface.networks, *args, **kwargs)
+
+    @detail_route(methods=['get'])
+    def parent(self, request, pk=None, site_pk=None, *args, **kwargs):
+        """Return the parent of this Interface."""
+        interface = self.get_resource_object(pk, site_pk)
+        parent = interface.parent
+        if parent is not None:
+            pk = interface.parent_id
+        else:
+            pk = None
+        return self.retrieve(request, pk, site_pk, *args, **kwargs)
+
+    @detail_route(methods=['get'])
+    def ancestors(self, request, pk=None, site_pk=None, *args, **kwargs):
+        """Return all the ancestors of this Interface."""
+        interface = self.get_resource_object(pk, site_pk)
+        return self.list(request, queryset=interface.get_ancestors(), *args, **kwargs)
+
+    @detail_route(methods=['get'])
+    def children(self, request, pk=None, site_pk=None, *args, **kwargs):
+        """Return all the immediate children of this Interface."""
+        interface = self.get_resource_object(pk, site_pk)
+        return self.list(request, queryset=interface.get_children(), *args, **kwargs)
+
+    @detail_route(methods=['get'])
+    def descendants(self, request, pk=None, site_pk=None, *args, **kwargs):
+        """Return all the descendants of this Interface."""
+        interface = self.get_resource_object(pk, site_pk)
+        return self.list(request, queryset=interface.get_descendants(), *args, **kwargs)
+
+    @detail_route(methods=['get'])
+    def siblings(self, request, pk=None, site_pk=None, *args, **kwargs):
+        """Return all the siblings of this Interface."""
+        interface = self.get_resource_object(pk, site_pk)
+        return self.list(request, queryset=interface.get_siblings(), *args, **kwargs)
+
+    @detail_route(methods=['get'])
+    def root(self, request, pk=None, site_pk=None, *args, **kwargs):
+        """Return the root of the tree this Interface is part of."""
+        interface = self.get_resource_object(pk, site_pk)
+        root = interface.get_root()
+        pk = root.id
+        return self.retrieve(request, pk, site_pk, *args, **kwargs)
 
     @detail_route(methods=['get'])
     def circuit(self, request, pk=None, site_pk=None, *args, **kwargs):

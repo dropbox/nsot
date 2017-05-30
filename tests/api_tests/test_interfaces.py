@@ -31,6 +31,9 @@ def test_creation(site, client):
     dev_resp = client.create(dev_uri, hostname='foo-bar1')
     dev = get_result(dev_resp)
 
+    dev_resp1 = client.create(dev_uri, hostname='foo-bar2')
+    dev1 = get_result(dev_resp1)
+
     net_resp = client.create(net_uri, cidr='10.1.1.0/24')
     net = get_result(net_resp)
 
@@ -55,6 +58,13 @@ def test_creation(site, client):
     ifc1_obj_uri = site.detail_uri('interface', id=ifc1['id'])
 
     assert_created(ifc1_resp, ifc1_obj_uri)
+
+    # Verify that creating a device with parent as
+    # ifc1 but device as foo-bar2 will cause error
+    assert_error(
+        client.create(ifc_uri, device=dev1['id'], name='eth0.1', parent_id=ifc1['id']),
+        status.HTTP_400_BAD_REQUEST
+    )
 
     # Make sure MAC is None
     assert ifc1['mac_address'] is None
@@ -81,6 +91,128 @@ def test_creation(site, client):
     interfaces = [ifc1, ifc2]
     expected = interfaces
     assert_success(client.get(ifc_uri), expected)
+
+
+def test_tree_traversal(site, client):
+    """Test basic creation of an Interface."""
+    ifc_uri = site.list_uri('interface')
+    dev_uri = site.list_uri('device')
+
+    dev_resp = client.create(dev_uri, hostname='foo-bar1')
+    dev = get_result(dev_resp)
+
+    dev_resp1 = client.create(dev_uri, hostname='foo-bar2')
+    dev1 = get_result(dev_resp1)
+
+    ifc1_resp = client.create(
+        ifc_uri, device=dev['id'], name='eth0', parent_id=None,
+        mac_address=None,
+    )
+    ifc1 = get_result(ifc1_resp)
+    ifc1_obj_uri = site.detail_uri('interface', id=ifc1['id'])
+
+    assert_created(ifc1_resp, ifc1_obj_uri)
+
+    # Create another interface with ifc1 as parent
+    ifc2_resp = client.create(
+        ifc_uri, device=dev['id'], name='eth0.0', parent_id=ifc1['id'],
+        mac_address=None
+    )
+    ifc2 = get_result(ifc2_resp)
+    ifc2_obj_uri = site.detail_uri('interface', id=ifc2['id'])
+
+    assert_created(ifc2_resp, ifc2_obj_uri)
+
+    # Create another interface with ifc2 as parent
+    ifc3_resp = client.create(
+        ifc_uri, device = dev['id'], name='eth0.1', parent_id=ifc2['id'],
+        mac_address = None
+    )
+    ifc3 = get_result(ifc3_resp)
+    ifc3_obj_uri = site.detail_uri('interface', id = ifc3['id'])
+
+    assert_created(ifc3_resp, ifc3_obj_uri)
+
+    # Create another interface with ifc2 as parent
+    ifc4_resp = client.create(
+        ifc_uri, device = dev['id'], name='eth0.2', parent_id=ifc2['id'],
+        mac_address = None
+    )
+    ifc4 = get_result(ifc4_resp)
+    ifc4_obj_uri = site.detail_uri('interface', id = ifc4['id'])
+
+    assert_created(ifc4_resp, ifc4_obj_uri)
+
+    # Create another interface with ifc2 as parent
+    ifc5_resp = client.create(
+        ifc_uri, device = dev['id'], name='eth0.3', parent_id=ifc2['id'],
+        mac_address = None
+    )
+
+    ifc5 = get_result(ifc5_resp)
+    ifc5_obj_uri = site.detail_uri('interface', id = ifc5['id'])
+
+    assert_created(ifc5_resp, ifc5_obj_uri)
+
+    ifc6_resp = client.create(
+        ifc_uri, device = dev1['id'], name='eth0.4', parent_id=None,
+        mac_address = None
+    )
+
+    ifc6 = get_result(ifc6_resp)
+    ifc6_obj_uri = site.detail_uri('interface', id = ifc6['id'])
+
+    assert_created(ifc6_resp, ifc6_obj_uri)
+
+    ifc7_resp = client.create(
+        ifc_uri, device = dev1['id'], name='eth0.5', parent_id=None,
+        mac_address = None
+    )
+
+    ifc7 = get_result(ifc7_resp)
+    ifc7_obj_uri = site.detail_uri('interface', id = ifc7['id'])
+
+    assert_created(ifc7_resp, ifc7_obj_uri)
+
+    # test Ancestors by calling it on ifc3
+    expected = [ifc1, ifc2]
+    uri = reverse('interface-ancestors', args = (site.id, ifc3['id']))
+    assert_success(client.retrieve(uri), expected)
+
+    # test children by calling it on ifc2
+    expected = [ifc3, ifc4, ifc5]
+    uri = reverse('interface-children', args = (site.id, ifc2['id']))
+    assert_success(client.retrieve(uri), expected)
+
+    # test descendants by calling it on ifc1
+    expected = [ifc2, ifc3, ifc4, ifc5]
+    uri = reverse('interface-descendants', args = (site.id, ifc1['id']))
+    assert_success(client.retrieve(uri), expected)
+
+    # test siblings by calling it on ifc3
+    expected = [ifc4, ifc5]
+    uri = reverse('interface-siblings', args = (site.id, ifc3['id']))
+    assert_success(client.retrieve(uri), expected)
+
+    # test root by calling it on ifc4
+    expected = ifc1
+    uri = reverse('interface-root', args=(site.id, ifc4['id']))
+    assert_success(client.retrieve(uri), expected)
+
+    # test that root of ifc1 is ifc1
+    expected = ifc1
+    uri = reverse('interface-root', args=(site.id, ifc1['id']))
+    assert_success(client.retrieve(uri), expected)
+
+    # test parent by calling it on ifc5
+    expected = ifc2
+    uri = reverse('interface-parent', args=(site.id, ifc5['id']))
+    assert_success(client.retrieve(uri), expected)
+
+    # test sibling for interfaces with None as parent and attached to different devices
+    expected = [ifc7]
+    uri = reverse('interface-siblings', args=(site.id, ifc6['id']))
+    assert_success(client.retrieve(uri), expected)
 
 
 def test_creation_with_addresses(site, client):

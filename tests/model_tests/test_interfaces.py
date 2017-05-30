@@ -32,6 +32,50 @@ def test_creation(device):
         iface.save()
 
 
+def test_tree_methods(device):
+    iface = models.Interface.objects.create(
+        device = device, name = 'eth0'
+    )
+    iface1 = models.Interface.objects.create(
+        device = device, name = 'eth0.0', parent = iface
+    )
+    iface2 = models.Interface.objects.create(
+        device = device, name = 'eth0.1', parent = iface
+    )
+    iface3 = models.Interface.objects.create(
+        device = device, name = 'eth0.2', parent = iface1
+    )
+    iface4 = models.Interface.objects.create(
+        device = device, name = 'eth0.3', parent = iface
+    )
+    assert iface1.parent.id is iface.id
+    assert iface3.get_root().id is iface.id
+
+    children = [x.id for x in iface.get_children()]
+    expected = [iface1.id, iface2.id, iface4.id]
+    children.sort()
+    expected.sort()
+    assert children == expected
+
+    descendants = [x.id for x in iface.get_descendants()]
+    expected = [iface1.id, iface2.id, iface3.id, iface4.id]
+    expected.sort()
+    descendants.sort()
+    assert descendants == expected
+
+    ancestors = [x.id for x in iface3.get_ancestors()]
+    expected = [iface1.id, iface.id]
+    expected.sort()
+    ancestors.sort()
+    assert ancestors == expected
+
+    siblings = [x.id for x in iface4.get_siblings()]
+    expected = [iface1.id, iface2.id]
+    siblings.sort()
+    expected.sort()
+    assert siblings == expected
+
+
 def test_speed(device):
     """Test interface speed."""
     iface = models.Interface.objects.create(device=device, name='eth0')
