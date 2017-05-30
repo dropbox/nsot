@@ -5,6 +5,18 @@ Changelog
 Version History
 ===============
 
+.. _v1.1.4:
+
+1.1.4 (2017-05-30)
+-------------------
+
+* Fix #260 - Add Interface tree traversal methods
+
+  + Similar to the methods already available on Network, this adds ``parent``,
+    ``ancestors``, ``root``, ``siblings``, ``children`` and ``descendants`` to
+    the ``InterfaceViewSet`` as well as corresponding ``get_*`` methods to the
+    Interface model.
+
 .. _v1.1.3:
 
 1.1.3 (2017-02-03)
