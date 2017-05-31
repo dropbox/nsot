@@ -1410,10 +1410,9 @@ class Interface(Resource):
         p = self.parent
         ancestors = []
         while p is not None:
-            ancestors.append(p)
+            ancestors.append(p.id)
             p = p.parent
-        ancestor_ids = [a.id for a in ancestors]
-        return Interface.objects.filter(id__in=ancestor_ids)
+        return Interface.objects.filter(id__in=ancestors)
 
     def get_children(self):
         """Return the immediate children of an Interface."""
@@ -1425,11 +1424,10 @@ class Interface(Resource):
         descendants = []
         while len(s) > 0:
             top = s.pop()
-            descendants.append(top)
+            descendants.append(top.id)
             for c in top.get_children():
                 s.append(c)
-        descendant_ids = [c.id for c in descendants]
-        return Interface.objects.filter(id__in=descendant_ids)
+        return Interface.objects.filter(id__in=descendants)
 
     def get_root(self):
         """Return the parent of all ancestors of an Interface."""
