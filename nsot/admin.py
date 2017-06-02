@@ -9,10 +9,6 @@ from django.utils.translation import ugettext_lazy as _
 from . import models
 
 
-# We don't want to use the Group model for now.
-admin.site.unregister(Group)
-
-
 # Register our custom User model
 class UserAdmin(EmailUserAdmin):
     fieldsets = (
@@ -20,7 +16,10 @@ class UserAdmin(EmailUserAdmin):
             'fields': ('email', 'secret_key'),
         }),
         (_('Permissions'), {
-            'fields': ('is_active', 'is_staff', 'is_superuser'),
+            'fields': (
+                'is_active', 'is_staff', 'is_superuser', 'groups',
+                'user_permissions'
+            ),
         }),
         (_('Important dates'), {
             'fields': ('last_login', 'date_joined')
