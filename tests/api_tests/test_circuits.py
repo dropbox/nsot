@@ -7,7 +7,7 @@ import pytest
 pytestmark = pytest.mark.django_db
 
 import copy
-from django.core.urlresolvers import reverse
+from django.core.urlresolvers import reverse, resolve
 import json
 import logging
 from rest_framework import status
@@ -642,3 +642,25 @@ def test_detail_routes(site, client):
     ifc_circuit_uri = reverse('interface-circuit', args=(site.id, if_a['id']))
     expected = cir
     assert_success(client.retrieve(ifc_circuit_uri), expected)
+
+    # Test to make sure routes work correctly with a myriad of natural keys
+    test_uri = '/api/circuits/{0}/devices/'
+    test_ids = [
+        # Some PK IDs
+        '1',
+        '5000',
+
+        # User-given name
+        'foo-bar_baz',
+
+        # Auto-generated name with no Z side
+        'foo-bar01:Ethernet1/2_None',
+
+        # Normal auto-generated names
+        'foo-bar01:Ethernet9_foo-bar02:Ethernet7',
+        'foo-bar1:xe-0/0/0.0_foo-bar2:xe-0/0/0.0',
+    ]
+
+    for test_id in test_ids:
+        result = resolve(test_uri.format(test_id))
+        assert result.url_name == 'circuit-devices'
