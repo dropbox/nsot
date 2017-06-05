@@ -5,10 +5,19 @@ Changelog
 Version History
 ===============
 
+.. _v1.1.5:
+
+1.1.5 (2017-06-05)
+------------------
+
+* Groups have been re-enabled in the admin dashboard UI so that group-level
+  object permissions can be managed within NSoT. There is no other integration
+  of this support at this time.
+
 .. _v1.1.4:
 
 1.1.4 (2017-05-30)
--------------------
+------------------
 
 * Fix #260 - Add Interface tree traversal methods
 
@@ -20,7 +29,7 @@ Version History
 .. _v1.1.3:
 
 1.1.3 (2017-02-03)
--------------------
+------------------
 
 * Bump ``django-smart-selects`` to version 1.3.x
   * Fixes a regression that was introduced in version 1.2.9 when an XSS bug
@@ -31,7 +40,7 @@ Version History
 .. _v1.1.2:
 
 1.1.2 (2017-01-25)
--------------------
+------------------
 
 * Reimplements the ``Network.get_next_network`` method
 * ``Network.get_next_network`` now optionally returns networks that can be
@@ -43,7 +52,7 @@ Version History
 .. _v1.1.1:
 
 1.1.1 (2017-01-27)
-----------------
+------------------
 
 * Add `name_slug` field to Circuit, make it the natural key to fix a bug with
   Circuit names that contain slashes
