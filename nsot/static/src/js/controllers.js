@@ -639,7 +639,7 @@
         });
 
         $("body").on("show.bs.modal", "#createInterfaceModal", function(e){
-            Device.query({siteId: siteId}, function(response){
+            Device.query({siteId: siteId, limit: 500}, function(response){
                 $scope.devices = response.data;
                 $scope.formData.devices = _.chain($scope.devices).value();
                 /*
