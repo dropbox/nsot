@@ -15,6 +15,11 @@ __all__ = ('NsotCommand', 'CommandError')
 
 class NsotCommand(BaseCommand):
     """Base management command for NSoT that implements a custom logger."""
+
+    # This is here to alleviate an AttributeError when getting /admin/jsi18n/
+    # Ref: https://github.com/dropbox/nsot/issues/279
+    leave_locale_alone = True
+
     def create_parser(self, prog_name, subcommand):
         """Override default parser to include default values in help."""
         parser = super(NsotCommand, self).create_parser(

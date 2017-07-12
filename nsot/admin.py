@@ -13,7 +13,7 @@ from . import models
 class UserAdmin(EmailUserAdmin):
     fieldsets = (
         (None, {
-            'fields': ('email', 'secret_key'),
+            'fields': ('email', 'secret_key', 'password'),
         }),
         (_('Permissions'), {
             'fields': (
