@@ -5,62 +5,6 @@ Changelog
 Version History
 ===============
 
-.. _v1.2.0:
-
-1.2.0 (2017-07-28)
-------------------
-
-* Fix #262: Natural keys can now be used any place a primary key could be used for
-  related fields on Interfaces and Circuits.
-
-  + For Circuits, the default is now to display the A/Z endpoint interfaces by
-    their natural key (e.g. ``device_hostname:name`` format).
-  + For Interfaces, the Device hostname may now be used to create or retrieve
-    interfaces (no more need to lookup the Device ID first)
-  + Interface now has a ``name_slug`` field that can be used for natural key
-    lookups. This is now also officially the natural key field.
-  + Network now has a ``cidr`` field that can be used for displaying the
-    ``network_address/prefix_length`` without additional effort
-  + Network now has a ``parent`` field that can be used for displaying the parent
-    CIDR without an additional lookup
-
-* All underlying serializer code has been streamlined to reduce code
-  duplication where possible.
-* All "update" serializers have been moved to subclasses of "partial update"
-  serializers with extra required fields specified as "extra kwargs" vs.
-  re-defining the fields.
-* The fields for ``site_id`` and ``attributes`` have been moved to the base
-  ``ResourceSerializer`` since ALL resources inherit these anyways.
-* Bugfix in ``NsotSerializer`` when ``view`` isn't part of the context that caused
-  a crash.
-* Util stats functions can now be directly imported from ``nsot.util``
-
-.. _v1.1.8:
-
-1.1.8 (2017-07-26)
-------------------
-
-* Upgrade setuptools in the Docker container, fixing #277
-* Add various indicies to the Change model to speed up lookups
-* Add a ``diff`` API endpoint to ``/change/``, which returns a unified diff of
-  the JSON representation of the changed object, from its state before the
-  given Change happened and its current state.
-
-.. _v1.1.7:
-
-1.1.7 (2017-07-13)
-------------------
-
-* This adds a new setting called ``NSOT_NEW_USERS_AS_SUPERUSER`` which defaults
-  to ``True``, to toggle whether users coming in via the ``auth_header``
-  authentication method (proxy authentication) are created with superuser
-  permissions. If toggled to ``False``, new users are not given superuser and
-  it will be expected that custom permissions will be utilized to control admin
-  privileges.
-* This also updates the API permissions validation from requiring "staff"
-  permissions to requiring model permissions. For existing users that already
-  have staff/superuser permission and default behaviors, there is no impact.
-
 .. _v1.1.6:
 
 1.1.6 (2017-07-12)
