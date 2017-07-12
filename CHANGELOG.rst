@@ -5,6 +5,18 @@ Changelog
 Version History
 ===============
 
+.. _v1.1.6:
+
+1.1.6 (2017-07-12)
+------------------
+
+* Fix #279: Bugfix in fetching locale-aware javascript for admin panel which
+  was preventing admin panel widgets from properly loading, displaying only
+  their basic styled HTML rendering. This can be seen in the group add/edit
+  panel where you're selecting permissions for a group.
+* Fix #280: Fix 500 error when modifying users in admin panel by adding the
+  password field back into the user change form for display purposes only.
+
 .. _v1.1.5:
 
 1.1.5 (2017-06-05)
