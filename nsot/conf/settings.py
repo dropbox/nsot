@@ -157,7 +157,7 @@ REST_FRAMEWORK = {
     'DEFAULT_VERSIONING_CLASS': 'rest_framework.versioning.AcceptHeaderVersioning',
     'DEFAULT_VERSION': NSOT_API_VERSION,
     'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.IsAdminUser',
+        'rest_framework.permissions.DjangoModelPermissions',
     ),
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'nsot.api.auth.AuthTokenAuthentication',
@@ -281,6 +281,14 @@ CSRF_COOKIE_NAME = '_xsrf'
 # https://github.com/django/django/commit/668d53c
 # Default: 'X-CSRFToken'
 # CSRF_HEADER_NAME = 'X-XSRFToken'
+
+# Whether to create new users as superusers. If True, when new users are created
+# they will be given superuser permissions. If False, new users will not be
+# given superuser and it will be expected that permissions will be defined to
+# control admin privileges. This only applies to users automatically created
+# when authenticated using the "auth header" method, which is the default.
+# Default: True
+NSOT_NEW_USERS_AS_SUPERUSER = True
 
 ################
 # Static files #
