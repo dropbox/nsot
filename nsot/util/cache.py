@@ -35,6 +35,8 @@ class ObjectKeyConstructor(constructors.DefaultKeyConstructor):
     params = bits.QueryParamsKeyBit()
     unique_view_id = bits.UniqueMethodIdKeyBit()
     format = bits.FormatKeyBit()
+
+
 object_key_func = ObjectKeyConstructor()
 
 
@@ -47,4 +49,6 @@ class ListKeyConstructor(constructors.DefaultKeyConstructor):
     params = bits.QueryParamsKeyBit()
     unique_view_id = bits.UniqueMethodIdKeyBit()
     format = bits.FormatKeyBit()
+
+
 list_key_func = ListKeyConstructor()
