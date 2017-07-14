@@ -3,6 +3,7 @@ argh~=0.26.1
 betamax~=0.4.2
 docutils~=0.12.0
 ipdb~=0.9.3
+flake8~=3.3.0
 livereload~=2.4.0
 mrproxy~=0.3.4
 py~=1.4.26,>=1.4.29

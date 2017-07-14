@@ -1430,8 +1430,11 @@ class Interface(Resource):
         return root
 
     def get_siblings(self):
-        """Return Interfaces with the same parent and device id as an Interface."""
-        return Interface.objects.filter(parent=self.parent, device=self.device).exclude(id=self.id)
+        """
+        Return Interfaces with the same parent and device id as an Interface.
+        """
+        return Interface.objects.filter(
+            parent=self.parent, device=self.device).exclude(id=self.id)
 
     def get_assignments(self):
         """Return a list of information about my assigned addresses."""
@@ -1515,10 +1518,10 @@ class Interface(Resource):
             return parent
         if parent.device_hostname != self.device_hostname:
             raise exc.ValidationError({
-                'parent': "Parent's device does not match device with host name %r"%self.device_hostname
+                'parent': ("Parent's device does not match device with host "
+                           "name %r" % self.device_hostname)
             })
         return parent
-
 
     def clean_fields(self, exclude=None):
         self.site_id = self.clean_site(self.site_id)
@@ -1528,7 +1531,6 @@ class Interface(Resource):
         self.mac_address = self.clean_mac_address(self.mac_address)
         self.device_hostname = self.clean_device_hostname(self.device)
         self.parent = self.clean_parent(self.parent)
-
 
     def save(self, *args, **kwargs):
         # We don't want to validate unique because we want the IntegrityError
