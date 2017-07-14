@@ -14,7 +14,7 @@ from rest_framework import status
 import requests
 
 
-from .fixtures import live_server, client, user, site
+from .fixtures import live_server, client, user, site, nosuperuser_settings
 from .util import (
     assert_created, assert_error, assert_success, assert_deleted, load_json,
     Client, load, get_result
@@ -159,3 +159,35 @@ def test_valid_auth_token(live_server, user):
         requests.get(site_url, headers=headers),
         expected
     )
+
+
+def test_new_users_as_superuser(nosuperuser_settings, live_server, user):
+    """Test that settings.NSOT_NEW_USERS_AS_SUPERUSER works."""
+
+    # Assert that new users won't be superuser
+    assert not nosuperuser_settings.NSOT_NEW_USERS_AS_SUPERUSER
+
+    # Make the initial user a superuser.
+    user.is_superuser = True
+    user.save()
+
+    # Data we'll use
+    url = '{}/api/sites/'.format(live_server.url)
+    new_site = {'name': 'Bogus Site'}
+    payload = json.dumps(new_site)
+
+    # This user will be auto-created without superuser and should get a 403.
+    headers = {
+        'Content-Type': 'application/json',
+        'X-NSoT-Email': 'noperms@localhost',
+    }
+
+    assert_error(
+        requests.post(url, headers=headers, data=payload),
+        status.HTTP_403_FORBIDDEN
+    )
+
+    # The initial user (w/ superuser) should be cool.
+    headers['X-NSoT-Email'] = user.email
+    resp = requests.post(url, headers=headers, data=payload)
+    assert resp.status_code == status.HTTP_201_CREATED
