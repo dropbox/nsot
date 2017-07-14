@@ -5,6 +5,21 @@ Changelog
 Version History
 ===============
 
+.. _v1.1.7:
+
+1.1.7 (2017-07-13)
+------------------
+
+* This adds a new setting called ``NSOT_NEW_USERS_AS_SUPERUSER`` which defaults
+  to ``True``, to toggle whether users coming in via the ``auth_header``
+  authentication method (proxy authentication) are created with superuser
+  permissions. If toggled to ``False``, new users are not given superuser and
+  it will be expected that custom permissions will be utilized to control admin
+  privileges.
+* This also updates the API permissions validation from requiring "staff"
+  permissions to requiring model permissions. For existing users that already
+  have staff/superuser permission and default behaviors, there is no impact.
+
 .. _v1.1.6:
 
 1.1.6 (2017-07-12)
