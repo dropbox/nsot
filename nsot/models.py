@@ -1548,7 +1548,6 @@ class Interface(Resource):
         self.mac_address = self.clean_mac_address(self.mac_address)
         self.device_hostname = self.clean_device_hostname(self.device)
         self.parent = self.clean_parent(self.parent)
-        self.name_slug = self.clean_name_slug()
 
     def save(self, *args, **kwargs):
         # We don't want to validate unique because we want the IntegrityError
