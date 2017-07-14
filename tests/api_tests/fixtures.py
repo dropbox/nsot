@@ -3,7 +3,7 @@ import json
 import logging
 import os
 import pytest
-from pytest_django.fixtures import live_server, django_user_model
+from pytest_django.fixtures import live_server, django_user_model, settings
 import requests
 
 from .util import Client, TestSite
@@ -43,3 +43,10 @@ def client(live_server):
 def user_client(live_server):
     """Create and return a non-admin client."""
     return Client(live_server, user='user', api_version=API_VERSION)
+
+
+@pytest.fixture
+def nosuperuser_settings(settings):
+    """Return settings that have default superuser users disabled."""
+    settings.NSOT_NEW_USERS_AS_SUPERUSER = False
+    return settings

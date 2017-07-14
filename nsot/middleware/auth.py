@@ -42,9 +42,11 @@ class EmailHeaderBackend(backends.RemoteUserBackend):
             return username
 
     def configure_user(self, user):
-        """Make all new users superusers and staff."""
-        user.is_superuser = True
-        user.is_staff = True
-        user.save()
+        """Check whether to make new users superusers."""
+        if settings.NSOT_NEW_USERS_AS_SUPERUSER:
+            user.is_superuser = True
+            user.is_staff = True
+            user.save()
+
         log.debug('Created new user: %s', user)
         return user
