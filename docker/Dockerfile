@@ -34,6 +34,8 @@ RUN apt-get --quiet=2 install -y python-psycopg2
 RUN apt-get --quiet=2 install -y sqlite3
 RUN pip install MySQL-Python
 RUN pip install psycopg2
+# upgrade pip to fix https://github.com/dropbox/nsot/issues/277
+RUN pip install -U setuptools
 
 # Try to run this as late as possible for layer caching - this version will be
 # updated every update so let the build not take longer than necessary
