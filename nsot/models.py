@@ -2068,7 +2068,7 @@ class Change(models.Model):
         help_text='The User that initiated this Change.'
     )
     change_at = models.DateTimeField(
-        auto_now_add=True, null=False,
+        auto_now_add=True, db_index=True, null=False,
         help_text='The timestamp of this Change.'
     )
     event = models.CharField(
@@ -2095,6 +2095,10 @@ class Change(models.Model):
 
     class Meta:
         get_latest_by = 'change_at'
+        index_together = (
+            ('resource_name', 'resource_id'),
+            ('resource_name', 'event'),
+        )
 
     def __unicode__(self):
         return u'%s %s(%s)' % (self.event, self.resource_name,
