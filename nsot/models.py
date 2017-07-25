@@ -1,10 +1,15 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
-
 from calendar import timegm
+import difflib
+import json
+import logging
+from operator import attrgetter
+import re
+import time
+
 from cryptography.fernet import (Fernet, InvalidToken)
 from custom_user.models import AbstractEmailUser
-import difflib
 from django.apps import apps
 from django.db import models
 from django.db.models.query_utils import Q
@@ -12,18 +17,9 @@ from django.conf import settings
 from django.core.cache import cache as djcache
 from django.utils import timezone
 import ipaddress
-import json
-import logging
 import netaddr
-from operator import attrgetter
-import re
-import time
 
-from . import exc
-from . import fields
-from . import validators
-from .util import (cidr_to_dict, generate_secret_key, parse_set_query, slugify,
-                   stats)
+from . import exc, fields, util, validators
 
 
 log = logging.getLogger(__name__)
@@ -89,7 +85,7 @@ class Site(models.Model):
 class User(AbstractEmailUser):
     """A custom user object that utilizes email as the username."""
     secret_key = models.CharField(
-        max_length=44, default=generate_secret_key,
+        max_length=44, default=util.generate_secret_key,
         help_text="The user's secret_key used for API authentication."
     )
 
@@ -113,7 +109,7 @@ class User(AbstractEmailUser):
         }
 
     def rotate_secret_key(self):
-        self.secret_key = generate_secret_key()
+        self.secret_key = util.generate_secret_key()
         self.save()
 
     def generate_auth_token(self):
@@ -228,7 +224,7 @@ class ResourceSetTheoryQuerySet(models.query.QuerySet):
             objects = objects.filter(site=site_id)
 
         try:
-            attributes = parse_set_query(query)
+            attributes = util.parse_set_query(query)
         except (ValueError, TypeError) as err:
             raise exc.ValidationError({
                 'query': err.message
@@ -609,7 +605,7 @@ class NetworkManager(ResourceManager):
         :param site:
             ``Site`` instance or ``site_id``
         """
-        lookup_kwargs = cidr_to_dict(cidr)
+        lookup_kwargs = util.cidr_to_dict(cidr)
         if site is not None:
             lookup_kwargs['site'] = site
 
@@ -1046,7 +1042,7 @@ class Network(Resource):
         return query
 
     def get_utilization(self):
-        return stats.get_network_utilization(self)
+        return util.get_network_utilization(self)
 
     def set_reserved(self, commit=True):
         self.state = self.RESERVED
@@ -1157,7 +1153,9 @@ class Network(Resource):
     def to_dict(self):
         return {
             'id': self.id,
+            'cidr': self.cidr,
             'parent_id': self.parent_id,
+            'parent': self.parent and self.parent.cidr,
             'site_id': self.site_id,
             'is_ip': self.is_ip,
             'ip_version': self.ip_version,
@@ -1177,6 +1175,15 @@ class Interface(Resource):
     name = models.CharField(
         max_length=255, null=False, db_index=True,
         help_text='The name of the interface as it appears on the Device.'
+    )
+
+    # This doesn't use the built-in SlugField since we're doing our own
+    # slugification (django.utils.text.slugify() is too agressive)
+    name_slug = models.CharField(
+        db_index=True, editable=False, max_length=255, null=True, unique=True,
+        help_text=(
+            'Slugified version of the name field, used for the natural key'
+        )
     )
 
     # if_addr
@@ -1284,7 +1291,7 @@ class Interface(Resource):
     # lldp_remote_system_name
 
     def __unicode__(self):
-        return u'%s:%s' % (self.device_hostname, self.name)
+        return self.name_slug
 
     class Meta:
         unique_together = ('device', 'name')
@@ -1515,6 +1522,14 @@ class Interface(Resource):
         """Extract hostname from device"""
         return device.hostname
 
+    def clean_name_slug(self, value=None):
+        """Slugify the interface name into natural key."""
+        if value is None:
+            value = util.slugify_interface(
+                device_hostname=self.device_hostname, name=self.name
+            )
+        return value
+
     def clean_parent(self, parent):
         if parent is None:
             return parent
@@ -1533,6 +1548,7 @@ class Interface(Resource):
         self.mac_address = self.clean_mac_address(self.mac_address)
         self.device_hostname = self.clean_device_hostname(self.device)
         self.parent = self.clean_parent(self.parent)
+        self.name_slug = self.clean_name_slug()
 
     def save(self, *args, **kwargs):
         # We don't want to validate unique because we want the IntegrityError
@@ -1558,7 +1574,9 @@ class Interface(Resource):
         return {
             'id': self.id,
             'parent_id': self.parent_id,
+            'parent': self.parent and self.parent.name_slug,
             'name': self.name,
+            'name_slug': self.name_slug,
             'device': self.device_id,
             'device_hostname': self.device_hostname,
             'description': self.description,
@@ -1685,7 +1703,7 @@ class Circuit(Resource):
         self.endpoint_z = self.clean_endpoint_z(self.endpoint_z_id)
         self.name = self.clean_name(self.name)
 
-        self.name_slug = slugify(self.name)
+        self.name_slug = util.slugify(self.name)
 
     def save(self, *args, **kwargs):
         self.full_clean()
@@ -1696,8 +1714,8 @@ class Circuit(Resource):
             'id': self.id,
             'name': self.name,
             'name_slug': self.name_slug,
-            'endpoint_a': self.endpoint_a_id,
-            'endpoint_z': self.endpoint_z_id,
+            'endpoint_a': self.endpoint_a and self.endpoint_a.name_slug,
+            'endpoint_z': self.endpoint_z and self.endpoint_z.name_slug,
             'attributes': self.get_attributes(),
         }
 

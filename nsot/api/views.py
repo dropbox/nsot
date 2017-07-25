@@ -47,7 +47,7 @@ class BaseNsotViewSet(viewsets.ReadOnlyModelViewSet):
         :param filter_value:
             Value to be used to filter by natural_key
         """
-        raise NotImplementedError('This must be defined in a subclass.')
+        return {self.natural_key: filter_value}
 
     def not_found(self, pk=None, site_pk=None, msg=None):
         """Standard formatting for 404 errors."""
@@ -397,10 +397,6 @@ class DeviceViewSet(ResourceViewSet):
 
         return self.serializer_class
 
-    def get_natural_key_kwargs(self, filter_value):
-        """Return a dict of kwargs for natural_key lookup."""
-        return {self.natural_key: filter_value}
-
     @detail_route(methods=['get'])
     def interfaces(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return all interfaces for this Device."""
@@ -641,13 +637,7 @@ class InterfaceViewSet(ResourceViewSet):
     # Match on device_hostname:name or pk id
     # Being pretty vague here, so as to be minimally prescriptive
     lookup_value_regex = '[^:]+:([^/]+|.+[0-9])|[0-9]+'
-    natural_key = ('device_hostname', 'name')
-
-    def get_natural_key_kwargs(self, filter_value):
-        """Return a dict of kwargs for natural_key lookup."""
-        # Breakout the device and interface
-        device, interface = filter_value.split(":", 1)
-        return dict(device_hostname=device, name=interface)
+    natural_key = 'name_slug'
 
     @cache_response(cache_errors=False, key_func=cache.list_key_func)
     def list(self, *args, **kwargs):
@@ -824,10 +814,6 @@ class CircuitViewSet(ResourceViewSet):
             return serializers.CircuitPartialUpdateSerializer
 
         return self.serializer_class
-
-    def get_natural_key_kwargs(self, filter_value):
-        """Return a dict of kwargs for natural_key lookup."""
-        return {self.natural_key: filter_value}
 
     @detail_route(methods=['get'])
     def addresses(self, request, pk=None, site_pk=None, *args, **kwargs):
