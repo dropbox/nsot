@@ -10,6 +10,7 @@ import time
 
 from cryptography.fernet import (Fernet, InvalidToken)
 from custom_user.models import AbstractEmailUser
+import difflib
 from django.apps import apps
 from django.db import models
 from django.db.models.query_utils import Q
