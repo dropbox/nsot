@@ -219,10 +219,13 @@ project maintainers, who have push access to the parent repository.
    one-line summary for each change is sufficient, and often the summary from
    each PR merge works.
 #. Commit these changes to your branch.
+#. Open a release Pull Request against the ``master`` branch
+#. Merge the release Pull Request into ``master``
 #. Merge the release branch into ``develop`` and push that branch up
-#. Merge the release branch into ``master``
+#. Switch to the ``master`` branch and pull the latest updates (with the PR you
+   just merged)
 #. Create a new git tag with this verison in the format of ``vX.Y.Z``
-#. Push the ``master`` branch up along with the new tag
+#. Push up the new tag
 #. Create a new package and push it up to PyPI:
 
 .. code-block:: bash
