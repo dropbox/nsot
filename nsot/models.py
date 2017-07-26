@@ -4,6 +4,8 @@ from __future__ import unicode_literals
 from calendar import timegm
 from cryptography.fernet import (Fernet, InvalidToken)
 from custom_user.models import AbstractEmailUser
+import difflib
+from django.apps import apps
 from django.db import models
 from django.db.models.query_utils import Q
 from django.conf import settings
@@ -2068,7 +2070,7 @@ class Change(models.Model):
         help_text='The User that initiated this Change.'
     )
     change_at = models.DateTimeField(
-        auto_now_add=True, null=False,
+        auto_now_add=True, db_index=True, null=False,
         help_text='The timestamp of this Change.'
     )
     event = models.CharField(
@@ -2095,6 +2097,10 @@ class Change(models.Model):
 
     class Meta:
         get_latest_by = 'change_at'
+        index_together = (
+            ('resource_name', 'resource_id'),
+            ('resource_name', 'event'),
+        )
 
     def __unicode__(self):
         return u'%s %s(%s)' % (self.event, self.resource_name,
@@ -2160,6 +2166,46 @@ class Change(models.Model):
             'resource_id': self.resource_id,
             'resource': resource,
         }
+
+    @property
+    def diff(self):
+        """
+        Return the diff of the JSON representation of the cached copy of a
+        Resource with its current instance
+        """
+        if self.event == 'Create':
+            old = ''
+        else:
+            # Get the Change just ahead of _this_ change because that has the
+            # state of the Resource before this Change occurred.
+            # TODO(nickpegg): Get rid of this if we change the behavior of
+            # Change to store the previous version of the object
+            old_change = Change.objects.filter(
+                change_at__lt=self.change_at,
+                resource_id=self.resource_id,
+                resource_name=self.resource_name
+            ).order_by(
+                '-change_at'
+            ).first()
+            old = json.dumps(old_change._resource, indent=2, sort_keys=True)
+
+        if self.event == 'Delete':
+            current = ''
+        else:
+            resource = apps.get_model(self._meta.app_label, self.resource_name)
+            obj = resource.objects.get(pk=self.resource_id)
+
+            serializer_class = self.get_serializer_for_resource(
+                    self.resource_name)
+            serializer = serializer_class(obj)
+            current = json.dumps(serializer.data, indent=2, sort_keys=True)
+
+        diff = "\n".join(difflib.ndiff(
+            old.splitlines(),
+            current.splitlines()
+        ))
+
+        return diff
 
 
 # Signals
