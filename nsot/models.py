@@ -5,11 +5,11 @@ from calendar import timegm
 from cryptography.fernet import (Fernet, InvalidToken)
 from custom_user.models import AbstractEmailUser
 import difflib
+from django.apps import apps
 from django.db import models
 from django.db.models.query_utils import Q
 from django.conf import settings
 from django.core.cache import cache as djcache
-from django.shortcuts import get_object_or_404
 from django.utils import timezone
 import ipaddress
 import json
@@ -2186,14 +2186,14 @@ class Change(models.Model):
                 resource_name=self.resource_name
             ).order_by(
                 '-change_at'
-            )[0]
+            ).first()
             old = json.dumps(old_change._resource, indent=2, sort_keys=True)
 
         if self.event == 'Delete':
             current = ''
         else:
-            resource = globals()[self.resource_name]
-            obj = get_object_or_404(resource, pk=self.resource_id)
+            resource = apps.get_model(self._meta.app_label, self.resource_name)
+            obj = resource.objects.get(pk=self.resource_id)
 
             serializer_class = self.get_serializer_for_resource(
                     self.resource_name)
