@@ -195,6 +195,10 @@ class ChangeViewSet(BaseNsotViewSet):
     serializer_class = serializers.ChangeSerializer
     filter_fields = ('event', 'resource_name', 'resource_id')
 
+    @detail_route(methods=['get'])
+    def diff(self, request, *args, **kwargs):
+        return self.success(self.get_object().diff)
+
 
 class NsotViewSet(BaseNsotViewSet, viewsets.ModelViewSet):
     """
