@@ -195,6 +195,10 @@ class ChangeViewSet(BaseNsotViewSet):
     serializer_class = serializers.ChangeSerializer
     filter_fields = ('event', 'resource_name', 'resource_id')
 
+    @detail_route(methods=['get'])
+    def diff(self, request, *args, **kwargs):
+        return self.success(self.get_object().diff)
+
 
 class NsotViewSet(BaseNsotViewSet, viewsets.ModelViewSet):
     """
@@ -699,25 +703,29 @@ class InterfaceViewSet(ResourceViewSet):
     def ancestors(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return all the ancestors of this Interface."""
         interface = self.get_resource_object(pk, site_pk)
-        return self.list(request, queryset=interface.get_ancestors(), *args, **kwargs)
+        return self.list(request, queryset=interface.get_ancestors(), *args,
+                         **kwargs)
 
     @detail_route(methods=['get'])
     def children(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return all the immediate children of this Interface."""
         interface = self.get_resource_object(pk, site_pk)
-        return self.list(request, queryset=interface.get_children(), *args, **kwargs)
+        return self.list(request, queryset=interface.get_children(), *args,
+                         **kwargs)
 
     @detail_route(methods=['get'])
     def descendants(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return all the descendants of this Interface."""
         interface = self.get_resource_object(pk, site_pk)
-        return self.list(request, queryset=interface.get_descendants(), *args, **kwargs)
+        return self.list(request, queryset=interface.get_descendants(), *args,
+                         **kwargs)
 
     @detail_route(methods=['get'])
     def siblings(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return all the siblings of this Interface."""
         interface = self.get_resource_object(pk, site_pk)
-        return self.list(request, queryset=interface.get_siblings(), *args, **kwargs)
+        return self.list(request, queryset=interface.get_siblings(), *args,
+                         **kwargs)
 
     @detail_route(methods=['get'])
     def root(self, request, pk=None, site_pk=None, *args, **kwargs):

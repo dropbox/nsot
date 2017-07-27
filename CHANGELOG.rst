@@ -5,6 +5,17 @@ Changelog
 Version History
 ===============
 
+.. _v1.1.8:
+
+1.1.8 (2017-07-26)
+------------------
+
+* Upgrade setuptools in the Docker container, fixing #277
+* Add various indicies to the Change model to speed up lookups
+* Add a ``diff`` API endpoint to ``/change/``, which returns a unified diff of
+  the JSON representation of the changed object, from its state before the
+  given Change happened and its current state.
+
 .. _v1.1.7:
 
 1.1.7 (2017-07-13)
