@@ -12,6 +12,8 @@ import json
 import logging
 from rest_framework import status
 
+from nsot.util import slugify, slugify_interface
+
 from .fixtures import live_server, client, user, site, user_client
 from .util import (
     assert_created, assert_error, assert_success, assert_deleted, load_json,
@@ -79,16 +81,34 @@ def test_creation(site, client):
 
     assert_created(ifc2_resp, ifc2_obj_uri)
 
+    # Create yet another interface using Device hostname
+    ifc3_resp = client.create(ifc_uri, device=dev['hostname'], name='eth1.0')
+    ifc3 = get_result(ifc3_resp)
+    ifc3_obj_uri = site.detail_uri('interface', id=ifc3['id'])
+
+    assert_created(ifc3_resp, ifc3_obj_uri)
+
+    # Create an interface using Device hostname with parent_id specified by natural
+    # key (!!)
+    ifc4_resp = client.create(
+        ifc_uri, device=dev['hostname'], name='eth1.1',
+        parent_id=ifc3['name_slug']
+    )
+    ifc4 = get_result(ifc4_resp)
+    ifc4_obj_uri = site.detail_uri('interface', id=ifc4['id'])
+
+    assert_created(ifc4_resp, ifc4_obj_uri)
+
     # Verify successful get of single Interface
     assert_success(client.get(ifc1_obj_uri), ifc1)
 
     # Verify successful get of single Interface by natural key
-    natural_key = ":".join([ifc1['device_hostname'], ifc1['name']])
+    natural_key = slugify_interface(**ifc1)
     ifc1_natural_uri = site.detail_uri('interface', id=natural_key)
     assert_success(client.get(ifc1_natural_uri), ifc1)
 
     # Verify successful retrieval of all Interfaces
-    interfaces = [ifc1, ifc2]
+    interfaces = [ifc1, ifc2, ifc3, ifc4]
     expected = interfaces
     assert_success(client.get(ifc_uri), expected)
 
@@ -259,9 +279,9 @@ def test_bulk_operations(site, client):
 
     # Successfully create a collection of Interfaces
     collection = [
-        {'device': dev['id'], 'name': 'foo1'},
-        {'device': dev['id'], 'name': 'foo2'},
-        {'device': dev['id'], 'name': 'foo3'},
+        {'device': dev['id'], 'name': 'eth1'},
+        {'device': dev['id'], 'name': 'eth2'},
+        {'device': dev['id'], 'name': 'eth3'},
     ]
     collection_response = client.post(
         ifc_uri,
@@ -275,10 +295,11 @@ def test_bulk_operations(site, client):
 
     assert_success(client.get(ifc_uri), expected)
 
-    # Test update of all created Interfaces (name: foo => bar)
+    # Test update of all created Interfaces (name: eth => ae)
     updated = copy.deepcopy(expected)
     for item in updated:
-        item['name'] = item['name'].replace('foo', 'bar')
+        item['name'] = item['name'].replace('eth', 'ae')
+        item['name_slug'] = item['name_slug'].replace('eth', 'ae')
     updated_resp = client.put(ifc_uri, data=json.dumps(updated))
     expected = updated_resp.json()
 
@@ -335,13 +356,26 @@ def test_update(site, client):
     )
 
     # Assign addresses by natural key
-    natural_key = ":".join([ifc2['device_hostname'], ifc2['name']])
+    natural_key = slugify_interface(**ifc2)
     ifc2_natural_uri = site.detail_uri('interface', id=natural_key)
     params['name'] = 'eth3'
-    ifc2.update(params)
+    payload = copy.deepcopy(params)
+    payload['name_slug'] = slugify_interface(**payload)
+
     assert_success(
         client.update(ifc2_natural_uri, **params),
-        ifc2
+        payload
+    )
+
+    # Update parent by natural key (set `ifc` as parent to `ifc2`)
+    params['parent_id'] = ifc['name_slug']
+    payload['parent_id'] = ifc['id']
+    payload['parent'] = ifc['name_slug']
+    payload['name_slug'] = slugify_interface(**payload)
+
+    assert_success(
+        client.update(ifc2_obj_uri, **params),
+        payload
     )
 
 
@@ -381,6 +415,7 @@ def test_partial_update(site, client):
     payload = copy.deepcopy(ifc)
     params = {'name': 'ge-0/0/1'}
     payload.update(params)
+    payload['name_slug'] = slugify_interface(**payload)
     assert_success(
         client.partial_update(ifc_pk_uri, **params),
         payload
@@ -395,7 +430,7 @@ def test_partial_update(site, client):
     )
 
     # Update attributes by natural key
-    natural_key = ":".join([payload['device_hostname'], payload['name']])
+    natural_key = slugify_interface(**payload)
     ifc_natural_uri = site.detail_uri('interface', id=natural_key)
     params = {'attributes': {'attr1': 'bar'}}
     payload.update(params)
@@ -407,6 +442,7 @@ def test_partial_update(site, client):
     # Update name and confirm natural key change
     params = {'name': 'xe-1/2/3:10.0'}
     payload.update(params)
+    payload['name_slug'] = slugify_interface(**payload)
     assert_success(
         client.partial_update(ifc_natural_uri, **params),
         payload
@@ -414,7 +450,7 @@ def test_partial_update(site, client):
     # Old natural key URI should fail
     assert_error(client.get(ifc_natural_uri), status.HTTP_404_NOT_FOUND)
     # Build new natural key
-    natural_key = ":".join([payload['device_hostname'], payload['name']])
+    natural_key = slugify_interface(**payload)
     ifc_natural_uri = site.detail_uri('interface', id=natural_key)
     # Confirm new URI works
     assert_success(client.get(ifc_natural_uri), payload)
@@ -705,7 +741,7 @@ def test_deletion(site, client):
     # Delete based on natural key
     dev1_eth2_resp = client.create(ifc_uri, device=dev1['id'], name='eth2')
     dev1_eth2 = get_result(dev1_eth2_resp)
-    natural_key = ":".join([dev1_eth2['device_hostname'], dev1_eth2['name']])
+    natural_key = slugify_interface(**dev1_eth2)
     dev1_eth2_natural_uri = site.detail_uri('interface', id=natural_key)
     assert_deleted(client.delete(dev1_eth2_natural_uri))
 
@@ -744,7 +780,7 @@ def test_detail_routes(site, client):
     assert_success(client.retrieve(addresses_uri), expected)
 
     # Verify Interface.addresses by natural key
-    natural_key = ":".join([ifc['device_hostname'], ifc['name']])
+    natural_key = slugify_interface(**ifc)
     addresses_natural_uri = reverse(
         'interface-addresses', args=(site.id, natural_key))
     assert_success(client.retrieve(addresses_natural_uri), expected)
@@ -764,8 +800,8 @@ def test_detail_routes(site, client):
     params = {'name': 'xe-1/2/3:10.0'}
     ifc_resp = client.partial_update(ifc_obj_uri, **params)
     ifc = get_result(ifc_resp)
-    # Build the new natual key
-    natural_key = ":".join([ifc['device_hostname'], ifc['name']])
+    # Build the new natural key
+    natural_key = slugify_interface(**ifc)
 
     # Verify Interface.addresses by natural key with a complex interface name
     addresses_natural_uri = reverse(

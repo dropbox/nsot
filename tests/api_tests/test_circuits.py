@@ -88,6 +88,18 @@ def test_creation(site, client):
         status.HTTP_400_BAD_REQUEST
     )
 
+    # Create a circuit referencing interfaces with natural keys
+    ae1_a = get_result(client.create(ifc_uri, device=dev_a['id'], name='ae1'))
+    ae1_z = get_result(client.create(ifc_uri, device=dev_z['id'], name='ae1'))
+
+    cir2_resp = client.create(
+        cir_uri, endpoint_a=ae1_a['name_slug'], endpoint_z=ae1_z['name_slug']
+    )
+    cir2 = get_result(cir2_resp)
+    cir2_obj_uri = site.detail_uri('circuit', id=cir2['id'])
+
+    assert_created(cir2_resp, cir2_obj_uri)
+
     # Verify successful get of single Circuit
     assert_success(client.get(cir_obj_uri), cir)
 
@@ -97,7 +109,7 @@ def test_creation(site, client):
     assert_success(client.get(cir_natural_uri), cir)
 
     # Verify successful retrieval of all Circuits
-    circuits = [cir]
+    circuits = [cir, cir2]
     expected = circuits
     assert_success(client.get(cir_uri), expected)
 
@@ -179,15 +191,22 @@ def test_update(site, client):
     cir = get_result(cir_resp)
     cir_obj_uri = site.detail_uri('circuit', id=cir['id'])
 
-    # Update circuit to use a different Z-side.
+    # Update circuit to use a different Z-side (using natural key).
     if_z2_resp = client.create(ifc_uri, device=dev_z['id'], name='eth1')
     if_z2 = get_result(if_z2_resp)
 
     payload = copy.deepcopy(cir)
     params = copy.deepcopy(payload)
-    params['endpoint_z'] = if_z2['id']
+    params['endpoint_z'] = if_z2['name_slug']
     payload.update(params)
 
+    assert_success(
+        client.update(cir_obj_uri, **params),
+        payload
+    )
+
+    # Update circuit Z-side using ID (should still match previous payload)
+    params['endpoint_z'] = if_z2['id']
     assert_success(
         client.update(cir_obj_uri, **params),
         payload
@@ -199,7 +218,7 @@ def test_update(site, client):
         client.update(cir_obj_uri, **params),
         status.HTTP_400_BAD_REQUEST
     )
-    params['endpoint_a'] = if_a['id']  # Restore if_a.id
+    params['endpoint_a'] = if_a['name_slug']  # Restore if_a.name_slug
 
     # Update circuit to have no Z-side.
     params['endpoint_z'] = None
@@ -221,7 +240,7 @@ def test_update(site, client):
     assert obj['name'] == expected_name
 
     # Restore circuit back to normal using natural_key
-    params['endpoint_z'] = if_z['id']
+    params['endpoint_z'] = if_z['name_slug']
     params['name'] = 'foo-bar1:eth0_foo-bar2:eth0'
     payload.update(params)
 

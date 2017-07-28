@@ -21,7 +21,7 @@ _TRUTHY = set([
 __all__ = (
     'qpbool', 'normalize_auth_header', 'generate_secret_key', 'get_field_attr',
     'SetQuery', 'parse_set_query', 'generate_settings', 'initialize_app',
-    'main', 'cidr_to_dict', 'slugify'
+    'main', 'cidr_to_dict', 'slugify', 'slugify_interface'
 )
 
 
@@ -114,6 +114,35 @@ def slugify(s):
         s = s.replace(char, replacement)
 
     return s
+
+
+def slugify_interface(interface=None, device_hostname=None, name=None,
+                      **kwargs):
+    """
+    Return a slug (natural key) representation of an Interface.
+
+    If ``interface`` is not provided, ``device_hostname`` and ``name`` are
+    required. If all are provided, ``interface`` will take precedence.
+
+    :param interface:
+        Interface dict
+
+    :param device_hostname:
+        Device hostname
+
+    :param name:
+        Interface name
+
+    :rtype: str
+    """
+    if not (interface or (device_hostname and name)):
+        raise RuntimeError('Either interface or device_hostname/name required')
+
+    if interface is None:
+        interface = dict(device_hostname=device_hostname, name=name)
+
+    slug = '{device_hostname}:{name}'.format(**interface)
+    return slug
 
 
 #: Namedtuple for resultant items from ``parse_set_query()``
@@ -281,6 +310,8 @@ def initialize_app(config):
     :param config:
         Config object
     """
+    # FIXME(jathan): Move this to a setting/parameter that can be toggled when
+    # gevent workers are not used.
     USE_GEVENT = True  # Hard-coding gevent for now.
 
     if USE_GEVENT:
