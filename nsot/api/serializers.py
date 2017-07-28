@@ -76,6 +76,64 @@ class MACAddressField(fields.Field):
         return validators.validate_mac_address(value)
 
 
+class NaturalKeyRelatedField(serializers.SlugRelatedField):
+    """Field that takes either a primary key or a natural key."""
+    def to_representation(self, value):
+        return value
+
+    def to_internal_value(self, value):
+        """Try PK followed by slug (natural key) value."""
+        # Cast integers to strings, bruh
+        if isinstance(value, int):
+            value = str(value)
+
+        # Is digit? Is PK.
+        if value.isdigit():
+            field = serializers.PrimaryKeyRelatedField(
+                queryset=self.get_queryset()
+            )
+            log.debug(
+                'NaturalKeyRelatedField: %s using PK field for value %s',
+                self.field_name, value
+            )
+        # Or it's natural key. Brute force!!
+        else:
+            field = serializers.SlugRelatedField(
+                slug_field=self.slug_field,
+                queryset=self.get_queryset(),
+            )
+            log.debug(
+                'NaturalKeyRelatedField: %s using SLUG field for value %s',
+                self.field_name, value
+            )
+
+        value = field.to_internal_value(value)
+
+        return value
+
+    def get_queryset(self):
+        """Filter eligible related objects to the current site."""
+        queryset = super(NaturalKeyRelatedField, self).get_queryset()
+        request = self.context.get('request')
+
+        if request is None:
+            data = {}
+        else:
+            is_bulk = isinstance(request.data, list)
+            if is_bulk:
+                data = request.data[0]
+            else:
+                data = request.data
+
+        site_id = data.get('site_id')
+
+        if site_id is not None:
+            log.debug('Filtering queryset to site_id=%s', site_id)
+            queryset = queryset.filter(site_id=site_id)
+
+        return queryset
+
+
 ###################
 # Base Serializer #
 ###################
@@ -83,7 +141,9 @@ class NsotSerializer(serializers.ModelSerializer):
     """Base serializer that logs change events."""
     def to_internal_value(self, data):
         """Inject site_pk from view's kwargs if it's not already in data."""
-        kwargs = self.context['view'].kwargs
+        # Try to get the kwargs from the view, or default to empty kwargs.
+        view = self.context.get('view')
+        kwargs = getattr(view, 'kwargs', {})
 
         log.debug(
             'NsotSerializer.to_internal_value() data [before] = %r', data
@@ -201,19 +261,11 @@ class ValueSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'value', 'attribute', 'resource_name',
                   'resource_id')
 
-    # Not sure if we want to view an attribute value w/ so much context just
-    # yet.
-    # def to_representation(self, obj):
-    #      return obj.to_dict()
-
 
 class ValueCreateSerializer(ValueSerializer):
     """Used for POST on Values."""
-    class Meta:
-        model = models.Value
+    class Meta(ValueSerializer.Meta):
         read_only_fields = ('id', 'name', 'resource_name')
-        fields = ('id', 'name', 'value', 'attribute', 'resource_name',
-                  'resource_id')
 
 
 ###########
@@ -224,6 +276,11 @@ class ResourceSerializer(NsotSerializer):
     attributes = JSONDictField(
         required=False,
         help_text='Dictionary of attributes to set.'
+    )
+    site_id = serializers.PrimaryKeyRelatedField(
+        source='site', queryset=models.Site.objects.all(),
+        help_text='Unique ID of the Site this object is under.',
+        label='Site',
     )
 
     def create(self, validated_data, commit=True):
@@ -278,6 +335,7 @@ class ResourceSerializer(NsotSerializer):
 ########
 class DeviceSerializer(ResourceSerializer):
     """Used for GET, DELETE on Devices."""
+
     class Meta:
         model = models.Device
         fields = '__all__'
@@ -285,27 +343,10 @@ class DeviceSerializer(ResourceSerializer):
 
 class DeviceCreateSerializer(DeviceSerializer):
     """Used for POST on Devices."""
-    site_id = fields.IntegerField(
-        label=get_field_attr(models.Device, 'site', 'verbose_name'),
-        help_text=get_field_attr(models.Device, 'site', 'help_text')
-    )
 
     class Meta:
         model = models.Device
         fields = ('hostname', 'attributes', 'site_id')
-
-
-class DeviceUpdateSerializer(BulkSerializerMixin, DeviceCreateSerializer):
-    """Used for PUT on Devices."""
-    attributes = JSONDictField(
-        required=True,
-        help_text='Dictionary of attributes to set.'
-    )
-
-    class Meta:
-        model = models.Device
-        list_serializer_class = BulkListSerializer
-        fields = ('id', 'hostname', 'attributes')
 
 
 class DevicePartialUpdateSerializer(BulkSerializerMixin,
@@ -317,11 +358,19 @@ class DevicePartialUpdateSerializer(BulkSerializerMixin,
         fields = ('id', 'hostname', 'attributes')
 
 
+class DeviceUpdateSerializer(DevicePartialUpdateSerializer):
+    """Used for PUT on Devices."""
+
+    class Meta(DevicePartialUpdateSerializer.Meta):
+        extra_kwargs = {'attributes': {'required': True}}
+
+
 #########
 # Network
 #########
 class NetworkSerializer(ResourceSerializer):
     """Used for GET, DELETE on Networks."""
+
     class Meta:
         model = models.Network
         fields = '__all__'
@@ -337,52 +386,32 @@ class NetworkCreateSerializer(NetworkSerializer):
             'network_address & prefix_length are required.'
         )
     )
-    network_address = fields.ModelField(
-        model_field=models.Network._meta.get_field('network_address'),
-        required=False,
-        label=get_field_attr(
-            models.Network, 'network_address', 'verbose_name'
-        ),
-        help_text=get_field_attr(
-            models.Network, 'network_address', 'help_text'
-        ),
-    )
-    prefix_length = fields.IntegerField(
-        required=False,
-        label=get_field_attr(models.Network, 'prefix_length', 'verbose_name'),
-        help_text=get_field_attr(models.Network, 'prefix_length', 'help_text'),
-    )
-    site_id = fields.IntegerField(
-        label=get_field_attr(models.Network, 'site', 'verbose_name'),
-        help_text=get_field_attr(models.Network, 'site', 'help_text')
-    )
 
     class Meta:
         model = models.Network
         fields = ('cidr', 'network_address', 'prefix_length', 'attributes',
                   'state', 'site_id')
-
-
-class NetworkUpdateSerializer(BulkSerializerMixin, NetworkCreateSerializer):
-    """Used for PUT on Networks."""
-    attributes = JSONDictField(
-        required=True,
-        help_text='Dictionary of attributes to set.'
-    )
-
-    class Meta:
-        model = models.Network
-        list_serializer_class = BulkListSerializer
-        fields = ('id', 'attributes', 'state')
+        extra_kwargs = {
+            'network_address': {'required': False},
+            'prefix_length': {'required': False},
+        }
 
 
 class NetworkPartialUpdateSerializer(BulkSerializerMixin,
                                      NetworkCreateSerializer):
     """Used for PATCH on Networks."""
+
     class Meta:
         model = models.Network
         list_serializer_class = BulkListSerializer
         fields = ('id', 'attributes', 'state')
+
+
+class NetworkUpdateSerializer(NetworkPartialUpdateSerializer):
+    """Used for PUT on Networks."""
+
+    class Meta(NetworkPartialUpdateSerializer.Meta):
+        extra_kwargs = {'attributes': {'required': True}}
 
 
 ###########
@@ -390,17 +419,43 @@ class NetworkPartialUpdateSerializer(BulkSerializerMixin,
 ###########
 class InterfaceSerializer(ResourceSerializer):
     """Used for GET, DELETE on Interfaces."""
-    parent_id = fields.IntegerField(
+    parent_id = NaturalKeyRelatedField(
         required=False, allow_null=True,
+        slug_field='name_slug',
+        queryset=models.Interface.objects.all(),
         label=get_field_attr(models.Interface, 'parent', 'verbose_name'),
         help_text=get_field_attr(models.Interface, 'parent', 'help_text'),
+    )
+    device = NaturalKeyRelatedField(
+        slug_field='hostname',
+        queryset=models.Device.objects.all(),
+        label=get_field_attr(models.Interface, 'device', 'verbose_name'),
+        help_text=get_field_attr(models.Interface, 'device', 'help_text'),
+    )
+    addresses = JSONListField(
+        required=False, help_text='List of host addresses to assign.'
+    )
+    mac_address = MACAddressField(
+        required=False, allow_null=True,
+        label=get_field_attr(models.Interface, 'mac_address', 'verbose_name'),
+        help_text=get_field_attr(models.Interface, 'mac_address', 'help_text'),
     )
 
     class Meta:
         model = models.Interface
         fields = '__all__'
 
+    def validate_parent_id(self, value):
+        """Cast the parent_id to an int if it's an Interface object."""
+        # FIXME(jathan): Remove this hackery when we move away from `parent_id`
+        # to `parent` in the future.
+        if value is not None and isinstance(value, models.Interface):
+            return value.id
+
+        return value
+
     def create(self, validated_data):
+        """Overload default create to handle setting of addresses."""
         log.debug('InterfaceCreateSerializer.create() validated_data = %r',
                   validated_data)
 
@@ -427,6 +482,7 @@ class InterfaceSerializer(ResourceSerializer):
         return obj
 
     def update(self, instance, validated_data):
+        """Overload default update to handle setting of addresses."""
         log.debug('InterfaceUpdateSerializer.update() validated_data = %r',
                   validated_data)
 
@@ -448,37 +504,11 @@ class InterfaceSerializer(ResourceSerializer):
 
 class InterfaceCreateSerializer(InterfaceSerializer):
     """Used for POST on Interfaces."""
-    addresses = JSONListField(
-        required=False, help_text='List of host addresses to assign.'
-    )
-    mac_address = MACAddressField(
-        required=False, allow_null=True,
-        label=get_field_attr(models.Interface, 'mac_address', 'verbose_name'),
-        help_text=get_field_attr(models.Interface, 'mac_address', 'help_text'),
-    )
 
     class Meta:
         model = models.Interface
         fields = ('device', 'name', 'description', 'type', 'mac_address',
                   'speed', 'parent_id', 'addresses', 'attributes')
-
-
-class InterfaceUpdateSerializer(BulkSerializerMixin,
-                                InterfaceCreateSerializer):
-    "Used for PUT on Interfaces."""
-    addresses = JSONListField(
-        required=True, help_text='List of host addresses to assign.'
-    )
-    attributes = JSONDictField(
-        required=True,
-        help_text='Dictionary of attributes to set.'
-    )
-
-    class Meta:
-        model = models.Interface
-        list_serializer_class = BulkListSerializer
-        fields = ('id', 'name', 'description', 'type', 'mac_address', 'speed',
-                  'parent_id', 'addresses', 'attributes')
 
 
 class InterfacePartialUpdateSerializer(BulkSerializerMixin,
@@ -491,11 +521,34 @@ class InterfacePartialUpdateSerializer(BulkSerializerMixin,
                   'parent_id', 'addresses', 'attributes')
 
 
+class InterfaceUpdateSerializer(InterfacePartialUpdateSerializer):
+    "Used for PUT on Interfaces."""
+
+    class Meta(InterfacePartialUpdateSerializer.Meta):
+        extra_kwargs = {
+            'addresses': {'required': True},
+            'attributes': {'required': True},
+        }
+
+
 #########
 # Circuit
 #########
 class CircuitSerializer(ResourceSerializer):
     """Used for GET, DELETE on Circuits"""
+    endpoint_a = NaturalKeyRelatedField(
+        slug_field='name_slug',
+        queryset=models.Interface.objects.all(),
+        label=get_field_attr(models.Circuit, 'endpoint_a', 'verbose_name'),
+        help_text=get_field_attr(models.Circuit, 'endpoint_a', 'help_text'),
+    )
+    endpoint_z = NaturalKeyRelatedField(
+        slug_field='name_slug',
+        required=False, allow_null=True,
+        queryset=models.Interface.objects.all(),
+        label=get_field_attr(models.Circuit, 'endpoint_z', 'verbose_name'),
+        help_text=get_field_attr(models.Circuit, 'endpoint_z', 'help_text'),
+    )
 
     class Meta:
         model = models.Circuit
@@ -507,20 +560,8 @@ class CircuitCreateSerializer(CircuitSerializer):
 
     class Meta:
         model = models.Circuit
-        # Display name and site are auto-generated, don't include them here
+        # Display name and site are auto-generated, don't include them here.
         fields = ('endpoint_a', 'endpoint_z', 'name', 'attributes')
-
-
-class CircuitUpdateSerializer(BulkSerializerMixin, CircuitCreateSerializer):
-    """Used for PUT on Circuits."""
-    attributes = JSONDictField(
-        required=True, help_text='Dictionary of attributes to set.'
-    )
-
-    class Meta:
-        model = models.Circuit
-        list_serializer_class = BulkListSerializer
-        fields = ('id', 'endpoint_a', 'endpoint_z', 'name', 'attributes')
 
 
 class CircuitPartialUpdateSerializer(BulkSerializerMixin,
@@ -530,6 +571,13 @@ class CircuitPartialUpdateSerializer(BulkSerializerMixin,
         model = models.Circuit
         list_serializer_class = BulkListSerializer
         fields = ('id', 'endpoint_a', 'endpoint_z', 'name', 'attributes')
+
+
+class CircuitUpdateSerializer(CircuitPartialUpdateSerializer):
+    """Used for PUT on Circuits."""
+
+    class Meta(CircuitPartialUpdateSerializer.Meta):
+        extra_kwargs = {'attributes': {'required': True}}
 
 
 ###########
