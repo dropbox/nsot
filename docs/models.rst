@@ -213,11 +213,13 @@ A typical Network object might look like:
 
     {
         "parent_id": null,
+        "parent": null,
         "state": "allocated",
         "prefix_length": 8,
         "is_ip": false,
         "ip_version": "4",
         "network_address": "10.0.0.0",
+        "cidr": "10.0.0.0/8",
         "attributes": {
             "type": "internal"
         },
@@ -312,14 +314,17 @@ A typical Interface object might look like:
             "10.10.10.1/32"
         ],
         "device": 1,
+        "device_hostname": "lax-r1",
         "speed": 10000,
         "networks": [
             "10.10.10.0/24"
         ],
-        "description": "this is eth0",
-        "name": "eth0",
-        "id": 1,
-        "parent_id": null,
+        "description": "this is ae0.0",
+        "name": "ae0.0",
+        "name_slug": "lax-r1:ae0.0",
+        "id": 2,
+        "parent_id": 1,
+        "parent": "lax-r1:ae0",
         "mac_address": null,
         "attributes": {
             "vlan": "100"
@@ -357,6 +362,53 @@ Networks
 
 The networks for an Interface are the are read-only representation of the
 derived parent Network objects of any addresses assigned to an Interface.
+
+Circuits
+--------
+
+A Circuit represents a physical or logical circuit between two network
+interfaces, such as a backbone interconnect or external peering.
+
+Circuits are created by binding local (A-side) and remote (Z-side) Interface
+objects. Interfaces may only be bound to a single Circuit at a time. The Z-side
+Interface is optional, such as if you want to model a circuit for which you do
+not own the remote side.
+
+The Circuit name defaults to the natural key (slug) representations of the A
+and Z interfaces, but may also be customized.
+
+A Circuit's "name slug" may sometimes differ from its name due to certain
+special characters that complicate API lookups. The name slug is used to
+uniquely identify the Circuit internally.
+
+A typical Circuit object might look like:
+
+.. code-block:: javascript
+
+    {
+        "name": "lax-r1:ae0_jfk-r1:ae0",
+        "endpoint_a": "lax-r1:ae0",
+        "endpoint_z": "jfk-r1:ae0",
+        "name_slug": "lax-r1:ae0_jfk-r1:ae0",
+        "attributes": {},
+        "id": 1
+    }
+
+Addresses
+~~~~~~~~~
+
+Returns the addresses assigned to the member Interfaces of the Circuit, if any.
+
+Devices
+~~~~~~~
+
+Returns the Devices to which the member Interfaces are attached.
+
+Interfaces
+~~~~~~~~~~
+
+Returns the Interface objects bound to the circuit ordered from A to Z (local
+to remote).
 
 Changes
 =======
