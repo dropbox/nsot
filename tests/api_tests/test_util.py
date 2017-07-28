@@ -6,8 +6,7 @@ from __future__ import unicode_literals, print_function
 
 import pytest
 
-from nsot.util import SetQuery, parse_set_query
-from nsot.util import slugify, stats
+from nsot import util
 
 
 def test_parse_set_query():
@@ -48,16 +47,16 @@ def test_parse_set_query():
 
     # Make sure that result matches expected_result
     for query, expected_result in set_tests.iteritems():
-        result = parse_set_query(query)
+        result = util.parse_set_query(query)
         assert result == expected_result
 
     # Test bogus stuff
     with pytest.raises(TypeError):
-        parse_set_query(None)
+        util.parse_set_query(None)
 
     # Test a bad string
     with pytest.raises(ValueError):
-        parse_set_query('foo="bar')  # Unbalanced quotes
+        util.parse_set_query('foo="bar')  # Unbalanced quotes
 
 
 PARENT = '10.47.216.0/22'
@@ -108,12 +107,13 @@ def test_stats_get_utilization(parent=PARENT, hosts=HOSTS):
     Make sure that getting network utilization stats is accurate.
     """
     expected = '10.47.216.0/22 - 14% used (139), 86% free (885)'
-    output = stats.calculate_network_utilization(parent, hosts, as_string=True)
+    output = util.calculate_network_utilization(parent, hosts, as_string=True)
 
     assert output == expected
 
 
 def test_slugify():
+    """Test ``util.slugify()``."""
     cases = [
         ('/', '_'),
         ('my cool string', 'my cool string'),
@@ -125,4 +125,26 @@ def test_slugify():
     ]
 
     for case, expected in cases:
-        assert slugify(case) == expected
+        assert util.slugify(case) == expected
+
+
+def test_slugify_interface():
+    """Test ``util.slugify_interface``."""
+
+    # Test interface dict input
+    interface = {'device_hostname': 'foo-bar1', 'name': 'ge-0/0/1'}
+    expected = 'foo-bar1:ge-0/0/1'
+    assert util.slugify_interface(interface) == expected
+
+    # Test kwarg input
+    assert util.slugify_interface(**interface) == expected
+
+    # Test bad inputs
+    with pytest.raises(RuntimeError):
+        util.slugify_interface()
+
+    with pytest.raises(RuntimeError):
+        util.slugify_interface(device_hostname='bogus')
+
+    with pytest.raises(RuntimeError):
+        util.slugify_interface(name='bogus')
