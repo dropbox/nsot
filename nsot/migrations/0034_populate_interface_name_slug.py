@@ -3,18 +3,6 @@ from __future__ import unicode_literals
 
 from django.db import migrations, models
 
-from nsot.util import slugify
-
-
-def add_name_slug(apps, schema_editor):
-    """ Add a name_slug for every Interface that doesn't already have one """
-
-    Interface = apps.get_model('nsot', 'Interface')
-    for i in Interface.objects.filter(name_slug__isnull=True):
-        slug = '%s:%s' % (i.device_hostname, i.name)
-        i.name_slug = slugify(slug)
-        i.save()
-
 
 def remove_name_slug(apps, schema_editor):
     Interface = apps.get_model('nsot', 'Interface')
@@ -28,5 +16,13 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunPython(add_name_slug, remove_name_slug)
+        # The "forwards" action was changed to a noop so that migration 0035
+        # fully replaces this one without having to do migration gymnastics.
+        # Users who previously upgraded to v1.2.0 and had migration 0034
+        # already applied will have to apply 0035, but new users will have 0034
+        # migration be a noop.
+        # In summary:
+        # - v1.2.0 =  0033 -> 0034 -> 0035
+        # - v1.2.1 =  0033 -> 0035
+        migrations.RunPython(migrations.RunPython.noop, remove_name_slug)
     ]
