@@ -5,6 +5,56 @@ Changelog
 Version History
 ===============
 
+.. _v1.2.1:
+
+1.2.1 (2017-08-01)
+------------------
+
+.. important::
+    Users who previously updated to NSoT v1.2.0 will have a new database
+    data migration applied to correct the bug in the previous data migration.
+    Users upgrading from pre-1.2.0 to 1.2.1 will not affected by this fix and
+    the correct data migration will only be applied once.
+
+* Fixed a bug in the data migration for the newly-added ``Interface.name_slug``
+  field that would cause interfaces with ``/`` in their name to have their name
+  slug incorrectly "slugified". A new data  migration has been added to correct
+  this.
+* Fixed a bug that was occuring with model permissions enabled causing
+  404 errors to be returned as 500 errors in specific cases. The 404
+  handler has been changed to only check authenticated state and not
+  model permisisons.
+
+.. _v1.2.0:
+
+1.2.0 (2017-07-28)
+------------------
+
+* Fix #262: Natural keys can now be used any place a primary key could be used for
+  related fields on Interfaces and Circuits.
+
+  + For Circuits, the default is now to display the A/Z endpoint interfaces by
+    their natural key (e.g. ``device_hostname:name`` format).
+  + For Interfaces, the Device hostname may now be used to create or retrieve
+    interfaces (no more need to lookup the Device ID first)
+  + Interface now has a ``name_slug`` field that can be used for natural key
+    lookups. This is now also officially the natural key field.
+  + Network now has a ``cidr`` field that can be used for displaying the
+    ``network_address/prefix_length`` without additional effort
+  + Network now has a ``parent`` field that can be used for displaying the parent
+    CIDR without an additional lookup
+
+* All underlying serializer code has been streamlined to reduce code
+  duplication where possible.
+* All "update" serializers have been moved to subclasses of "partial update"
+  serializers with extra required fields specified as "extra kwargs" vs.
+  re-defining the fields.
+* The fields for ``site_id`` and ``attributes`` have been moved to the base
+  ``ResourceSerializer`` since ALL resources inherit these anyways.
+* Bugfix in ``NsotSerializer`` when ``view`` isn't part of the context that caused
+  a crash.
+* Util stats functions can now be directly imported from ``nsot.util``
+
 .. _v1.1.8:
 
 1.1.8 (2017-07-26)
