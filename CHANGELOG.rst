@@ -5,6 +5,26 @@ Changelog
 Version History
 ===============
 
+.. _v1.2.1:
+
+1.2.1 (2017-08-01)
+------------------
+
+.. important::
+    Users who previously updated to NSoT v1.2.0 will have a new database
+    data migration applied to correct the bug in the previous data migration.
+    Users upgrading from pre-1.2.0 to 1.2.1 will not affected by this fix and
+    the correct data migration will only be applied once.
+
+* Fixed a bug in the data migration for the newly-added ``Interface.name_slug``
+  field that would cause interfaces with ``/`` in their name to have their name
+  slug incorrectly "slugified". A new data  migration has been added to correct
+  this.
+* Fixed a bug that was occuring with model permissions enabled causing
+  404 errors to be returned as 500 errors in specific cases. The 404
+  handler has been changed to only check authenticated state and not
+  model permisisons.
+
 .. _v1.2.0:
 
 1.2.0 (2017-07-28)
