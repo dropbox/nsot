@@ -343,3 +343,14 @@ def test_interface_assign_address_500_issues_168(client, site):
         client.put(ifc_detail_uri, data=json.dumps(ifc)),
         expected
     )
+
+
+def test_bogus_url_raises_404(client, site):
+    """Make sure that a bogus API URL always raises a 404."""
+    site_uri = site.detail_uri()
+    bogus_url = site_uri + 'pizza/'
+
+    assert_error(
+        client.get(bogus_url),
+        status.HTTP_404_NOT_FOUND
+    )

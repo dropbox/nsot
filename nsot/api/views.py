@@ -6,7 +6,9 @@ import warnings
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
-from rest_framework import mixins, status as status_codes, viewsets
+from rest_framework import (
+    mixins, status as status_codes, permissions, viewsets
+)
 from rest_framework.views import APIView
 from rest_framework.decorators import detail_route, list_route
 from rest_framework.response import Response
@@ -900,6 +902,8 @@ class UserViewSet(BaseNsotViewSet, mixins.CreateModelMixin):
 
 class NotFoundViewSet(viewsets.GenericViewSet):
     """Catchall for bad API endpoints."""
+    permission_classes = (permissions.IsAuthenticated,)
+
     def get_queryset(self):
         return None
 
