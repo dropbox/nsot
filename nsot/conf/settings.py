@@ -36,6 +36,7 @@ INSTALLED_APPS = (
     'django.contrib.staticfiles',
     'django_extensions',
     'django_filters',
+    'guardian',
     'smart_selects',
     'rest_framework',
     'rest_framework_swagger',
@@ -52,6 +53,7 @@ AUTH_USER_MODEL = 'nsot.User'
 AUTHENTICATION_BACKENDS = (
     'nsot.middleware.auth.EmailHeaderBackend',
     'django.contrib.auth.backends.ModelBackend',
+    'guardian.backends.ObjectPermissionBackend',
 )
 
 # A tuple of middleware classes to use.
