@@ -65,7 +65,7 @@ class NsotObjectPermissionsBackend(ObjectPermissionBackend):
         the ancestor tree has ``perm`` for the ``obj``, then ``True`` is
         returned, else ``False`` is returned.
         """
-        check = super(NsotObjectPermissionsBackend,self).has_perm(
+        check = super(NsotObjectPermissionsBackend, self).has_perm(
             user_obj, perm, obj
         )
         if check:
