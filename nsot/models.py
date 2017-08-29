@@ -2242,7 +2242,6 @@ def update_device_interfaces(sender, instance, **kwargs):
     interfaces = Interface.objects.filter(device=instance)
     interfaces.update(device_hostname=instance.hostname)
 
-
 # Register signals
 resource_subclasses = Resource.__subclasses__()
 for model_class in resource_subclasses:
@@ -2252,7 +2251,6 @@ for model_class in resource_subclasses:
         sender=model_class,
         dispatch_uid='value_post_delete_' + model_class.__name__
     )
-
 
 # Invalidate Interface cache on save/delete
 models.signals.post_save.connect(

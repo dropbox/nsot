@@ -1,15 +1,15 @@
 from __future__ import unicode_literals
 
-from custom_user.admin import EmailUserAdmin
 from django.contrib.auth import get_user_model
 from django.contrib import admin
 from django.utils.translation import ugettext_lazy as _
+from guardian.admin import GuardedModelAdmin
 
 from . import models
 
 
 # Register our custom User model
-class UserAdmin(EmailUserAdmin):
+class UserAdmin(GuardedModelAdmin):
     fieldsets = (
         (None, {
             'fields': ('email', 'secret_key', 'password'),
@@ -29,7 +29,7 @@ class UserAdmin(EmailUserAdmin):
 admin.site.register(get_user_model(), UserAdmin)
 
 
-class SiteAdmin(admin.ModelAdmin):
+class SiteAdmin(GuardedModelAdmin):
     list_display = ('name', 'description')
     list_filter = ('name',)
 
@@ -37,7 +37,7 @@ class SiteAdmin(admin.ModelAdmin):
 admin.site.register(models.Site, SiteAdmin)
 
 
-class AttributeAdmin(admin.ModelAdmin):
+class AttributeAdmin(GuardedModelAdmin):
     list_display = ('name', 'resource_name', 'description', 'required',
                     'display', 'multi', 'site')
     list_filter = ('name', 'resource_name', 'required', 'multi', 'site')
@@ -46,7 +46,7 @@ class AttributeAdmin(admin.ModelAdmin):
 admin.site.register(models.Attribute, AttributeAdmin)
 
 
-class ValueAdmin(admin.ModelAdmin):
+class ValueAdmin(GuardedModelAdmin):
     list_display = ('name', 'value', 'resource_name', 'resource_id')
     list_filter = ('name', 'value', 'resource_name')
 
@@ -54,7 +54,7 @@ class ValueAdmin(admin.ModelAdmin):
 admin.site.register(models.Value, ValueAdmin)
 
 
-class ChangeAdmin(admin.ModelAdmin):
+class ChangeAdmin(GuardedModelAdmin):
     list_display = ('id', 'user', 'event', 'resource_name', 'resource_id',
                     'get_change_at', 'resource_name', 'site')
     list_filter = ('event', 'site')
@@ -63,7 +63,7 @@ class ChangeAdmin(admin.ModelAdmin):
 admin.site.register(models.Change, ChangeAdmin)
 
 
-class DeviceAdmin(admin.ModelAdmin):
+class DeviceAdmin(GuardedModelAdmin):
     list_display = ('hostname', 'site')
     list_filter = ('site',)
 
@@ -73,7 +73,7 @@ class DeviceAdmin(admin.ModelAdmin):
 admin.site.register(models.Device, DeviceAdmin)
 
 
-class NetworkAdmin(admin.ModelAdmin):
+class NetworkAdmin(GuardedModelAdmin):
     mptt_level_indent = 10
     mptt_indent_field = 'cidr'
     list_display = ('cidr', 'network_address', 'prefix_length', 'ip_version',
@@ -90,7 +90,7 @@ class NetworkAdmin(admin.ModelAdmin):
 admin.site.register(models.Network, NetworkAdmin)
 
 
-class InterfaceAdmin(admin.ModelAdmin):
+class InterfaceAdmin(GuardedModelAdmin):
     list_display = ('name', 'device', 'parent', 'mac_address', 'type', 'speed')
     list_filter = ('type', 'speed')
 
