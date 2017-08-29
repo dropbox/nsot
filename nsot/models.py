@@ -2242,6 +2242,7 @@ def update_device_interfaces(sender, instance, **kwargs):
     interfaces = Interface.objects.filter(device=instance)
     interfaces.update(device_hostname=instance.hostname)
 
+
 # Register signals
 resource_subclasses = Resource.__subclasses__()
 for model_class in resource_subclasses:
