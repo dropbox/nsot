@@ -1,7 +1,6 @@
 -r requirements.txt
 argh~=0.26.1
 betamax~=0.4.2
-django-guardian~=1.4.9
 docutils~=0.12.0
 ipdb~=0.9.3
 flake8~=3.3.0

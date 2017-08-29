@@ -46,6 +46,7 @@ INSTALLED_APPS = (
 
 # The model to use to represent a User.
 AUTH_USER_MODEL = 'nsot.User'
+ANONYMOUS_USER_NAME = 'anonymous@service.local'
 
 # A tuple of authentication backend classes (as strings) to use when attempting
 # to authenticate a user.
@@ -53,7 +54,7 @@ AUTH_USER_MODEL = 'nsot.User'
 AUTHENTICATION_BACKENDS = (
     'nsot.middleware.auth.EmailHeaderBackend',
     'django.contrib.auth.backends.ModelBackend',
-    'guardian.backends.ObjectPermissionBackend',
+    'nsot.middleware.auth.NsotObjectPermissionsBackend',
 )
 
 # A tuple of middleware classes to use.
@@ -291,6 +292,12 @@ CSRF_COOKIE_NAME = '_xsrf'
 # when authenticated using the "auth header" method, which is the default.
 # Default: True
 NSOT_NEW_USERS_AS_SUPERUSER = True
+
+############
+# Guardian #
+############
+
+SILENCED_SYSTEM_CHECKS = ['guardian.W001']
 
 ################
 # Static files #
