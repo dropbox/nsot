@@ -8,6 +8,7 @@ from django.core.exceptions import ValidationError
 from django.core.validators import EmailValidator
 from django.utils.log import getLogger
 from guardian.backends import ObjectPermissionBackend
+from guardian.core import ObjectPermissionChecker
 
 from ..util import normalize_auth_header
 
@@ -57,7 +58,7 @@ class NsotObjectPermissionsBackend(ObjectPermissionBackend):
     """Custom backend that overloads django-guardian's has_perm method."""
     def has_perm(self, user_obj, perm, obj=None):
         """
-        Returns ``True`` if ``grp_obj`` has ``perm`` for ``obj``. If no
+        Returns ``True`` if ``user_obj`` has ``perm`` for ``obj``. If no
         ``obj`` is provided, ``False`` is returned.
 
         However, if ``grp_obj`` does not have ``perm`` for ``obj``,
@@ -71,11 +72,11 @@ class NsotObjectPermissionsBackend(ObjectPermissionBackend):
         if check:
             return True
 
-        if hasattr(obj, 'get_ancestors', False):
+        if hasattr(obj, 'get_ancestors'):
             ancestors = obj.get_ancestors()
+            ancestor_perm_check = ObjectPermissionChecker(user_obj)
 
-            return any(check.has_perm(perm, a) for a in ancestors)
+            return any(ancestor_perm_check.has_perm(perm, a)
+                       for a in ancestors)
 
-        # (TODO nseshan): Need to modify the logic for obj without ancestors
-        else:
-            return False
+        return False
