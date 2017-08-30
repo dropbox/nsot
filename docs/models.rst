@@ -132,7 +132,7 @@ All Resource types support set query operations. Set queries are a powerful
 part of the data model that allow you to perform complex lookups of objects by
 attribute/value pairs.
 
-Set queries can be performed using a simple string-based syntax. 
+Set queries can be performed using a simple string-based syntax.
 
 The operations are evaluated from left-to-right, where the first character
 indicates the set operation:
@@ -484,17 +484,32 @@ A typical User might look like:
 Permissions
 ===========
 
-Permissions, like other objects, are specific to Sites. There are no
-permissions that cross over sites. All objects are readable regardless
-of permissions. There is currently only one type of permissions a User
-can have in order to make modifications:
+By default all new users have superuser (admin) and therefore modifying
+permissions is not necessary in default installations.
 
-* admin
+Permissions control three basic actions for each object and come in two
+flavors: global and object-level.
 
-    + Ability to Update/Delete Site
-    + Ability to grant permissions within a site
-    + All subsequent permissions
+The basic permissions for each object are:
 
-Site creation is open to all users. Upon creating a Site you become
-an admin of that Site with full permissions.
+* add
+* change
+* delete
 
+Global Permissions
+------------------
+
+If assigning permissions to a user or a group, global permissions can be
+assigned to individual resource type, for example "Add Network" or "Change
+Device".
+
+Object-level Permissions
+------------------------
+
+Permissions can also be assigned to individual objects, for example
+``Network('10.10.10.0/24')``. These permissions can be added from the admin
+dashboard view for the object.
+
+For tree objects (currently ``Interface`` and ``Network`` objects) that can
+have children and ancestors, the permissions will be inherited by child nodes
+*unless a more specific permission has been set on the child object*.
