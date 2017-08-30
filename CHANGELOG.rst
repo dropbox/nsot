@@ -5,6 +5,19 @@ Changelog
 Version History
 ===============
 
+.. _v1.2.2:
+
+1.2.2 (2017-08-30)
+------------------
+
+* Support for object-level permissions have been implemented using the
+  ``django-guardian`` plugin. For tree objects (currently ``Interface`` and
+  ``Network`` objects) that can have children and ancestors, the permissions
+  will be inherited by child nodes *unless a more specific permission has been
+  set on the child object*.
+* Object-level permissions may be managed using the built-in admin dashboard.
+
+
 .. _v1.2.1:
 
 1.2.1 (2017-08-01)
