@@ -36,6 +36,7 @@ INSTALLED_APPS = (
     'django.contrib.staticfiles',
     'django_extensions',
     'django_filters',
+    'guardian',
     'smart_selects',
     'rest_framework',
     'rest_framework_swagger',
@@ -45,6 +46,7 @@ INSTALLED_APPS = (
 
 # The model to use to represent a User.
 AUTH_USER_MODEL = 'nsot.User'
+ANONYMOUS_USER_NAME = 'anonymous@service.local'
 
 # A tuple of authentication backend classes (as strings) to use when attempting
 # to authenticate a user.
@@ -52,6 +54,7 @@ AUTH_USER_MODEL = 'nsot.User'
 AUTHENTICATION_BACKENDS = (
     'nsot.middleware.auth.EmailHeaderBackend',
     'django.contrib.auth.backends.ModelBackend',
+    'nsot.middleware.auth.NsotObjectPermissionsBackend',
 )
 
 # A tuple of middleware classes to use.
@@ -289,6 +292,20 @@ CSRF_COOKIE_NAME = '_xsrf'
 # when authenticated using the "auth header" method, which is the default.
 # Default: True
 NSOT_NEW_USERS_AS_SUPERUSER = True
+
+############
+# Guardian #
+############
+
+# This setting is to silence any warnings raised by Guardian due to the usage
+# of a custom auth backend implementation as opposed to
+# guardian.backends.ObjectPermissionBackend
+SILENCED_SYSTEM_CHECKS = ['guardian.W001']
+
+# The Guardian anonymous user is different to the Django Anonymous user. 
+# The Django Anonymous user does not have an entry in the database,
+# however the Guardian anonymous user does. 
+ANONYMOUS_USER_NAME = 'anonymous@service.local'
 
 ################
 # Static files #

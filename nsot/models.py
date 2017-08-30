@@ -2253,7 +2253,6 @@ for model_class in resource_subclasses:
         dispatch_uid='value_post_delete_' + model_class.__name__
     )
 
-
 # Invalidate Interface cache on save/delete
 models.signals.post_save.connect(
     change_api_updated_at, sender=Interface,

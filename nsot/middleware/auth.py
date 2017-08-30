@@ -7,6 +7,8 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import EmailValidator
 from django.utils.log import getLogger
+from guardian.backends import ObjectPermissionBackend
+from guardian.core import ObjectPermissionChecker
 
 from ..util import normalize_auth_header
 
@@ -50,3 +52,31 @@ class EmailHeaderBackend(backends.RemoteUserBackend):
 
         log.debug('Created new user: %s', user)
         return user
+
+
+class NsotObjectPermissionsBackend(ObjectPermissionBackend):
+    """Custom backend that overloads django-guardian's has_perm method."""
+    def has_perm(self, user_obj, perm, obj=None):
+        """
+        Returns ``True`` if ``user_obj`` has ``perm`` for ``obj``. If no
+        ``obj`` is provided, ``False`` is returned.
+
+        However, if ``grp_obj`` does not have ``perm`` for ``obj``,
+        the ancestor tree for ``obj`` is checked against. If any node in
+        the ancestor tree has ``perm`` for the ``obj``, then ``True`` is
+        returned, else ``False`` is returned.
+        """
+        check = super(NsotObjectPermissionsBackend, self).has_perm(
+            user_obj, perm, obj
+        )
+        if check:
+            return True
+
+        if hasattr(obj, 'get_ancestors'):
+            ancestors = obj.get_ancestors()
+            ancestor_perm_check = ObjectPermissionChecker(user_obj)
+
+            return any(ancestor_perm_check.has_perm(perm, a)
+                       for a in ancestors)
+
+        return False
