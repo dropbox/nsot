@@ -1,3 +1,4 @@
+from django.contrib.auth.models import Group
 import pytest
 from pytest_django.fixtures import  django_user_model, transactional_db
 import logging
@@ -64,3 +65,10 @@ def circuit(site):
         endpoint_a=iface_a, endpoint_z=iface_z
     )
     return circuit
+
+
+@pytest.fixture
+def test_group():
+    """Create and return a Group object."""
+    test_group = Group.objects.create(name='test_group')
+    return test_group

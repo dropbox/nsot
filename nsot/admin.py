@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+from custom_user.admin import EmailUserAdmin
 from django.contrib.auth import get_user_model
 from django.contrib import admin
 from django.utils.translation import ugettext_lazy as _
@@ -9,7 +10,7 @@ from . import models
 
 
 # Register our custom User model
-class UserAdmin(GuardedModelAdmin):
+class UserAdmin(EmailUserAdmin):
     fieldsets = (
         (None, {
             'fields': ('email', 'secret_key', 'password'),
@@ -54,7 +55,7 @@ class ValueAdmin(GuardedModelAdmin):
 admin.site.register(models.Value, ValueAdmin)
 
 
-class ChangeAdmin(GuardedModelAdmin):
+class ChangeAdmin(admin.ModelAdmin):
     list_display = ('id', 'user', 'event', 'resource_name', 'resource_id',
                     'get_change_at', 'resource_name', 'site')
     list_filter = ('event', 'site')

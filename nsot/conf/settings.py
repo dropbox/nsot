@@ -297,7 +297,15 @@ NSOT_NEW_USERS_AS_SUPERUSER = True
 # Guardian #
 ############
 
+# This setting is to silence any warnings raised by Guardian due to the usage
+# of a custom auth backend implementation as opposed to
+# guardian.backends.ObjectPermissionBackend
 SILENCED_SYSTEM_CHECKS = ['guardian.W001']
+
+# The Guardian anonymous user is different to the Django Anonymous user. 
+# The Django Anonymous user does not have an entry in the database,
+# however the Guardian anonymous user does. 
+ANONYMOUS_USER_NAME = 'anonymous@service.local'
 
 ################
 # Static files #
