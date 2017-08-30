@@ -12,9 +12,11 @@ import logging
 from nsot import exc, models
 from nsot.middleware.auth import NsotObjectPermissionsBackend
 
-from .fixtures import admin_user, user, site, transactional_db
+from .fixtures import test_group, user, site
 
-def test_object_level_permissions_with_ancestors(site, user):
+def test_object_level_permissions_with_ancestors(site, user, test_group):
+    """Test to check object level permissions for objects with a
+    ``get_ancestors`` method implementation"""
     net_8  = models.Network.objects.create(site=site, cidr=u'8.0.0.0/8')
     net_24 = models.Network.objects.create(site=site, cidr=u'8.0.0.0/24')
     net_16 = models.Network.objects.create(site=site, cidr=u'8.0.0.0/16')
@@ -25,8 +27,7 @@ def test_object_level_permissions_with_ancestors(site, user):
     net_24.refresh_from_db()
     net_16.refresh_from_db()
 
-    grp = Group.objects.create(name='test_group')
-    user.groups.add(grp)
+    user.groups.add(test_group)
 
     check_perms = NsotObjectPermissionsBackend()
     assert check_perms.has_perm(user, 'delete_network', net_24) is False
