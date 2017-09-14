@@ -426,18 +426,10 @@ class NetworkViewSet(ResourceViewSet):
     lookup_value_regex = '[a-fA-F0-9:.]+(?:\/\d+)?'
     natural_key = 'cidr'
 
-    def allocate_networks(self, networks, prefix_length, site_pk, parent, state='allocated'):
+    def allocate_networks(self, networks, site_pk, state='allocated'):
         site = models.Site.objects.get(pk=site_pk)
         for n in networks:
-            obj = models.Network(
-                network_address=n.network_address,
-                broadcast_address=n.broadcast_address,
-                prefix_length=prefix_length,
-                ip_version=n.version,
-                site=site,
-                parent=parent,
-                state=state
-            )
+            obj = models.Network(cidr=n, site=site, state=state)
             obj.save()
             models.Change.objects.create(
                obj=obj, user=self.request.user, event='Create'
@@ -523,15 +515,15 @@ class NetworkViewSet(ResourceViewSet):
         num = params.get('num')
         strict = qpbool(params.get('strict_allocation', False))
         networks = network.get_next_network(
-            prefix_length, num, strict, as_objects=True
+            prefix_length, num, strict, as_objects=False
         )
         if request.method == 'POST':
             if qpbool(params.get('reserve', False)):
                 state = models.Network.RESERVED
             else:
                 state = models.Network.ALLOCATED
-            self.allocate_networks(networks, prefix_length, site_pk, network, state=state)
-        return self.success([unicode(x) for x in networks])
+            self.allocate_networks(networks, site_pk, state)
+        return self.success(networks)
 
     @detail_route(methods=['get', 'post'])
     def next_address(self, request, pk=None, site_pk=None, *args, **kwargs):
@@ -540,19 +532,14 @@ class NetworkViewSet(ResourceViewSet):
         params = request.query_params
         num = params.get('num')
         strict = qpbool(params.get('strict_allocation', False))
-        addresses = network.get_next_address(num, strict, as_objects=True)
+        addresses = network.get_next_address(num, strict, as_objects=False)
         if request.method == 'POST':
             if qpbool(params.get('reserve', False)):
                 state = models.Network.RESERVED
             else:
                 state = models.Network.ALLOCATED
-            if addresses != []:
-                if addresses[0].version == 4:
-                    prefix_length = 32
-                else:
-                    prefix_length = 128
-                self.allocate_networks(addresses, prefix_length, site_pk, network, state=state)
-        return self.success([unicode(x) for x in addresses])
+            self.allocate_networks(addresses, site_pk, state)
+        return self.success(addresses)
 
     @detail_route(methods=['get'])
     def ancestors(self, request, pk=None, site_pk=None, *args, **kwargs):
