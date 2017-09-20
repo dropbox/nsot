@@ -5,6 +5,25 @@ Changelog
 Version History
 ===============
 
+.. _v1.2.3:
+
+1.2.3 (2017-09-20)
+------------------
+* Enhance Network "get_next" methods to optionally allocate/reserve at the same
+  time
+
+  + Users can send a POST request to ``next_network`` and ``next_address``
+    actions. If it is a POST request then the action will get the networks or
+    addresses and then save them as Network objects in the database as
+    ``allocated``. If the user sends the ``reserve`` flag and sets it as True,
+    then it will be saved in the ``reserved`` state instead of ``allocated``.
+
+* Fixed a bug in the web UI for interface creation where a Device query would
+  return a list instead of an object.
+* Sped up ``Interface.networks()`` for MySQL users by splitting a subquery up
+  into two separate queries.
+
+
 .. _v1.2.2:
 
 1.2.2 (2017-08-30)
