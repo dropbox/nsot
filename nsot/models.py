@@ -1297,7 +1297,7 @@ class Interface(Resource):
     def networks(self):
         """Return all the parent Networks for my addresses."""
         return Network.objects.filter(
-            id__in=self.addresses.values_list('parent')
+            id__in=list(self.addresses.values_list('parent', flat=True))
         ).distinct()
 
     @property
