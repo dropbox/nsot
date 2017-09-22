@@ -47,6 +47,12 @@ class DeviceFilter(ResourceFilter):
         model = models.Device
         fields = ['hostname', 'attributes']
 
+class ItervalueFilter(ResourceFilter):
+    """Filter for Itervalue objects."""
+    class Meta:
+        model = models.Itervalue
+        fields = ['iterable', 'value', 'attributes']
+
 
 class NetworkFilter(ResourceFilter):
     """Filter for Network objects."""

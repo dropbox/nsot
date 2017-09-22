@@ -27,7 +27,7 @@ log = logging.getLogger(__name__)
 # These are constants that becuase they are tied directly to the underlying
 # objects are explicitly NOT USER CONFIGURABLE.
 RESOURCE_BY_IDX = (
-    'Site', 'Network', 'Attribute', 'Device', 'Interface', 'Circuit'
+    'Site', 'Network', 'Attribute', 'Device', 'Interface', 'Circuit', 'Iterable', 'Itervalue'
 )
 RESOURCE_BY_NAME = {
     obj_type: idx
@@ -38,7 +38,7 @@ CHANGE_EVENTS = ('Create', 'Update', 'Delete')
 
 VALID_CHANGE_RESOURCES = set(RESOURCE_BY_IDX)
 VALID_ATTRIBUTE_RESOURCES = set([
-    'Network', 'Device', 'Interface', 'Circuit'
+    'Network', 'Device', 'Interface', 'Circuit', 'Itervalue'
 ])
 
 # Lists of 2-tuples of (value, option) for displaying choices in certain model
@@ -2158,7 +2158,6 @@ class Change(models.Model):
 
         # Site doesn't have an id to itself, so if obj is a Site, use it.
         self.site = obj if isinstance(obj, Site) else obj.site
-
         serializer_class = self.get_serializer_for_resource(self.resource_name)
         serializer = serializer_class(obj)
         self._resource = serializer.data
@@ -2222,6 +2221,148 @@ class Change(models.Model):
         ))
 
         return diff
+
+
+class Iterable(models.Model):
+    """Generic iterable for stateful services - vlan#, po#, tenant ID etc"""
+    '''
+    min/max_val = defines the valid range for the Iterable
+    increment =  steps to increment the Iterable
+
+    '''
+    name = models.CharField(
+        max_length=255, unique=True, help_text='The name of the Iterable.'
+    )
+    description = models.TextField(default='', blank=True, \
+    help_text='A helpful description for the Iterable')
+    min_val = models.PositiveIntegerField(
+        default=1, help_text='The minimum value of the Iterable.'
+    )
+    max_val = models.PositiveIntegerField(
+        default=100, help_text='The maximum value  of the Iterable.'
+    )
+    increment = models.PositiveIntegerField(
+        default = 1, help_text='Increment  value  of the Iterable by.'
+    )
+    site = models.ForeignKey(
+        Site, db_index=True, related_name='iterable',
+        on_delete=models.PROTECT, verbose_name='Site',
+        help_text='Unique ID of the Site this Attribute is under.'
+    )
+
+    def __unicode__(self):
+        return u'name=%s, min=%s, max=%s, increment=%s' % (self.name,
+                                                           self.min_val,
+                                                           self.max_val,
+                                                           self.increment
+        )
+
+    def get_next_value(self):
+        "Get the next value of the iterable"
+        try:
+            "First try to generate the next value based on the current \
+        allocation"
+            curr_val = Itervalue.objects.filter(iterable=self.id). \
+            order_by('-value').values_list('value', flat=True)[0]
+            incr = self.increment
+            next_val = curr_val + incr
+            try:
+                if self.min_val <= next_val <= self.max_val:
+                    return [next_val]
+                else:
+                    raise exc.ValidationError({
+                    'next_val': 'Out of range'
+                })
+
+            except:
+                log.debug('value out of range - exceeded')
+                raise exc.ValidationError({
+                    'next_val': 'Out of range'
+                })
+        except IndexError:
+            "Index Error implies that the table has not been \
+                intialized - so assign the first value"
+            return [self.min_val]
+
+    def clean_fields(self, exclude=None):
+        if not  self.increment <= self.max_val:
+            raise exc.ValidationError({ 'increment': 'Increment should \
+            be less than the max value for it to be useable' })
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super(Iterable, self).save(*args, **kwargs)
+
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'description': self.description,
+            'min_val': self.min_val,
+            'max_val': self.max_val,
+            'increment': self.increment,
+        }
+
+
+class Itervalue(Resource):
+    """Value table for the generic iterable defined above"""
+    '''
+    value = contains the value
+    getnext = returns the next iterated value for this particular
+    Iterable.
+    This table uses the attribute.
+    The intention of attribute here is to potentially associate a
+    "service key" (or any other KV pairs),
+    that will keep track of the (potentially multiple iterable) values
+    associated with a particular automation instance (e.g an ansible
+    playbook that needs next available vlan numbers, portchannel
+    numbers etc). We can then use this service key to perform CRUD
+    operations on those values (in other words on the invocation
+    instance of the automation service/playbook) iterable = Foreign
+    key that ties the Iterable with the value
+    '''
+    iterable = models.ForeignKey(Iterable, on_delete=models.PROTECT,
+                                 related_name='itervalue')
+
+    value = models.IntegerField(
+        default=1, help_text='The value of the iterable.'
+    )
+    # BORROW the logic from class Value - for easier mgmt of the Itervalue
+    # We are currently inferring the site_id from the parent Attribute in
+    # .save() method. We don't want to even care about the site_id, but it
+    # simplifies managing them this way.
+    site = models.ForeignKey(
+        Site, db_index=True, related_name='itervalue',
+        on_delete=models.PROTECT, verbose_name='Site',
+        help_text='Unique ID of the Site this Itervalue is under.'
+    )
+
+    class Meta:
+        """Itervalue Meta class"""
+        verbose_name = "itervalue"
+
+    def __unicode__(self):
+        return u'value=%s,  iterable=%s' % (self.value,  self.iterable.name)
+
+    def clean_fields(self, exclude=None):
+        query = Itervalue.objects.all()
+        dupe = query.filter(iterable=self.iterable,
+                            value = self.value)
+        if len(dupe) > 1: #dupe will have more than 1 element if
+            #duplicate exists
+            raise exc.ValidationError({'duplicate': 'Itervalue already exists'})
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super(Itervalue, self).save(*args, **kwargs)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'value': self.value,
+            'iterable': self.iterable.id,
+            'attributes': self.get_attributes()
+        }
 
 
 # Signals

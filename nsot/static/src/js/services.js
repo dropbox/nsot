@@ -164,6 +164,44 @@
         return Attribute;
     });
 
+    app.factory("Iterable", function($resource, $http){
+        var Iterable = $resource(
+            "/api/sites/:siteId/iterables/:id/",
+            { siteId: "@siteId", id: "@id" },
+            buildActions($http, "iterable", "iterables")
+        );
+
+        Iterable.prototype.updateFromForm = function(formData) {
+            return _.extend(this, {
+                name: formData.name,
+                description: formData.description,
+                min_val: formData.min_val,
+                max_val: formData.max_val,
+                increment: formData.increment,
+            });
+        };
+
+        Iterable.fromForm = function(formData) {
+            var attr = new Iterable();
+            attr.updateFromForm(formData);
+            return attr;
+        };
+
+        Iterable.prototype.toForm = function() {
+            return {
+                name: this.name,
+                description: this.description,
+                min_val: this.min_val,
+                max_val: this.max_val,
+                increment: this.increment,
+                //allowEmpty: this.constraints.allow_empty,
+            };
+        };
+
+        return Iterable;
+    });
+
+
     app.factory("Network", function($resource, $http){
         var Network = $resource(
             "/api/sites/:siteId/networks/:id/",

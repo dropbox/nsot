@@ -520,6 +520,89 @@ class InterfacePartialUpdateSerializer(BulkSerializerMixin,
         fields = ('id', 'name', 'description', 'type', 'mac_address', 'speed',
                   'parent_id', 'addresses', 'attributes')
 
+###########
+# Iterable
+###########
+class IterableSerializer(NsotSerializer):
+    """Used for GET, DELETE on Iterables."""
+    class Meta:
+        model = models.Iterable
+        fields = '__all__'
+
+class IterableCreateSerializer(IterableSerializer):
+    """Used for POST on Iterables."""
+    site_id = fields.IntegerField(
+        label = get_field_attr(models.Iterable, 'site', 'verbose_name'),
+        help_text = get_field_attr(models.Iterable, 'site', 'help_text')
+        )
+
+    class Meta:
+        model = models.Iterable
+        fields = ( 'name', 'description', 'min_val', 'max_val', 'increment', 'site_id')
+
+
+class IterableUpdateSerializer(BulkSerializerMixin,
+                                IterableCreateSerializer):
+    """ Used for PUT on Iterables.  """
+    class Meta:
+        model = models.Iterable
+        list_serializer_class = BulkListSerializer
+        fields = ('id', 'name', 'description', 'min_val', 'max_val', 'increment')
+
+
+class IterablePartialUpdateSerializer(BulkSerializerMixin,
+                                IterableCreateSerializer):
+    """ Used for PATCH, on Iterables.  """
+    class Meta:
+        model = models.Iterable
+        list_serializer_class = BulkListSerializer
+        fields = ('id', 'name', 'description', 'min_val', 'max_val', 'increment')
+
+
+###########
+# Itervalue
+###########
+class ItervalueSerializer(ResourceSerializer):
+    """Used for GET, DELETE on Itervalues."""
+    class Meta:
+        model = models.Itervalue
+        fields = '__all__'
+
+
+class ItervalueCreateSerializer(ItervalueSerializer):
+    """Used for POST on Itervalues."""
+    site_id = fields.IntegerField(
+        label = get_field_attr(models.Iterable, 'site', 'verbose_name'),
+        help_text = get_field_attr(models.Iterable, 'site', 'help_text')
+        )
+
+    class Meta:
+        model = models.Itervalue
+        fields = ('iterable', 'value', 'attributes', 'site_id')
+
+
+class ItervalueUpdateSerializer(BulkSerializerMixin,
+                                ItervalueCreateSerializer):
+    """ Used for PUT on Itervalues.  """
+    attributes = JSONDictField(
+        required=True,
+        help_text='Dictionary of attributes to set.'
+      )
+
+    class Meta:
+        model = models.Itervalue
+        list_serializer_class = BulkListSerializer
+        fields = ('id', 'iterable', 'value', 'attributes')
+
+
+class ItervaluePartialUpdateSerializer(BulkSerializerMixin,
+                                ItervalueCreateSerializer):
+    """ Used for PATCH, on Itervalues.  """
+    class Meta:
+        model = models.Itervalue
+        list_serializer_class = BulkListSerializer
+        fields = ('id', 'iterable', 'value', 'attributes')
+
 
 class InterfaceUpdateSerializer(InterfacePartialUpdateSerializer):
     "Used for PUT on Interfaces."""

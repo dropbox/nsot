@@ -99,3 +99,16 @@ class InterfaceAdmin(GuardedModelAdmin):
 
 
 admin.site.register(models.Interface, InterfaceAdmin)
+
+
+class IterableAdmin(admin.ModelAdmin):
+    list_display = ('name', 'description', 'min_val', 'max_val', 'increment', 'site')
+    fields = list_display
+
+admin.site.register(models.Iterable, IterableAdmin)
+
+class ItervalueAdmin(admin.ModelAdmin):
+    list_display = ('value',  'iterable', 'site')
+    fields = list_display
+
+admin.site.register(models.Itervalue, ItervalueAdmin)

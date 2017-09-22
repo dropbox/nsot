@@ -153,6 +153,14 @@
             templateUrl: "attribute.html",
             controller: "AttributeController"
         })
+        .when("/sites/:siteId/iterables", {
+            templateUrl: "iterables.html",
+            controller: "IterablesController"
+        })
+        .when("/sites/:siteId/iterables/:iterableId", {
+            templateUrl: "iterable.html",
+            controller: "IterableController"
+        })
         .when("/sites/:siteId/changes", {
             templateUrl: "changes.html",
             controller: "ChangesController"
