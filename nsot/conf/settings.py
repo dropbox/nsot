@@ -302,9 +302,9 @@ NSOT_NEW_USERS_AS_SUPERUSER = True
 # guardian.backends.ObjectPermissionBackend
 SILENCED_SYSTEM_CHECKS = ['guardian.W001']
 
-# The Guardian anonymous user is different to the Django Anonymous user. 
+# The Guardian anonymous user is different to the Django Anonymous user.
 # The Django Anonymous user does not have an entry in the database,
-# however the Guardian anonymous user does. 
+# however the Guardian anonymous user does.
 ANONYMOUS_USER_NAME = 'anonymous@service.local'
 
 ################
@@ -450,7 +450,20 @@ HOST_PREFIXES = (32, 128)
 IP_VERSIONS = ('4', '6')
 
 # Whether to compress IPv6 for display purposes, for example:
-# - Exploded (default): 2620:0100:6000:0000:0000:0000:0000:0000/40 
+# - Exploded (default): 2620:0100:6000:0000:0000:0000:0000:0000/40
 # - Compressed: 2620:100:6000::/40
 # Default: True
 NSOT_COMPRESS_IPV6 = True
+
+
+#############
+# Protocols #
+#############
+
+# Mapping of database representation of Protocol types to their verbose name,
+# which is used by the `type` field on the `Protocol` model.
+PROTOCOL_TYPE_CHOICES = (
+    ('bgp', 'BGP'),
+    ('isis', 'IS-IS'),
+    ('ospf', 'OSPF'),
+)
