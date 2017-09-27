@@ -27,7 +27,8 @@ log = logging.getLogger(__name__)
 # These are constants that becuase they are tied directly to the underlying
 # objects are explicitly NOT USER CONFIGURABLE.
 RESOURCE_BY_IDX = (
-    'Site', 'Network', 'Attribute', 'Device', 'Interface', 'Circuit'
+    'Site', 'Network', 'Attribute', 'Device', 'Interface', 'Circuit',
+    'Protocol'
 )
 RESOURCE_BY_NAME = {
     obj_type: idx
@@ -38,7 +39,7 @@ CHANGE_EVENTS = ('Create', 'Update', 'Delete')
 
 VALID_CHANGE_RESOURCES = set(RESOURCE_BY_IDX)
 VALID_ATTRIBUTE_RESOURCES = set([
-    'Network', 'Device', 'Interface', 'Circuit'
+    'Network', 'Device', 'Interface', 'Circuit', 'Protocol'
 ])
 
 # Lists of 2-tuples of (value, option) for displaying choices in certain model
@@ -1716,6 +1717,99 @@ class Circuit(Resource):
             'endpoint_z': self.endpoint_z and self.endpoint_z.name_slug,
             'attributes': self.get_attributes(),
         }
+
+
+class Protocol(Resource):
+    """
+    Represetation of a routing protocol running over a circuit
+    """
+
+    device = models.ForeignKey(
+        Device, db_index=True, null=False, related_name='protocols',
+        verbose_name='Device that this protocol is running on'
+    )
+    circuit = models.ForeignKey(
+        Circuit, db_index=True, null=False, related_name='protocols',
+        verbose_name='Circuit that this protocol is running over',
+    )
+    site = models.ForeignKey(
+        Site, db_index=True, related_name='protocols',
+        on_delete=models.PROTECT,
+        help_text='Unique ID of the Site this Protocol is under.'
+    )
+
+    type = models.CharField(
+        max_length=8, choices=settings.PROTOCOL_TYPE_CHOICES, db_index=True
+    )
+    asn = models.PositiveIntegerField(db_index=True)
+    auth_string = models.CharField(max_length=255, default='')
+    description = models.CharField(max_length=255, default='')
+
+    def __unicode__(self):
+        return u'%s over %s' % (self.get_type_display(), self.circuit)
+
+    class Meta:
+        ordering = ('device', 'asn')
+
+    def local_interface(self):
+        """
+        Returns the local interface attached to the circuit
+        """
+        if self.circuit is None:
+            return None
+
+        for endpoint in (self.circuit.endpoint_a, self.circuit.endpoint_z):
+            if endpoint.device.id == self.device.id:
+                return endpoint
+
+        return None
+
+    def remote_interface(self):
+        """
+        Returns the remote device's interface attached to the circuit
+        """
+        if self.circuit is None:
+            return None
+
+        for endpoint in (self.circuit.endpoint_a, self.circuit.endpoint_z):
+            if endpoint.device.id != self.device.id:
+                return endpoint
+
+        return None
+
+    def clean_site(self, value):
+        if value is None:
+            return self.device.site_id
+
+        return value
+
+    def clean_circuit(self):
+        """ Ensure at least one endpoint on the circuit is on this device """
+        if self.local_interface() is None:
+            raise exc.ValidationError({
+                'circuit': (
+                    'At least one endpoint of the circuit must match the '
+                    'device'
+                )
+            })
+
+    def clean_type(self, value):
+        possible = [x[0] for x in settings.PROTOCOL_TYPE_CHOICES]
+        if value not in possible:
+            raise exc.ValidationError({
+                'type': 'Type {} is not one of {}'.format(value, possible)
+            })
+
+        return value
+
+    def clean_fields(self, exclude=None):
+        self.site_id = self.clean_site(self.site_id)
+        self.clean_circuit()
+        self.type = self.clean_type(self.type)
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super(Protocol, self).save(*args, **kwargs)
 
 
 class Assignment(models.Model):
