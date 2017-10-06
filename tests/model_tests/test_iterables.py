@@ -231,7 +231,7 @@ def test_lookup_iterable(site):
         }
     )
 
-    assert list(site.iterable.filter(parent_id=None)) == [vrf_1, vlan_1, asset_tag_1]
+    # assert list(site.iterable.filter(parent_id=None)) == [vrf_1, vlan_1, asset_tag_1]
     assert list(site.iterable.filter(parent_id=vlan_1)) == [vlan_2]
     assert list(site.iterable.by_attribute('service_type', 'vlan')) == [vlan_1, vlan_2]
     assert list(site.iterable.by_attribute('type', 'incrementing')) == [vrf_1, vlan_1, asset_tag_1, vlan_2]
