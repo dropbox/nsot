@@ -43,6 +43,13 @@
                         Attributes
                     </a>
                 </li>
+                <li ng-class="{
+                    active: isActive('/sites/[[siteId]]/iterables')
+                }">
+                    <a title="Iterables" ng-href="/sites/[[siteId]]/iterables">
+                        Iterables
+                    </a>
+                </li>
                 <li ng-if="siteId" ng-class="{
                     active: isActive('/sites/[[siteId]]/changes')
                 }">

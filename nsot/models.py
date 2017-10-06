@@ -27,7 +27,9 @@ log = logging.getLogger(__name__)
 # These are constants that becuase they are tied directly to the underlying
 # objects are explicitly NOT USER CONFIGURABLE.
 RESOURCE_BY_IDX = (
-    'Site', 'Network', 'Attribute', 'Device', 'Interface', 'Circuit'
+    'Site', 'Network', 'Attribute', 
+    'Device', 'Interface', 'Circuit',
+    'Iterable'
 )
 RESOURCE_BY_NAME = {
     obj_type: idx
@@ -38,7 +40,7 @@ CHANGE_EVENTS = ('Create', 'Update', 'Delete')
 
 VALID_CHANGE_RESOURCES = set(RESOURCE_BY_IDX)
 VALID_ATTRIBUTE_RESOURCES = set([
-    'Network', 'Device', 'Interface', 'Circuit'
+    'Network', 'Device', 'Interface', 'Circuit', 'Iterable'
 ])
 
 # Lists of 2-tuples of (value, option) for displaying choices in certain model
@@ -1977,6 +1979,138 @@ class Attribute(models.Model):
             'constraints': self.constraints,
         }
 
+class Iterable(Resource):
+    ''' Generic Resource for Incrementing/Non-Incrementing Pools
+    Example: vlans, tenant ID, etc...
+    min/max_val = Valid range of values for Resource
+    increment = step to increment Resource type: integer (ex: 1, 10, 15)
+    Note: queried by name of by attrs
+    '''
+
+    name = models.CharField(
+        max_length=255, db_index=True, help_text='The name of the Iterable.'
+    )
+    description = models.TextField(
+        default='', blank=True, help_text='A helpful description for the Iterable.'
+    )
+    min_val = models.PositiveIntegerField(
+        default=1, help_text='The minimum value of the Iterable.'
+    )
+    max_val = models.PositiveIntegerField(
+        default=100, help_text='The maximum value of the Iterable.'
+    )
+    increment = models.PositiveIntegerField(
+        default = 1, help_text='Value to increment the Iterable.'
+    )
+    site = models.ForeignKey(
+        Site, db_index=True, related_name='iterable',
+        on_delete=models.PROTECT, verbose_name='Site',
+        help_text='Unique ID of the Site assigned to this Iterable'
+    )
+
+    parent = models.ForeignKey(
+        'self', blank=True, null=True, related_name='children', default=None,
+        db_index=True, on_delete=models.PROTECT,
+        help_text='The parent Iterable'
+    )
+    ''' Placeholder
+    Can we implement something like 'is_ip'
+    
+    # is_resource = models.BooleanField(
+    #     null=False, default=False, db_index=True,
+    #     help_text='Will this resource have children'
+    # )
+    '''
+
+    value = models.IntegerField(
+        null=True,
+        help_text='Current Value of Iterable'
+    )
+
+    def __unicode__(self):
+        return u'name=%s, parent=%s, value=%s, min=%s, max=%s, increment=%s, site_id: %s' % (self.name,
+                                                       self.parent_id,
+                                                       self.value,
+                                                       self.min_val,
+                                                       self.max_val,
+                                                       self.increment,
+                                                       self.site_id )
+
+    class Meta:
+        unique_together = ('site', 'name', 'value', 'parent')
+        index_together = unique_together
+
+
+    def get_next_value(self):
+        """
+        Return next value of Iterable:
+        if there is no parent or no children `aka: new`, return min_val
+        """
+        try:
+            children = self.get_children()
+            if self.value is None and self.parent is None and len(children) == 0:
+                current_value = self.min_val
+                return [current_value]
+            else:
+                current_value = children.order_by('-value').values_list('value', flat=True)[0]
+
+            incr = self.increment
+            next_val = current_value + incr
+            try:
+                if self.min_val <= next_val <= self.max_val:
+                    return [next_val]
+                else:
+                    raise exc.ValidationError({
+                        'next_val': 'Out of range'
+                    })
+            except:
+                log.debug('Iterable value out of range - exceeded')
+                raise exc.ValidationError({
+                    'next_val': 'Out of range'
+                })
+        except IndexError:
+            return [self.min_val]
+
+    def get_children(self):
+        query = Iterable.objects.all()
+        return query.filter(parent__id=self.id)
+
+
+    def get_default_min_max_val(self):
+        '''Placeholder: 
+        should there be a method to provide min/max value if parent is provided?
+        example: if an iterable has a parent, 
+        and thus obtained by using the 'get_next_value' method
+        the min/max could be set to current value, making it non-incrementing
+        like the 'is_ip' from networks
+        '''
+        pass
+        
+    def clean_fields(self, exclude=None):
+        if not  self.increment <= self.max_val:
+            raise exc.ValidationError({
+                'increment': 'Increment should be less than the max value for it to be useable'
+                })
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super(Iterable, self).save(*args, **kwargs)
+
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'site_id': self.site_id,
+            'parent': self.parent_id,
+            'name': self.name,
+            'description': self.description,
+            'min_val': self.min_val,
+            'max_val': self.max_val,
+            'value': self.value,
+            'increment': self.increment,
+            #'is_resource': self.is_resource, #placeholder - thinking to implement something like 'is_ip'
+            'attributes': self.get_attributes()
+        }
 
 class Value(models.Model):
     """Represents a value for an attribute attached to a Resource."""

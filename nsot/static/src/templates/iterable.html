@@ -1,0 +1,88 @@
+<loading-panel ng-if="loading"></loading-panel>
+<div ng-if="!loading">
+    <heading-bar heading="Iterables" subheading="[[iterable.name]]">
+        <button ng-if="admin"
+                class="btn btn-info"
+                data-toggle="modal"
+                data-target="#updateIterableModal"
+        >Update Iterable</button>
+        <button ng-if="admin"
+                class="btn btn-danger"
+                data-toggle="modal"
+                data-target="#deleteIterableModal"
+        >Delete Iterable</button>
+    </heading-bar>
+
+    <div class="row"><div class="col-sm-8 col-sm-offset-2">
+        <panel>
+            <panel-heading>
+                Iterable
+            </panel-heading>
+            <panel-body>
+                <dl class="dl-horizontal">
+                    <dt>Name</dt>
+                    <dd>[[iterable.name]]</dd>
+
+                    <dt>Description</dt>
+                    <dd>[[iterable.description]]</dd>
+
+                    <dt>Minimum Value</dt>
+                    <dd>[[iterable.min_val]]</dd>
+
+                    <dt>Maximum Value</dt>
+                    <dd>[[iterable.max_val]]</dd>
+
+                    <dt>Incrementor</dt>
+                    <dd>[[iterable.increment]]</dd>
+
+                    <dt>Attributes</dt>
+                    <dd>[[iterable.attributes]]</dd>
+
+                </dl>
+
+            </panel-body>
+        </panel>
+    </div></div>
+
+    <nsot-modal title="Update Iterable" modal-id="updateIterableModal" modal-size="large">
+        <div class="modal-body">
+            <div ng-if="updateError" class="alert alert-danger">
+                [[updateError.code]] - [[updateError.message]]
+            </div>
+            <form novalidate name="iterableForm" class="nsot-form">`
+                <div ng-include="formUrl"></div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">
+                Close
+            </button>
+            <button type="submit" ng-click="updateIterable()"
+                    class="btn btn-primary" ng-disabled="iterableForm.$invalid"
+            >
+                Update
+            </button>
+        </div>
+    </nsot-modal>
+
+    <nsot-modal title="Delete Iterable" modal-id="deleteIterableModal">
+        <div class="modal-body">
+            <div ng-if="deleteError" class="alert alert-danger">
+                [[deleteError.code]] - [[deleteError.message]]
+            </div>
+            Are you sure you want to delete this iterable?
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">
+                Close
+            </button>
+            <button type="submit"
+                    ng-click="deleteIterable()"
+                    class="btn btn-primary"
+            >
+                Delete
+            </button>
+        </div>
+    </nsot-modal>
+
+</div>

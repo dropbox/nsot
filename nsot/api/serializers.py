@@ -612,3 +612,58 @@ class AuthTokenSerializer(serializers.Serializer):
         else:
             msg = 'Must include "email" and "secret_key"'
             raise exc.ValidationError(msg)
+
+###########
+# Iterables
+###########
+
+class IterableSerializer(ResourceSerializer):
+    """Used for GET, DELETE on Iterables."""
+    class Meta:
+        model = models.Iterable
+        fields = '__all__'
+
+
+class IterableCreateSerializer(IterableSerializer):
+    """Used for POST on Iterables."""
+    site_id = fields.IntegerField(
+        label = get_field_attr(models.Iterable, 'site', 'verbose_name'),
+        help_text = get_field_attr(models.Iterable, 'site', 'help_text')
+        )
+    #parent = fields.IntegerField(
+        #label = get_field_attr(models.Iterable, 'parent', 'name'),
+        #help_text = get_field_attr(models.Iterable, 'parent', 'help_text')
+        #)
+
+    class Meta:
+        model = models.Iterable
+        fields = ( 'name', 'description', 'value', 'parent',
+                   'min_val', 'max_val', 'increment', 'site_id', 'attributes')
+        #fields = '__all__'
+
+
+class IterableUpdateSerializer(BulkSerializerMixin,
+                                IterableCreateSerializer):
+    """ Used for PUT on Iterables.  """
+    attributes = JSONDictField(
+        required=True,
+        help_text='Dictionary of attributes to set.'
+    )
+
+    class Meta:
+        model = models.Iterable
+        list_serializer_class = BulkListSerializer
+        fields = ('id', 'name', 'description', 'value',
+                  'min_val', 'max_val', 'increment', 'attributes')
+        #fields = '__all__'
+
+
+class IterablePartialUpdateSerializer(BulkSerializerMixin,
+                                IterableCreateSerializer):
+    """ Used for PATCH, on Iterables.  """
+    class Meta:
+        model = models.Iterable
+        list_serializer_class = BulkListSerializer
+        fields = ('id', 'name', 'description', 'value',
+                  'min_val', 'max_val', 'increment', 'attributes')
+        #fields = '__all__'
