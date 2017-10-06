@@ -243,6 +243,19 @@ def filter_circuits(circuits, wanted):
     return [c for c in circuits if c in wanted]
 
 
+def filter_iterables(iterables, wanted):
+    """
+    Return a list of desired Iterable objects.
+
+    :param iterables:
+        list of iterable dicts
+
+    :param name:
+        list of iterable objects you want
+    """
+    return [i for i in iterables if i in wanted]
+
+
 def filter_networks(networks, wanted):
     """
     Return a list of desired Network objects.
