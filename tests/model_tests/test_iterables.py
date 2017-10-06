@@ -85,6 +85,66 @@ def test_next_value(site):
     assert iterables.count() == 1
     assert next_itr[0] == 100
 
+
+def test_next_value_non_incrementing(site):
+    iterable_1 = models.Iterable.objects.create(
+        site=site,
+        name='i_dont_increment',
+        min_val=100,
+        max_val=100,
+        increment=0,
+        description='My favorite iterable'
+    )    
+
+    itrs = models.Iterable.objects.all()
+
+    next_itr = itrs[0].get_next_value()
+
+    assert itrs.count() == 1
+    assert next_itr[0] == 100
+
+''' test currently fails - need to add logic to account for
+    out-of-sequence numbering to prevent uneccesary exhaustion
+    
+def test_next_value_out_of_sequence(site):
+    iterable_1 = models.Iterable.objects.create(
+        site=site,
+        name='iterable1',
+        min_val=100,
+        max_val=1000,
+        increment=1,
+        description='My favorite iterable'
+    )
+
+    iterable_2 = models.Iterable.objects.create(
+        site=site,
+        name='iterable2',
+        min_val=100,
+        max_val=1000,
+        value=104,
+        parent=iterable_1,
+        increment=1,
+        description='My favorite iterable'
+    )
+
+    iterable_3 = models.Iterable.objects.create(
+        site=site,
+        name='iterable3',
+        min_val=100,
+        max_val=1000,
+        value=100,
+        parent=iterable_1,
+        increment=1,
+        description='My favorite iterable'
+    )
+
+    itrs = models.Iterable.objects.all()
+
+    next_itr = itrs[0].get_next_value()
+
+    assert next_itr[0] == 101
+'''
+
 def test_delete_iterable(site):
     vrf_1 = models.Iterable.objects.create(
         site=site,
