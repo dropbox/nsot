@@ -1,0 +1,72 @@
+<loading-panel ng-if="loading"></loading-panel>
+<div ng-if="!loading">
+    <heading-bar heading="Iterables">
+        <button
+            ng-if="admin"
+            class="btn btn-success"
+            data-toggle="modal"
+            data-target="#createIterableModal"
+        >Create Iterable</button>
+    </heading-bar>
+
+    <nsot-modal title="Create Iterable" modal-id="createIterableModal" modal-size="large">
+        <div class="modal-body">
+            <div ng-if="error" class="alert alert-danger">
+                [[error.code]] - [[error.message]]
+            </div>
+            <form novalidate name="iterableForm" class="nsot-form">
+                <div ng-include="formUrl"></div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">
+                Close
+            </button>
+            <button type="submit" ng-click="createIterable()"
+                    class="btn btn-primary" ng-disabled="iterableForm.$invalid"
+            >
+                Create
+            </button>
+        </div>
+    </nsot-modal>
+
+
+    <div class="row"><div class="col-=sm-10 col-sm-offset-1">
+        <panel>
+            <panel-heading>Iterables</panel-heading>
+            <panel-body ng-if="!iterables.length">
+                No Iterables
+            </panel-body>
+            <panel-body ng-if="iterables.length">
+                <table class="table table-condensed table-hover">
+                    <thead>
+                        <tr>
+                            <th class="col-sm-2">Name</th>
+                            <th class="col-sm-3">Description</th>
+                            <th class="col-sm-1">Min value</th>
+                            <th class="col-sm-1">Max value</th>
+                            <th class="col-sm-1">Increment</th>
+                            <th class="col-sm-1">Attributes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr ng-repeat="dr in iterables">
+                            <td>
+                                <a href="/sites/[[siteId]]/iterables/[[dr.id]]"
+                                >[[dr.name]]</a>
+                            </td>
+                            <td>[[dr.description]]</td>
+                            <td>[[dr.min_val]]</td>
+                            <td>[[dr.max_val]]</td>
+                            <td>[[dr.increment]]</td>
+                            <td>[[dr.attributes]]</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </panel-body>
+        </panel>
+
+    </div></div>
+
+
+</div>

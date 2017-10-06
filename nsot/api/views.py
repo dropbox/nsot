@@ -970,3 +970,32 @@ class AuthTokenVerifyView(APIView):
                 ('data', True),
             ])
         )
+class IterableViewSet(ResourceViewSet):
+    """
+    API endpoint that allows Iterables to be viewed or edited.
+    """
+    queryset = models.Iterable.objects.all()
+    serializer_class = serializers.IterableSerializer
+    #filter_fields = ('name', 'description', 'min_val', 'max_val', 'increment', 'attributes')
+    filter_class = filters.IterableFilter
+    natural_key = 'name'
+
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return serializers.IterableCreateSerializer
+        if self.request.method in ('PUT'):
+            return serializers.IterableUpdateSerializer
+        if self.request.method in ('PATCH'):
+            return serializers.IterablePartialUpdateSerializer
+        return self.serializer_class
+
+    def get_natural_key_kwargs(self, filter_value):
+        """Return a dict of kwargs for natural_key lookup."""
+        return {self.natural_key: filter_value}
+
+    @detail_route(methods=['get'])
+    def next_value(self, request, pk=None, site_pk=None, *args, **kwargs):
+        """Return next available value from this Iterable"""
+        dynamicresource = self.get_resource_object(pk, site_pk)
+        value  = dynamicresource.get_next_value()
+        return self.success(value)

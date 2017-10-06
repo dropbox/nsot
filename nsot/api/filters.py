@@ -155,3 +155,8 @@ class CircuitFilter(ResourceFilter):
     class Meta:
         model = models.Circuit
         fields = ['endpoint_a', 'endpoint_z', 'name', 'attributes']
+
+class IterableFilter(ResourceFilter):
+    class Meta:
+        model = models.Iterable
+        fields = ['name', 'attributes']
