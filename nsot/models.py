@@ -1726,24 +1726,26 @@ class Protocol(Resource):
 
     device = models.ForeignKey(
         Device, db_index=True, null=False, related_name='protocols',
-        verbose_name='Device that this protocol is running on'
+        help_text='Device that this protocol is running on',
     )
     circuit = models.ForeignKey(
         Circuit, db_index=True, null=False, related_name='protocols',
-        verbose_name='Circuit that this protocol is running over',
+        help_text='Circuit that this protocol is running over',
     )
     site = models.ForeignKey(
         Site, db_index=True, related_name='protocols',
         on_delete=models.PROTECT,
-        help_text='Unique ID of the Site this Protocol is under.'
+        help_text='Unique ID of the Site this Protocol is under.',
     )
 
     type = models.CharField(
-        max_length=8, choices=settings.PROTOCOL_TYPE_CHOICES, db_index=True
+        max_length=8, choices=settings.PROTOCOL_TYPE_CHOICES, db_index=True,
+        help_text='Type of the Protocol, e.g. OSPF, IS-IS, BGP',
     )
-    asn = models.PositiveIntegerField(db_index=True)
-    auth_string = models.CharField(max_length=255, default='')
-    description = models.CharField(max_length=255, default='')
+    auth_string = models.CharField(
+        max_length=255, default='',
+        help_text='Authentication string (such as MD5 sum)',
+    )
 
     def __unicode__(self):
         return u'%s over %s' % (self.get_type_display(), self.circuit)
