@@ -1728,7 +1728,12 @@ class ProtocolType(models.Model):
         max_length=255, default='', blank=True, null=False
     )
     required_attributes = models.ManyToManyField(
-        'Attribute', db_index=True, related_name='protocol_types'
+        'Attribute', db_index=True, related_name='protocol_types',
+        help_text=(
+            'All Attributes which are required by this ProtocolType. If a'
+            ' Protocol of this type is saved and is missing one of these'
+            ' attributes, a ValidationError will be raised.'
+        )
     )
 
     def __unicode__(self):
@@ -1803,7 +1808,8 @@ class Protocol(Resource):
 
     def local_interface(self):
         """
-        Returns the local interface attached to the circuit
+        Returns the local interface for this Protocol, either the set interface
+        or the local interface of circuit
         """
         if self.interface:
             return self.interface

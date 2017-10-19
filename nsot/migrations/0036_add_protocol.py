@@ -60,7 +60,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='protocoltype',
             name='required_attributes',
-            field=models.ManyToManyField(related_name='protocol_types', to='nsot.Attribute', db_index=True),
+            field=models.ManyToManyField(help_text='All Attributes which are required by this ProtocolType. If a Protocol of this type is saved and is missing one of these attributes, a ValidationError will be raised.', related_name='protocol_types', to='nsot.Attribute', db_index=True),
         ),
         migrations.AddField(
             model_name='protocol',
