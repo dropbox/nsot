@@ -454,16 +454,3 @@ IP_VERSIONS = ('4', '6')
 # - Compressed: 2620:100:6000::/40
 # Default: True
 NSOT_COMPRESS_IPV6 = True
-
-
-#############
-# Protocols #
-#############
-
-# Mapping of database representation of Protocol types to their verbose name,
-# which is used by the `type` field on the `Protocol` model.
-PROTOCOL_TYPE_CHOICES = (
-    ('bgp', 'BGP'),
-    ('isis', 'IS-IS'),
-    ('ospf', 'OSPF'),
-)

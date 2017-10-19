@@ -1719,45 +1719,95 @@ class Circuit(Resource):
         }
 
 
+class ProtocolType(models.Model):
+    name = models.CharField(
+        max_length=16, db_index=True,
+        help_text='Name of this type of protocol (e.g. OSPF, BGP, etc.)',
+    )
+    description = models.CharField(
+        max_length=255, default='', blank=True, null=False
+    )
+    required_attributes = models.ManyToManyField(
+        'Attribute', db_index=True, related_name='protocol_types'
+    )
+
+    def __unicode__(self):
+        return u'%s' % self.name
+
+
+def required_attributes_changed(sender, instance, action, reverse, model,
+                                pk_set, **kwargs):
+    """
+    Signal handler that disallows anything but Protocol attributes to be added
+    to a ProtocolType.required_attributes.
+    """
+    if action == 'pre_add':
+        attrs = model.objects.filter(pk__in=pk_set)
+        if attrs.exclude(resource_name='Protocol').exists():
+            raise exc.ValidationError({
+                'required_attributes': 'Only Protocol attributes are allowed'
+            })
+
+
+# Register required_attributes_changed -> ProtocolType.required_attributes
+models.signals.m2m_changed.connect(
+    required_attributes_changed,
+    sender=ProtocolType.required_attributes.through
+)
+
+
 class Protocol(Resource):
     """
     Represetation of a routing protocol running over a circuit
     """
 
-    device = models.ForeignKey(
-        Device, db_index=True, null=False, related_name='protocols',
-        help_text='Device that this protocol is running on',
-    )
-    circuit = models.ForeignKey(
-        Circuit, db_index=True, null=False, related_name='protocols',
-        help_text='Circuit that this protocol is running over',
-    )
     site = models.ForeignKey(
         Site, db_index=True, related_name='protocols',
         on_delete=models.PROTECT,
         help_text='Unique ID of the Site this Protocol is under.',
     )
-
-    type = models.CharField(
-        max_length=8, choices=settings.PROTOCOL_TYPE_CHOICES, db_index=True,
-        help_text='Type of the Protocol, e.g. OSPF, IS-IS, BGP',
+    type = models.ForeignKey(
+        ProtocolType, db_index=True, related_name='protocols',
+    )
+    device = models.ForeignKey(
+        Device, db_index=True, null=False, related_name='protocols',
+        help_text='Device that this protocol is running on',
+    )
+    interface = models.ForeignKey(
+        Interface, db_index=True, blank=True, null=True,
+        related_name='protocols',
+        help_text=(
+            'Interface this protocol is running on. Either interface or'
+            ' circuit must be populated.'
+        ),
+    )
+    circuit = models.ForeignKey(
+        Circuit, db_index=True, blank=True, null=True,
+        related_name='protocols',
+        help_text='Circuit that this protocol is running over.',
     )
     auth_string = models.CharField(
-        max_length=255, default='',
+        max_length=255, default='', blank=True,
         help_text='Authentication string (such as MD5 sum)',
+    )
+    description = models.CharField(
+        max_length=255, default='', blank=True,
+        help_text='Description for this Protocol'
     )
 
     def __unicode__(self):
         return u'%s over %s' % (self.get_type_display(), self.circuit)
 
     class Meta:
-        ordering = ('device', 'asn')
+        ordering = ('device', )
 
     def local_interface(self):
         """
         Returns the local interface attached to the circuit
         """
-        if self.circuit is None:
+        if self.interface:
+            return self.interface
+        elif self.circuit is None:
             return None
 
         for endpoint in (self.circuit.endpoint_a, self.circuit.endpoint_z):
@@ -1785,9 +1835,9 @@ class Protocol(Resource):
 
         return value
 
-    def clean_circuit(self):
+    def clean_circuit(self, value):
         """ Ensure at least one endpoint on the circuit is on this device """
-        if self.local_interface() is None:
+        if value and self.local_interface() is None:
             raise exc.ValidationError({
                 'circuit': (
                     'At least one endpoint of the circuit must match the '
@@ -1795,19 +1845,48 @@ class Protocol(Resource):
                 )
             })
 
-    def clean_type(self, value):
-        possible = [x[0] for x in settings.PROTOCOL_TYPE_CHOICES]
-        if value not in possible:
+        return value
+
+    def clean_interface(self, value):
+        """
+        Ensure that the interface is bound to the same device this Protocol is
+        bound to
+        """
+        if value and value.device != self.device:
             raise exc.ValidationError({
-                'type': 'Type {} is not one of {}'.format(value, possible)
+                'interface': (
+                    'The interface must be on the same device that this'
+                    ' Protocol is on'
+                )
+            })
+
+        return value
+
+    def clean_type(self, value):
+        required = value.required_attributes.values_list(
+            'name', flat=True
+        )
+
+        # If we're receiving a new set of attributes, validate against those,
+        # otherwise use the ones we already have
+        if self._set_attributes:
+            current = set(self._set_attributes)
+        else:
+            current = set(self.get_attributes())
+        missing = set(required).difference(current)
+
+        if missing:
+            raise exc.ValidationError({
+                'attributes': 'Missing required attributes: %r' % list(missing)
             })
 
         return value
 
     def clean_fields(self, exclude=None):
         self.site_id = self.clean_site(self.site_id)
-        self.clean_circuit()
         self.type = self.clean_type(self.type)
+        self.interface = self.clean_interface(self.interface)
+        self.circuit = self.clean_circuit(self.circuit)
 
     def save(self, *args, **kwargs):
         self.full_clean()
