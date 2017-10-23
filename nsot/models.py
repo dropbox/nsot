@@ -1665,6 +1665,22 @@ class Circuit(Resource):
         """Return devices associated with this circuit."""
         return [i.device for i in self.interfaces]
 
+    def interface_for(self, device):
+        """
+        Given a Device object, return the interface attached to this Circuit
+        which belongs to that Device. If both ends of the Circuit are attached
+        to the Device, the A-side is returned.
+
+        If neither ends of this Circuit are attached to Device, then None is
+        returned
+        """
+        if self.endpoint_a.device == device:
+            return self.endpoint_a
+        elif self.endpoint_z and self.endpoint_z.device == device:
+            return self.endpoint_z
+        else:
+            return None
+
     def clean_site(self, value):
         """Always enforce that site is set."""
         if value is None:
@@ -1721,11 +1737,12 @@ class Circuit(Resource):
 
 class ProtocolType(models.Model):
     name = models.CharField(
-        max_length=16, db_index=True,
+        max_length=16, db_index=True, unique=True,
         help_text='Name of this type of protocol (e.g. OSPF, BGP, etc.)',
     )
     description = models.CharField(
-        max_length=255, default='', blank=True, null=False
+        max_length=255, default='', blank=True, null=False,
+        help_text='A description for this ProtocolType',
     )
     required_attributes = models.ManyToManyField(
         'Attribute', db_index=True, related_name='protocol_types',
@@ -1763,16 +1780,19 @@ models.signals.m2m_changed.connect(
 
 class Protocol(Resource):
     """
-    Represetation of a routing protocol running over a circuit
+    Representation of a routing protocol
     """
-
     site = models.ForeignKey(
-        Site, db_index=True, related_name='protocols',
-        on_delete=models.PROTECT,
-        help_text='Unique ID of the Site this Protocol is under.',
+        Site, db_index=True, blank=True, null=True, related_name='protocols',
+        on_delete=models.PROTECT, verbose_name='Site',
+        help_text=(
+            'Unique ID of the Site this Protocol is under. If not set, this '
+            "be inherited off of the device's site"
+        )
     )
     type = models.ForeignKey(
         ProtocolType, db_index=True, related_name='protocols',
+        help_text='The type of this Protocol',
     )
     device = models.ForeignKey(
         Device, db_index=True, null=False, related_name='protocols',
@@ -1801,49 +1821,41 @@ class Protocol(Resource):
     )
 
     def __unicode__(self):
-        return u'%s over %s' % (self.get_type_display(), self.circuit)
+        description = unicode(self.type)
+
+        if self.circuit:
+            description += ' over %s' % self.circuit
+        elif self.interface:
+            description += ' on %s' % self.interface
+        else:
+            description += ' on %s' % self.device
+
+        return description
 
     class Meta:
         ordering = ('device', )
 
-    def local_interface(self):
-        """
-        Returns the local interface for this Protocol, either the set interface
-        or the local interface of circuit
-        """
-        if self.interface:
-            return self.interface
-        elif self.circuit is None:
-            return None
-
-        for endpoint in (self.circuit.endpoint_a, self.circuit.endpoint_z):
-            if endpoint.device.id == self.device.id:
-                return endpoint
-
-        return None
-
-    def remote_interface(self):
-        """
-        Returns the remote device's interface attached to the circuit
-        """
-        if self.circuit is None:
-            return None
-
-        for endpoint in (self.circuit.endpoint_a, self.circuit.endpoint_z):
-            if endpoint.device.id != self.device.id:
-                return endpoint
-
-        return None
-
     def clean_site(self, value):
-        if value is None:
-            return self.device.site_id
+        """
+        Ensure we have a site set. If one is not explicitly set, glean it from
+        the device. If the device has none, then raise a ValidationError
+        """
+        if not value:
+            value = self.device.site
+
+        if not value:
+            raise exc.ValidationError({
+                'site': (
+                    'No site was provided and the provided Device does not '
+                    'have a site defined'
+                )
+            })
 
         return value
 
     def clean_circuit(self, value):
         """ Ensure at least one endpoint on the circuit is on this device """
-        if value and self.local_interface() is None:
+        if value and value.interface_for(self.device) is None:
             raise exc.ValidationError({
                 'circuit': (
                     'At least one endpoint of the circuit must match the '
@@ -1869,6 +1881,10 @@ class Protocol(Resource):
         return value
 
     def clean_type(self, value):
+        """
+        Ensure that all attributes are set that are required by the set
+        ProtocolType
+        """
         required = value.required_attributes.values_list(
             'name', flat=True
         )
@@ -1889,7 +1905,7 @@ class Protocol(Resource):
         return value
 
     def clean_fields(self, exclude=None):
-        self.site_id = self.clean_site(self.site_id)
+        self.site = self.clean_site(self.site)
         self.type = self.clean_type(self.type)
         self.interface = self.clean_interface(self.interface)
         self.circuit = self.clean_circuit(self.circuit)
