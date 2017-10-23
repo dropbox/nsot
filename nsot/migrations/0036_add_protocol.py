@@ -23,7 +23,7 @@ class Migration(migrations.Migration):
                 ('circuit', models.ForeignKey(related_name='protocols', blank=True, to='nsot.Circuit', help_text='Circuit that this protocol is running over.', null=True)),
                 ('device', models.ForeignKey(related_name='protocols', to='nsot.Device', help_text='Device that this protocol is running on')),
                 ('interface', models.ForeignKey(related_name='protocols', blank=True, to='nsot.Interface', help_text='Interface this protocol is running on. Either interface or circuit must be populated.', null=True)),
-                ('site', models.ForeignKey(related_name='protocols', on_delete=django.db.models.deletion.PROTECT, to='nsot.Site', help_text='Unique ID of the Site this Protocol is under.')),
+                ('site', models.ForeignKey(related_name='protocols', on_delete=django.db.models.deletion.PROTECT, blank=True, to='nsot.Site', help_text="Unique ID of the Site this Protocol is under. If not set, this be inherited off of the device's site", null=True, verbose_name='Site')),
             ],
             options={
                 'ordering': ('device',),
@@ -33,8 +33,8 @@ class Migration(migrations.Migration):
             name='ProtocolType',
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
-                ('name', models.CharField(help_text='Name of this type of protocol (e.g. OSPF, BGP, etc.)', max_length=16, db_index=True)),
-                ('description', models.CharField(default='', max_length=255, blank=True)),
+                ('name', models.CharField(help_text='Name of this type of protocol (e.g. OSPF, BGP, etc.)', unique=True, max_length=16, db_index=True)),
+                ('description', models.CharField(default='', help_text='A description for this ProtocolType', max_length=255, blank=True)),
             ],
         ),
         migrations.AlterField(
@@ -65,6 +65,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='protocol',
             name='type',
-            field=models.ForeignKey(related_name='protocols', to='nsot.ProtocolType'),
+            field=models.ForeignKey(related_name='protocols', to='nsot.ProtocolType', help_text='The type of this Protocol'),
         ),
     ]

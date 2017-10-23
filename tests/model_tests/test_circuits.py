@@ -111,3 +111,65 @@ def test_attributes(circuit):
 
     with pytest.raises(exc.ValidationError):
         circuit.set_attributes({'made_up': 'value'})
+
+
+class TestInterfaceFor(object):
+    @pytest.fixture
+    def device_z(self, site):
+        return models.Device.objects.create(site=site, hostname='foo-bar2')
+
+    @pytest.fixture
+    def interface_a(self, device):
+        return models.Interface.objects.create(device=device, name='eth0')
+
+    @pytest.fixture
+    def interface_z(self, device_z):
+        return models.Interface.objects.create(
+            device=device_z, name='eth0')
+
+    @pytest.fixture
+    def normal_circuit(self, device_z, interface_a, interface_z):
+        return models.Circuit.objects.create(
+            endpoint_a=interface_a,
+            endpoint_z=interface_z
+        )
+
+    @pytest.fixture
+    def looped_circuit(self, device, interface_a):
+        interface_z = models.Interface.objects.create(
+            device=device,
+            name='eth1'
+        )
+        return models.Circuit.objects.create(
+            endpoint_a=interface_a,
+            endpoint_z=interface_z,
+        )
+
+    def test_normal_conditions(self, device, device_z, interface_a,
+                               interface_z, normal_circuit):
+        assert normal_circuit.interface_for(device) == interface_a
+        print('interface_z via circuit id = {}'.format(normal_circuit.endpoint_z.id))
+        print('interface_z id = {}'.format(interface_z.id))
+        assert normal_circuit.interface_for(device_z) == interface_z
+
+    def test_single_sided(self, device, interface_a):
+        """
+        Make sure things don't blow up on a single-sided circuit
+        """
+        circuit = models.Circuit.objects.create(endpoint_a=interface_a)
+        assert circuit.interface_for(device) == interface_a
+
+    def test_looped_circuit(self, device, looped_circuit, interface_a):
+        """
+        Test the case when both sides of a circuit are connected to the same
+        device. The method should return endpoint_a in this case.
+        """
+        assert looped_circuit.interface_for(device) == interface_a
+
+    def test_bogus_device(self, device, device_z, looped_circuit):
+        """
+        interface_for should return None when given a device that isn't
+        connected by the circuit
+        """
+        assert looped_circuit.interface_for(device_z) is None
+        assert looped_circuit.interface_for(device) is not None

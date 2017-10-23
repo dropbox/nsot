@@ -159,56 +159,77 @@ class TestCreation(object):
         assert protocol.get_attributes()['area'] == 'threeve'
 
 
-class TestInterfaces(object):
-    @pytest.fixture
-    def protocol(self, circuit, bgp):
-        device = circuit.endpoint_a.device
-
-        return models.Protocol.objects.create(
-            device=device,
-            circuit=circuit,
-            type=bgp,
-            attributes={
-                'asn': '1234',
-            }
-        )
-
+class TestUnicode(object):
+    """
+    Tests for the __unicode__ method on Protocol
+    """
     @pytest.fixture
     def interface(self, circuit):
         return circuit.endpoint_a
 
     @pytest.fixture
-    def interface_protocol(self, interface, ospf):
-        device = interface.device
+    def base_protocol(self, bgp, circuit):
+        device = circuit.endpoint_a.device
 
         return models.Protocol.objects.create(
             device=device,
-            interface=interface,
-            type=ospf,
-            attributes={'area': '1234'},
-        )
-
-    def test_local_interface(self, circuit, protocol, interface,
-                             interface_protocol):
-        assert protocol.local_interface() == circuit.endpoint_a
-        assert interface_protocol.local_interface() == interface
-
-    def test_remote_interface(self, circuit, protocol):
-        assert protocol.remote_interface() == circuit.endpoint_z
-
-    def test_backwards_circuit(self, circuit, bgp):
-        """
-        Make sure local/remote_interface returns the correct thing when the
-        device is on the Z side of the circuit instead of the A side
-        """
-        protocol = models.Protocol.objects.create(
-            device=circuit.endpoint_z.device,
-            circuit=circuit,
             type=bgp,
             attributes={
                 'asn': '1234',
             }
         )
 
-        assert protocol.local_interface() == circuit.endpoint_z
-        assert protocol.remote_interface() == circuit.endpoint_a
+    def test_circuit(self, base_protocol, circuit):
+        """
+        Case when only a circuit is set on the Protocol (no interface)
+        """
+        expected = 'bgp over foo-bar1:eth0_foo-bar2:eth0'
+
+        base_protocol.circuit = circuit
+        base_protocol.save()
+
+        assert base_protocol.circuit is not None
+        assert base_protocol.interface is None
+
+        assert unicode(base_protocol) == expected
+
+    def test_interface(self, base_protocol, interface):
+        """
+        Case when only an interface is set on the Protocol (no circuit)
+        """
+        expected = 'bgp on foo-bar1:eth0'
+
+        base_protocol.interface = interface
+        base_protocol.save()
+
+        assert base_protocol.interface is not None
+        assert base_protocol.circuit is None
+
+        assert unicode(base_protocol) == expected
+
+    def test_neither_circuit_nor_interface(self, base_protocol):
+        """
+        Case when neither a circuit nor interface are set
+        """
+        expected = 'bgp on foo-bar1'
+
+        assert base_protocol.circuit is None
+        assert base_protocol.interface is None
+
+        assert unicode(base_protocol) == expected
+
+    def test_both_circuit_and_interface(self, base_protocol, circuit,
+                                        interface):
+        """
+        Case when both a circuit and interface are set
+        """
+        expected = 'bgp over foo-bar1:eth0_foo-bar2:eth0'
+
+        base_protocol.circuit = circuit
+        base_protocol.interface = interface
+        base_protocol.save()
+
+        assert base_protocol.circuit is not None
+        assert base_protocol.interface is not None
+
+        assert unicode(base_protocol) == expected
