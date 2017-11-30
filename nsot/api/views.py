@@ -859,6 +859,35 @@ class CircuitViewSet(ResourceViewSet):
         return self.list(request, queryset=interfaces, *args, **kwargs)
 
 
+class ProtocolTypeViewSet(NsotViewSet):
+    """
+    API endpoint that allows ProtocolTypes to be viewed or edited.
+    """
+    queryset = models.ProtocolType.objects.all()
+    serializer_class = serializers.ProtocolTypeSerializer
+    filter_class = filters.ProtocolTypeFilter
+    natural_key = 'name'
+
+
+class ProtocolViewSet(ResourceViewSet):
+    """
+    API endpoint that allows Protocols to be viewed or edited.
+    """
+    queryset = models.Protocol.objects.all()
+    serializer_class = serializers.ProtocolSerializer
+    filter_class = filters.ProtocolFilter
+
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return serializers.ProtocolCreateSerializer
+        if self.request.method == 'PUT':
+            return serializers.ProtocolUpdateSerializer
+        if self.request.method == 'PATCH':
+            return serializers.ProtocolPartialUpdateSerializer
+
+        return self.serializer_class
+
+
 #: Namedtuple for retrieving pk and user object of current user.
 UserPkInfo = namedtuple('UserPkInfo', 'user pk')
 

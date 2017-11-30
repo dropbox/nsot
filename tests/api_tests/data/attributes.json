@@ -71,10 +71,26 @@
         "description": "Circuit ID.", 
         "name": "cid", 
         "resource_name": "Circuit"
-    } ,
+    },
     {
         "description": "Circuit Vendor.", 
         "name": "vendor", 
         "resource_name": "Circuit"
-    } 
+    },
+    {
+        "description": "Peer AS",
+        "name": "peer_as", 
+        "resource_name": "Protocol"
+    },
+    {
+        "constraints": {
+            "valid_values": [
+                "up", 
+                "down"
+            ]
+        }, 
+        "description": "Admin Status",
+        "name": "admin_status", 
+        "resource_name": "Protocol"
+    }
 ]
