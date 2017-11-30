@@ -28,7 +28,7 @@ log = logging.getLogger(__name__)
 # objects are explicitly NOT USER CONFIGURABLE.
 RESOURCE_BY_IDX = (
     'Site', 'Network', 'Attribute', 'Device', 'Interface', 'Circuit',
-    'Protocol'
+    'Protocol', 'ProtocolType'
 )
 RESOURCE_BY_NAME = {
     obj_type: idx
@@ -491,7 +491,8 @@ class Resource(models.Model):
             inserts.extend(attribute.validate_value(value))
 
         # Purge all of our previously existing attribute values and recreate
-        # them anew. This isn't exactly efficient.
+        # them anew.
+        # FIXME(jathan): This isn't exactly efficient. How can make gud?
         self._purge_attribute_index()
         for insert in inserts:
             Value.objects.create(
@@ -519,6 +520,10 @@ class Resource(models.Model):
 
     def save(self, *args, **kwargs):
         self._is_new = self.id is None  # Check if this is a new object.
+
+        # Use incoming valid_attributes if they are provided.
+        valid_attributes = kwargs.pop('valid_attributes', None)
+
         super(Resource, self).save(*args, **kwargs)
 
         # This is so that we can set the attributes on create/update, but if
@@ -527,7 +532,8 @@ class Resource(models.Model):
         if self._set_attributes is not None:
             try:
                 # And set the attributes (if any)
-                self.set_attributes(self._set_attributes)
+                self.set_attributes(self._set_attributes,
+                                    valid_attributes=valid_attributes)
             except exc.ValidationError:
                 # If attributes fail validation, and I'm a new object, delete
                 # myself and re-raise the error.
@@ -1736,8 +1742,11 @@ class Circuit(Resource):
 
 
 class ProtocolType(models.Model):
+    """
+    Representation of protocol types (e.g. bgp, is-is, ospf, etc.)
+    """
     name = models.CharField(
-        max_length=16, db_index=True, unique=True,
+        max_length=16, db_index=True,
         help_text='Name of this type of protocol (e.g. OSPF, BGP, etc.)',
     )
     description = models.CharField(
@@ -1752,9 +1761,32 @@ class ProtocolType(models.Model):
             ' attributes, a ValidationError will be raised.'
         )
     )
+    site = models.ForeignKey(
+        Site, db_index=True, related_name='protocol_types',
+        on_delete=models.PROTECT, verbose_name='Site',
+        help_text='Unique ID of the Site this ProtocolType is under.'
+    )
 
     def __unicode__(self):
         return u'%s' % self.name
+
+    class Meta:
+        unique_together = ('site', 'name')
+
+    def get_required_attributes(self):
+        """Return a list of the names of ``self.required_attributes``."""
+        # FIXME(jathan): These should probably cached on the model and updated
+        # on write. Revisit after we see how performance plays out in practice.
+        return list(self.required_attributes.values_list('name', flat=True))
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'description': self.description,
+            'required_attributes': self.get_required_attributes(),
+            'site': self.site_id,
+        }
 
 
 def required_attributes_changed(sender, instance, action, reverse, model,
@@ -1764,10 +1796,22 @@ def required_attributes_changed(sender, instance, action, reverse, model,
     to a ProtocolType.required_attributes.
     """
     if action == 'pre_add':
+        # First filter in Protocol attributes.
         attrs = model.objects.filter(pk__in=pk_set)
         if attrs.exclude(resource_name='Protocol').exists():
             raise exc.ValidationError({
                 'required_attributes': 'Only Protocol attributes are allowed'
+            })
+
+        # Then make sure that they match the site of the incoming instance.
+        wrong_site = attrs.exclude(site_id=instance.site_id)
+        if wrong_site.exists():
+            bad_attrs = [str(w) for w in wrong_site]
+            raise exc.ValidationError({
+                'required_attributes': (
+                    'Attributes must share the same site as '
+                    'ProtocolType.site. Got: %s' % bad_attrs
+                )
             })
 
 
@@ -1812,7 +1856,7 @@ class Protocol(Resource):
         help_text='Circuit that this protocol is running over.',
     )
     auth_string = models.CharField(
-        max_length=255, default='', blank=True,
+        max_length=255, default='', blank=True, verbose_name='Auth String',
         help_text='Authentication string (such as MD5 sum)',
     )
     description = models.CharField(
@@ -1868,7 +1912,7 @@ class Protocol(Resource):
     def clean_interface(self, value):
         """
         Ensure that the interface is bound to the same device this Protocol is
-        bound to
+        bound to.
         """
         if value and value.device != self.device:
             raise exc.ValidationError({
@@ -1881,28 +1925,35 @@ class Protocol(Resource):
         return value
 
     def clean_type(self, value):
-        """
-        Ensure that all attributes are set that are required by the set
-        ProtocolType
-        """
-        required = value.required_attributes.values_list(
-            'name', flat=True
-        )
-
-        # If we're receiving a new set of attributes, validate against those,
-        # otherwise use the ones we already have
-        if self._set_attributes:
-            current = set(self._set_attributes)
-        else:
-            current = set(self.get_attributes())
-        missing = set(required).difference(current)
-
-        if missing:
+        """Ensure that ProtocolType matches our site."""
+        if self.site != value.site:
             raise exc.ValidationError({
-                'attributes': 'Missing required attributes: %r' % list(missing)
+                'type': 'The type must be on the same site as this Protocol'
             })
 
         return value
+
+    def set_attributes(self, attributes, valid_attributes=None, partial=False):
+        """
+        Ensure that all attributes are set that are required by the set
+        ProtocolType.
+        """
+        required = self.type.get_required_attributes()
+        if valid_attributes is None:
+            valid_attributes = Attribute.all_by_name(
+                'Protocol', site=self.site
+            )
+
+        # Temporarily mark required attributes as ``required`` at run-time for
+        # injecting required_attributes into validation.
+        for r in required:
+            if r in valid_attributes:
+                valid_attributes[r].required = True
+
+        return super(Protocol, self).set_attributes(
+            attributes, valid_attributes=valid_attributes,
+            partial=partial
+        )
 
     def clean_fields(self, exclude=None):
         self.site = self.clean_site(self.site)
@@ -1913,6 +1964,23 @@ class Protocol(Resource):
     def save(self, *args, **kwargs):
         self.full_clean()
         super(Protocol, self).save(*args, **kwargs)
+
+    # TODO(jathan): type, device, interface, circuit need indexing. We might
+    # consider caching these values ON the Protocol object similarly how we've
+    # done it with other objects, so that the related lookups are only done on
+    # update.
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'site': self.site_id,
+            'type': self.type.name,
+            'device': self.device.hostname,
+            'interface': self.interface and self.interface.name_slug,
+            'circuit': self.circuit and self.circuit.name_slug,
+            'description': self.description,
+            'auth_string': self.auth_string,
+            'attributes': self.get_attributes(),
+        }
 
 
 class Assignment(models.Model):
@@ -2192,7 +2260,7 @@ class Value(models.Model):
     )
     resource_name = models.CharField(
         'Resource Type', max_length=20, null=False, db_index=True,
-        choices=CHANGE_RESOURCE_CHOICES,
+        choices=RESOURCE_CHOICES,
         help_text='The name of the Resource type to which the Value is bound.',
     )
     name = models.CharField(
@@ -2230,7 +2298,7 @@ class Value(models.Model):
         ]
 
     def clean_resource_name(self, value):
-        if value not in VALID_CHANGE_RESOURCES:
+        if value not in VALID_ATTRIBUTE_RESOURCES:
             raise exc.ValidationError('Invalid resource name: %r.' % value)
         return value
 
@@ -2343,6 +2411,13 @@ class Change(models.Model):
             raise exc.ValidationError('Invalid resource name: %r.' % value)
         return value
 
+    def clean_site(self, obj):
+        """value in this case is an instance of a model object."""
+
+        # Site doesn't have an id to itself, so if obj is a Site, use it.
+        # Otherwise get the value of the `.site`
+        return obj if isinstance(obj, Site) else getattr(obj, 'site')
+
     def clean_fields(self, exclude=None):
         """This will populate the change fields from the incoming object."""
         obj = self._obj
@@ -2352,9 +2427,7 @@ class Change(models.Model):
         self.event = self.clean_event(self.event)
         self.resource_name = self.clean_resource_name(obj.__class__.__name__)
         self.resource_id = obj.id
-
-        # Site doesn't have an id to itself, so if obj is a Site, use it.
-        self.site = obj if isinstance(obj, Site) else obj.site
+        self.site = self.clean_site(obj)
 
         serializer_class = self.get_serializer_for_resource(self.resource_name)
         serializer = serializer_class(obj)

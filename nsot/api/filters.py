@@ -155,3 +155,62 @@ class CircuitFilter(ResourceFilter):
     class Meta:
         model = models.Circuit
         fields = ['endpoint_a', 'endpoint_z', 'name', 'attributes']
+
+
+class ProtocolTypeFilter(django_filters.rest_framework.FilterSet):
+    """Filter for ProtocolType (non-resource) objects."""
+    class Meta:
+        model = models.ProtocolType
+        fields = ['name', 'description']
+
+
+class ProtocolFilter(ResourceFilter):
+    """Filter for Protocol objects."""
+    device = django_filters.MethodFilter()
+    type = django_filters.MethodFilter()
+    interface = django_filters.MethodFilter()
+    circuit = django_filters.MethodFilter()
+
+    class Meta:
+        model = models.Protocol
+        fields = ['device', 'type', 'interface', 'circuit', 'description']
+
+    def filter_device(self, queryset, value):
+        """Overload to use natural key."""
+        if isinstance(value, int):
+            value = str(value)
+
+        if value.isdigit():
+            return queryset.filter(device=value)
+        else:
+            return queryset.filter(device__hostname=value)
+
+    def filter_type(self, queryset, value):
+        """Overload to use natural key."""
+        if isinstance(value, int):
+            value = str(value)
+
+        if value.isdigit():
+            return queryset.filter(type=value)
+        else:
+            return queryset.filter(type__name=value)
+
+    def filter_interface(self, queryset, value):
+        """Overload to use natural key."""
+        if isinstance(value, int):
+            value = str(value)
+
+        if value.isdigit():
+            return queryset.filter(interface=value)
+        else:
+            return queryset.filter(interface__name_slug=value)
+
+    def filter_circuit(self, queryset, value):
+        """Overload to use natural key."""
+        if isinstance(value, int):
+            value = str(value)
+
+        if value.isdigit():
+            return queryset.filter(circuit=value)
+        else:
+            return queryset.filter(circuit__name_slug=value)

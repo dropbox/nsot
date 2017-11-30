@@ -20,10 +20,11 @@ def asn_attribute(site):
 
 
 @pytest.fixture
-def bgp(asn_attribute):
+def bgp(asn_attribute, site):
     bgp = models.ProtocolType.objects.create(
         name='bgp',
         description='Border Gateway Protocol',
+        site=site,
     )
     bgp.required_attributes.add(asn_attribute)
 
@@ -40,17 +41,19 @@ def area_attribute(site):
 
 
 @pytest.fixture
-def ospf(area_attribute):
+def ospf(area_attribute, site):
     ospf = models.ProtocolType.objects.create(
         name='ospf',
         description='Open Shortest Path First protocol',
+        site=site
     )
     ospf.required_attributes.add(area_attribute)
 
     return ospf
 
 
-class TestCreation(object):
+class ProtocolTestCase(object):
+    """Shared fixtures for Protocol(Type) tests."""
     @pytest.fixture
     def device(self, circuit):
         return circuit.endpoint_a.device
@@ -59,6 +62,36 @@ class TestCreation(object):
     def interface(self, circuit):
         return circuit.endpoint_a
 
+
+class TestProtocolType(ProtocolTestCase):
+    """Test ProtocolType constraints."""
+    def test_required_attributes_site(self, site, bgp, area_attribute):
+        """Test that required_attributes are in same site."""
+        # Create a 2nd site and 2 protocol attributes.
+        site2 = models.Site.objects.create(name='Site2')
+        attr1 = models.Attribute.objects.create(
+            resource_name='Protocol', name='attr1', site=site2
+        )
+        attr2 = models.Attribute.objects.create(
+            resource_name='Protocol', name='attr2', site=site2
+        )
+
+        # Adding attributes from wrong site should fail.
+        with pytest.raises(exc.ValidationError):
+            bgp.required_attributes.add(attr1, attr2)
+
+    def test_required_attributes_resource(self, site, bgp):
+        """Test Protocol attributes only for required_attributes."""
+        bad_attr = models.Attribute.objects.create(
+            site=site, name='bad', resource_name='Device'
+        )
+
+        # Adding attributes from wrong resource should fail.
+        with pytest.raises(exc.ValidationError):
+            bgp.required_attributes.add(bad_attr)
+
+
+class TestCreation(ProtocolTestCase):
     def test_normal_conditions(self, device, circuit, bgp):
         """
         Under normal conditions, ensure that a Protocol can be created without
@@ -159,14 +192,10 @@ class TestCreation(object):
         assert protocol.get_attributes()['area'] == 'threeve'
 
 
-class TestUnicode(object):
+class TestUnicode(ProtocolTestCase):
     """
     Tests for the __unicode__ method on Protocol
     """
-    @pytest.fixture
-    def interface(self, circuit):
-        return circuit.endpoint_a
-
     @pytest.fixture
     def base_protocol(self, bgp, circuit):
         device = circuit.endpoint_a.device
