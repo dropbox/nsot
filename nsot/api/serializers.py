@@ -112,21 +112,17 @@ class NaturalKeyRelatedField(serializers.SlugRelatedField):
         return value
 
     def get_queryset(self):
-        """Filter eligible related objects to the current site."""
+        """Attempt to filter queryset by site_pk."""
         queryset = super(NaturalKeyRelatedField, self).get_queryset()
-        request = self.context.get('request')
+        view = self.context.get('view')
 
-        if request is None:
-            data = {}
+        # Get site_id from the view or None
+        if view is None:
+            site_id = None
         else:
-            is_bulk = isinstance(request.data, list)
-            if is_bulk:
-                data = request.data[0]
-            else:
-                data = request.data
+            site_id = view.kwargs.get('site_pk')
 
-        site_id = data.get('site_id')
-
+        # Filter by site_id if applicable.
         if site_id is not None:
             log.debug('Filtering queryset to site_id=%s', site_id)
             queryset = queryset.filter(site_id=site_id)
@@ -149,8 +145,17 @@ class NsotSerializer(serializers.ModelSerializer):
             'NsotSerializer.to_internal_value() data [before] = %r', data
         )
 
-        if 'site_id' not in data and 'site_pk' in kwargs:
-            data['site_id'] = kwargs['site_pk']
+        # FIXME(jathan): This MUST be ripped out once we migrate to V2 API and
+        # move away from the "site_id" field on pre-1.0 objects.
+        site_fields = ['site_id', 'site']
+        for site_field in site_fields:
+            if site_field in self.fields:
+                break
+        else:
+            site_field = None
+
+        if site_field not in data and 'site_pk' in kwargs:
+            data[site_field] = kwargs['site_pk']
 
         log.debug('NsotSerializer.to_internal_value() data [after] = %r', data)
 
@@ -160,6 +165,7 @@ class NsotSerializer(serializers.ModelSerializer):
         """Always return the dict representation."""
         if isinstance(obj, OrderedDict):
             return obj
+
         return obj.to_dict()
 
 
@@ -577,6 +583,82 @@ class CircuitUpdateSerializer(CircuitPartialUpdateSerializer):
     """Used for PUT on Circuits."""
 
     class Meta(CircuitPartialUpdateSerializer.Meta):
+        extra_kwargs = {'attributes': {'required': True}}
+
+
+##############
+# ProtocolType
+##############
+class ProtocolTypeSerializer(NsotSerializer):
+    """Used for all CRUD operations on ProtocolTypes."""
+    required_attributes = NaturalKeyRelatedField(
+        many=True, slug_field='name', required=False,
+        queryset=models.Attribute.objects.all(),
+        help_text=get_field_attr(
+            models.ProtocolType, 'required_attributes', 'help_text'
+        ),
+    )
+
+    class Meta:
+        model = models.ProtocolType
+        fields = '__all__'
+
+
+##########
+# Protocol
+##########
+class ProtocolSerializer(ResourceSerializer):
+    """Used for GET, DELETE on Protocols"""
+    type = NaturalKeyRelatedField(
+        slug_field='name',
+        queryset=models.ProtocolType.objects.all(),
+        help_text=get_field_attr(models.Protocol, 'type', 'help_text'),
+    )
+    device = NaturalKeyRelatedField(
+        slug_field='hostname',
+        queryset=models.Device.objects.all(),
+        help_text=get_field_attr(models.Protocol, 'device', 'help_text'),
+    )
+    interface = NaturalKeyRelatedField(
+        slug_field='name_slug',
+        required=False, allow_null=True,
+        queryset=models.Interface.objects.all(),
+        help_text=get_field_attr(models.Protocol, 'interface', 'help_text'),
+    )
+    circuit = NaturalKeyRelatedField(
+        slug_field='name_slug',
+        required=False, allow_null=True,
+        queryset=models.Circuit.objects.all(),
+        help_text=get_field_attr(models.Protocol, 'circuit', 'help_text'),
+    )
+
+    class Meta:
+        model = models.Protocol
+        fields = '__all__'
+
+
+class ProtocolCreateSerializer(ProtocolSerializer):
+    """Used for POST on Protocols."""
+    class Meta:
+        model = models.Protocol
+        fields = ('site', 'type', 'device', 'description', 'auth_string',
+                  'interface', 'circuit', 'attributes')
+
+
+class ProtocolPartialUpdateSerializer(BulkSerializerMixin,
+                                      ProtocolCreateSerializer):
+    """Used for PATCH on Protocols."""
+    class Meta:
+        model = models.Protocol
+        list_serializer_class = BulkListSerializer
+        fields = ('id', 'site', 'type', 'device', 'description', 'auth_string',
+                  'interface', 'circuit', 'attributes')
+
+
+class ProtocolUpdateSerializer(ProtocolPartialUpdateSerializer):
+    """Used for PUT on Protocols."""
+
+    class Meta(ProtocolPartialUpdateSerializer.Meta):
         extra_kwargs = {'attributes': {'required': True}}
 
 

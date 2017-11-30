@@ -18,6 +18,8 @@ router.register(r'circuits', views.CircuitViewSet)
 router.register(r'devices', views.DeviceViewSet)
 router.register(r'interfaces', views.InterfaceViewSet)
 router.register(r'networks', views.NetworkViewSet)
+router.register(r'protocols', views.ProtocolViewSet)
+router.register(r'protocol_types', views.ProtocolTypeViewSet)
 router.register(r'users', views.UserViewSet)
 router.register(r'values', views.ValueViewSet)
 
@@ -33,6 +35,8 @@ sites_router.register(r'circuits', views.CircuitViewSet)
 sites_router.register(r'devices', views.DeviceViewSet)
 sites_router.register(r'interfaces', views.InterfaceViewSet)
 sites_router.register(r'networks', views.NetworkViewSet)
+sites_router.register(r'protocols', views.ProtocolViewSet)
+sites_router.register(r'protocol_types', views.ProtocolTypeViewSet)
 sites_router.register(r'values', views.ValueViewSet)
 
 # Wire up our API using automatic URL routing.
