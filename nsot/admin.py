@@ -116,4 +116,5 @@ class ProtocolAdmin(GuardedModelAdmin):
     fields = ('type', 'device', 'interface', 'circuit', 'auth_string',
               'description', 'site')
 
+
 admin.site.register(models.Protocol, ProtocolAdmin)
