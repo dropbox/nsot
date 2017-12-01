@@ -99,3 +99,21 @@ class InterfaceAdmin(GuardedModelAdmin):
 
 
 admin.site.register(models.Interface, InterfaceAdmin)
+
+
+class ProtocolTypeAdmin(GuardedModelAdmin):
+    list_display = ('name', 'description', 'site')
+    list_filter = ('name', 'site')
+
+
+admin.site.register(models.ProtocolType, ProtocolTypeAdmin)
+
+
+class ProtocolAdmin(GuardedModelAdmin):
+    list_display = ('type', 'description', 'device', 'interface', 'circuit')
+    list_filter = ('type', 'description', 'device', 'site')
+
+    fields = ('type', 'device', 'interface', 'circuit', 'auth_string',
+              'description', 'site')
+
+admin.site.register(models.Protocol, ProtocolAdmin)
