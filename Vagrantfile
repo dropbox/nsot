@@ -74,15 +74,15 @@ export DEBIAN_FRONTEND=noninteractive
 sudo apt-get -y update
 sudo apt-get -y install build-essential python-dev libffi-dev libssl-dev
 sudo apt-get -y install python-pip
-sudo pip install --upgrade pip
-sudo pip install requests[security]
-sudo pip install --upgrade setuptools
-sudo pip install nsot mrproxy
-mkdir /home/vagrant/.nsot
-nsot-server init /home/vagrant/.nsot/nsot.conf.py
-chown -R vagrant:vagrant /home/vagrant/.nsot
-sed -i "s/localhost/0.0.0.0/" /home/vagrant/.nsot/nsot.conf.py
-nsot-server --config=/home/vagrant/.nsot/nsot.conf.py collectstatic --noinput
+sudo pip install --index-url=https://pypi.python.org/simple/ --upgrade pip
+sudo pip install --index-url=https://pypi.python.org/simple/ requests[security]
+sudo pip install --index-url=https://pypi.python.org/simple/ --upgrade setuptools
+sudo pip install --index-url=https://pypi.python.org/simple/ nsot mrproxy
+sudo mkdir /home/vagrant/.nsot
+sudo nsot-server init /home/vagrant/.nsot/nsot.conf.py
+sudo chown -R vagrant:vagrant /home/vagrant/.nsot
+sudo sed -i "s/localhost/0.0.0.0/" /home/vagrant/.nsot/nsot.conf.py
+sudo nsot-server --config=/home/vagrant/.nsot/nsot.conf.py collectstatic --noinput
    SHELL
 
 end
