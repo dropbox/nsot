@@ -410,6 +410,69 @@ Interfaces
 Returns the Interface objects bound to the circuit ordered from A to Z (local
 to remote).
 
+ProtocolTypes
+-------------
+
+A ProtocolType represent the type for a Protocol and is a required value for
+the ``Protocol.type`` field when a Protocol is created. 
+
+ProtocolTypes are created by specifying the unique name, a user-friendly
+description, and required Protocol attributes for Protocols of this type.
+
+This object is designed to provide flexibility in customizing the modeling of
+protocol sessions for any environment by utilizing varying sets of Protocol
+attributes.
+
+For example one could create "iBGP" and "eBGP" ProtocolTypes with different
+sets of required Protocol attributes that could be utilized for internal and
+external BGP sessions.
+
+A ProtocolType's "name" field must be unique for a given Site. Any Protocol
+attributes you wish to set as required attributes must exist prior to creating
+the ProtocolType.
+
+A typical ProtocolType object might look like:
+
+.. code-block:: javascript
+
+    {
+        "site": 1,
+        "description": "IS-IS",
+        "id": 1,
+        "required_attributes": [
+            "metric"
+        ],
+        "name": "isis"
+    }
+
+
+Protocols
+---------
+
+A Protocol represents a session for a network protocol such as BGP, IS-IS, or OSPF. 
+
+Before a Protocol can be created, a ProtocolType with the desired name and
+required attributes must first be created. A Protocol must be bound to a Device
+object and a ProtocolType.
+
+A Protocol may optionally be bound to an Interface or a Circuit, but not both.
+
+A typical Protocol object might look like:
+
+.. code-block:: javascript
+
+   {
+        "interface": "foo-bar1:ae0",
+        "description": "IS-IS link for ae0",
+        "circuit": null,
+        "attributes": {},
+        "device": "foo-bar1",
+        "auth_string": "abc123",
+        "type": "isis",
+        "id": 1,
+        "site": 1
+    }
+
 Changes
 =======
 
