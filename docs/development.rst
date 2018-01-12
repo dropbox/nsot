@@ -226,11 +226,13 @@ project maintainers, who have push access to the parent repository.
    just merged)
 #. Create a new git tag with this verison in the format of ``vX.Y.Z``
 #. Push up the new tag
-#. Create a new package and push it up to PyPI:
+#. Create a new package and push it up to PyPI (where ``{version}`` is the
+   current release version):
 
 .. code-block:: bash
 
-    $ python setup.py sdist upload
+    $ python setup.py sdist
+    $ twine upload dist/nsot-{version}.tar.gz
 
 .. _deprecation-policy:
 
