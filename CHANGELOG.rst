@@ -5,10 +5,32 @@ Changelog
 Version History
 ===============
 
+.. _v1.3.0:
+
+1.3.0 (2018-01-12)
+------------------
+
+* Introducing the ``Protocol`` resource object which can be used to model
+  protocol sessions of various types, such as BGP, IS-IS, or more.
+
+  + The type for a Protocol is defined using a ``ProtocolType`` object which
+    has optional required attributes that can be used to establish Protocol
+    attributes required when creating a new session of this type.
+  + A Protocol may be bound to a ``Circuit`` or an ``Interface`` (but not both).
+
+* Fix #267: The ``/users`` page in the web UI has been disabled and removed
+  from the menu until an actual view can be created. This was causing
+  confusion, especially amongst new users.
+* Fix #298: Circuits can now be filtered by the A/Z endpoint interface slug
+  (aka natural key) or ID number.
+* Fix #307: Fix Vagrant setup issues related to the upstream security changes
+  to PyPI causing the Vagrant install to fail.
+
 .. _v1.2.3:
 
 1.2.3 (2017-09-20)
 ------------------
+
 * Enhance Network "get_next" methods to optionally allocate/reserve at the same
   time
 
@@ -23,7 +45,6 @@ Version History
 * Sped up ``Interface.networks()`` for MySQL users by splitting a subquery up
   into two separate queries.
 
-
 .. _v1.2.2:
 
 1.2.2 (2017-08-30)
@@ -35,7 +56,6 @@ Version History
   will be inherited by child nodes *unless a more specific permission has been
   set on the child object*.
 * Object-level permissions may be managed using the built-in admin dashboard.
-
 
 .. _v1.2.1:
 
