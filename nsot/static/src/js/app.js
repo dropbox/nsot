@@ -101,10 +101,12 @@
             templateUrl: "index.html",
             controller: "IndexController"
         })
+        /*
         .when("/users", {
             templateUrl: "users.html",
             controller: "UsersController"
         })
+        */
         .when("/users/:userId", {
             templateUrl: "user.html",
             controller: "UserController"
