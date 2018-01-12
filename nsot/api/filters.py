@@ -152,9 +152,34 @@ class InterfaceFilter(ResourceFilter):
 
 class CircuitFilter(ResourceFilter):
     """Filter for Circuit objects."""
+    endpoint_a = django_filters.MethodFilter()
+    endpoint_z = django_filters.MethodFilter()
+
     class Meta:
         model = models.Circuit
         fields = ['endpoint_a', 'endpoint_z', 'name', 'attributes']
+
+    # FIXME(jathan): The copy/pasted methods can be ripped out once we upgrade
+    # filters in support of the V2 API. For now this is quicker and easier.
+    def filter_endpoint_a(self, queryset, value):
+        """Overload to use natural key."""
+        if isinstance(value, int):
+            value = str(value)
+
+        if value.isdigit():
+            return queryset.filter(endpoint_a=value)
+        else:
+            return queryset.filter(endpoint_a__name_slug=value)
+
+    def filter_endpoint_z(self, queryset, value):
+        """Overload to use natural key."""
+        if isinstance(value, int):
+            value = str(value)
+
+        if value.isdigit():
+            return queryset.filter(endpoint_z=value)
+        else:
+            return queryset.filter(endpoint_z__name_slug=value)
 
 
 class ProtocolTypeFilter(django_filters.rest_framework.FilterSet):

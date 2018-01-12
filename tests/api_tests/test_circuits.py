@@ -390,16 +390,28 @@ def test_filters(site, client):
     # Test filter by endpoint_a
     wanted = [cir2]
     expected = filter_circuits(circuits, wanted)
+    # by ID
     assert_success(
         client.retrieve(cir_uri, endpoint_a=if_a2['id']),
+        expected
+    )
+    # by natural key
+    assert_success(
+        client.retrieve(cir_uri, endpoint_a=if_a2['name_slug']),
         expected
     )
 
     # Test filter by endpoint_z
     wanted = [cir1]
     expected = filter_circuits(circuits, wanted)
+    # by ID
     assert_success(
         client.retrieve(cir_uri, endpoint_z=if_z1['id']),
+        expected
+    )
+    # by natural key
+    assert_success(
+        client.retrieve(cir_uri, endpoint_z=if_z1['name_slug']),
         expected
     )
 
