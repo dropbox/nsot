@@ -38,6 +38,7 @@ sites_router.register(r'networks', views.NetworkViewSet)
 sites_router.register(r'protocols', views.ProtocolViewSet)
 sites_router.register(r'protocol_types', views.ProtocolTypeViewSet)
 sites_router.register(r'values', views.ValueViewSet)
+sites_router.register(r'sites', views.SiteViewSet)
 
 # Wire up our API using automatic URL routing.
 # Additionally, we include login URLs for the browsable API.
