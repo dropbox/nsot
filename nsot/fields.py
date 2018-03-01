@@ -9,14 +9,13 @@ from django_extensions.db.fields.json import JSONField
 from macaddress.fields import MACAddressField as BaseMACAddressField
 import ipaddress
 import logging
-from smart_selects.db_fields import ChainedForeignKey
 import types
 
 from . import exc
 
 
 __all__ = (
-    'BinaryIPAddressField', 'ChainedForeignKey', 'JSONField', 'MACAddressField'
+    'BinaryIPAddressField', 'JSONField', 'MACAddressField'
 )
 
 

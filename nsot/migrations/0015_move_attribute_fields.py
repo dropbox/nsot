@@ -2,7 +2,6 @@
 from __future__ import unicode_literals
 
 from django.db import models, migrations
-import smart_selects.db_fields
 import django.db.models.deletion
 import django_extensions.db.fields.json
 import nsot.fields
@@ -111,7 +110,7 @@ class Migration(migrations.Migration):
                 ('speed', models.IntegerField(default=10000, help_text='Integer of Mbps of interface (e.g. 20000 for 20 Gbps). If not provided, defaults to 10000.', db_index=True, blank=True)),
                 ('addresses', models.ManyToManyField(related_name='addresses', through='nsot.Assignment_temp', to='nsot.Network_temp', db_index=True)),
                 ('device', models.ForeignKey(related_name='interfaces', verbose_name='Device', to='nsot.Device_temp', help_text='Unique ID of the connected Device.')),
-                ('parent', smart_selects.db_fields.ChainedForeignKey(chained_model_field='device', related_name='children', on_delete=django.db.models.deletion.PROTECT, default=None, auto_choose=True, to='nsot.Interface_temp', chained_field='device', blank=True, help_text='Unique ID of the parent Interface.', null=True, verbose_name='Parent')),
+                ('parent', models.ForeignKey(related_name='children', on_delete=django.db.models.deletion.PROTECT, default=None, to='nsot.Interface_temp', blank=True, help_text='Unique ID of the parent Interface.', null=True, verbose_name='Parent')),
                 ('site', models.ForeignKey(related_name='interfaces', on_delete=django.db.models.deletion.PROTECT, to='nsot.Site')),
             ],
         ),
