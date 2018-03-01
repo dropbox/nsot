@@ -39,9 +39,6 @@ urlpatterns = [
         name='favicon'
     ),
 
-    # Smart selects chaining
-    url(r'^chaining/', include('smart_selects.urls')),
-
     # FE handlers
     # Catch index
     url(r'^$', FeView.as_view(), name='index'),

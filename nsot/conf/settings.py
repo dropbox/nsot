@@ -37,7 +37,6 @@ INSTALLED_APPS = (
     'django_extensions',
     'django_filters',
     'guardian',
-    'smart_selects',
     'rest_framework',
     'rest_framework_swagger',
     'custom_user',

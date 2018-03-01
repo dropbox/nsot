@@ -102,10 +102,9 @@ class Interface(Resource):
         )
     )
 
-    parent = fields.ChainedForeignKey(
+    parent = models.ForeignKey(
         'self', blank=True, null=True, related_name='children',
         default=None, db_index=True, on_delete=models.PROTECT,
-        chained_field='device', chained_model_field='device',
         verbose_name='Parent', help_text='Unique ID of the parent Interface.',
     )
 
