@@ -22,8 +22,7 @@ class Command(NsotCommand):
 
     def handle(self, **options):
         call_command(
-            'syncdb',
-            migrate=True,
+            'migrate',
             interactive=(not options['noinput']),
             traceback=options['traceback'],
             verbosity=options['verbosity'],

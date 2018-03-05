@@ -2,18 +2,19 @@
 Middleware for authentication.
 """
 
+import logging
+
 from django.contrib.auth import backends, middleware
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import EmailValidator
-from django.utils.log import getLogger
 from guardian.backends import ObjectPermissionBackend
 from guardian.core import ObjectPermissionChecker
 
 from ..util import normalize_auth_header
 
 
-log = getLogger('nsot_server')
+log = logging.getLogger('nsot_server')
 
 
 class EmailHeaderMiddleware(middleware.RemoteUserMiddleware):
@@ -22,15 +23,18 @@ class EmailHeaderMiddleware(middleware.RemoteUserMiddleware):
 
 class EmailHeaderBackend(backends.RemoteUserBackend):
     """Custom backend that validates username is an email."""
-    def authenticate(self, remote_user):
+    def authenticate(self, request, remote_user):
         """Override default to return None if username is invalid."""
         if not remote_user:
             return
+
         username = self.clean_username(remote_user)
         if not username:
             return
 
-        return super(EmailHeaderBackend, self).authenticate(remote_user)
+        return super(EmailHeaderBackend, self).authenticate(
+            request, remote_user
+        )
 
     def clean_username(self, username):
         """Makes sure that the username is a valid email address."""

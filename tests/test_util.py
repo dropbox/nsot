@@ -6,7 +6,7 @@ from __future__ import unicode_literals, print_function
 
 import pytest
 
-from nsot import util
+from nsot import models, util
 
 
 def test_parse_set_query():
@@ -148,3 +148,20 @@ def test_slugify_interface():
 
     with pytest.raises(RuntimeError):
         util.slugify_interface(name='bogus')
+
+
+def test_get_field_attr():
+    """Test ``util.get_field_attr()``."""
+    model = models.Interface
+    field_name = 'parent'
+    attr_name = 'help_text'
+
+    # Test desired behavior
+    expected = models.Interface._meta.get_field('parent').help_text
+    assert util.get_field_attr(model, field_name, attr_name) == expected
+
+    # All bad inputs returns ''
+    assert util.get_field_attr(model, field_name, 'bogus') == ''
+    assert util.get_field_attr(model, 'bogus', attr_name) == ''
+    assert util.get_field_attr(model, 'bogus', 'bogus') == ''
+    assert util.get_field_attr('bogus', 'bogus', 'bogus') == ''

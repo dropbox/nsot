@@ -370,7 +370,7 @@ class AttributeViewSet(ResourceViewSet):
     """
     queryset = models.Attribute.objects.all()
     serializer_class = serializers.AttributeSerializer
-    filter_fields = ('name', 'resource_name', 'required', 'display', 'multi')
+    filter_class = filters.AttributeFilter
 
     def get_serializer_class(self):
         if self.request.method == 'POST':

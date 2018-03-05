@@ -17,7 +17,7 @@ import requests
 '''
 __all__ = (
     'get_result', 'assert_error', 'assert_success', 'assert_created',
-    'assert_deleted', 'Client', 'TestSite', 'load_json', 'load',
+    'assert_deleted', 'Client', 'SiteHelper', 'load_json', 'load',
     'filter_devices', 'filter_interfaces', 'filter_networks', 'filter_values',
     'filter_circuits', 'make_mac', 'mkcidr',
 )
@@ -288,7 +288,8 @@ def make_mac(mac):
     return netaddr.EUI(mac, dialect=macaddress.default_dialect())
 
 
-class TestSite(object):
+class SiteHelper(object):
+    """Class used to help with common API things in testing."""
     def __init__(self, data):
         if 'data' in data:
             data = data['data']['site']
@@ -332,7 +333,7 @@ class TestSite(object):
         return reverse(name + '-query', args=args)
 
     def __repr__(self):
-        return '<TestSite: %s (%s)>' % (self.name, self.id)
+        return '<SiteHelper: %s (%s)>' % (self.name, self.id)
 
 
 def mkcidr(obj):
