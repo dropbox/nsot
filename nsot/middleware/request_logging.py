@@ -2,14 +2,13 @@
 Middleware to log HTTP requests.
 """
 
+import logging
 from time import time
-
-from django.utils.log import getLogger
 
 
 class LoggingMiddleware(object):
     def __init__(self):
-        self.logger = getLogger('nsot_server')
+        self.logger = logging.getLogger('nsot_server')
 
     def process_request(self, request):
         request.timer = time()

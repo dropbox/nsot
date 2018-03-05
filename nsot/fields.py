@@ -43,8 +43,6 @@ if not hasattr(DatabaseWrapper, 'get_new_connection_is_patched'):
 
 class BinaryIPAddressField(models.Field):
     """IP Address field that stores values as varbinary."""
-    __metaclass__ = models.SubfieldBase
-
     def __init__(self, *args, **kwargs):
         super(BinaryIPAddressField, self).__init__(*args, **kwargs)
         self.editable = True
@@ -60,11 +58,7 @@ class BinaryIPAddressField(models.Field):
         data = DictWrapper(self.__dict__, connection.ops.quote_name, "qn_")
         return 'varbinary(%(max_length)s)' % data
 
-    def to_python(self, value):
-        """DB -> Python."""
-        if not value:
-            return value
-
+    def _parse_ip_address(self, value):
         try:
             obj = ipaddress.ip_address(unicode(value))
         except ValueError:
@@ -75,6 +69,23 @@ class BinaryIPAddressField(models.Field):
             return obj.compressed
 
         return obj.exploded
+
+    def from_db_value(self, value, expression, connection, context):
+        """DB -> Python."""
+        if value is None:
+            return value
+
+        return self._parse_ip_address(value)
+
+    def to_python(self, value):
+        """Object -> Python."""
+        if isinstance(value, (ipaddress.IPv4Address, ipaddress.IPv6Address)):
+            return value
+
+        if value is None:
+            return value
+
+        return self._parse_ip_address(value)
 
     def get_db_prep_value(self, value, connection, prepared=False):
         """Python -> DB."""
@@ -100,7 +111,23 @@ class MACAddressField(BaseMACAddressField):
     always expect the DRF version, for better consistency in debugging and
     testing.
     """
+    def from_db_value(self, value, expression, connection, context):
+        # If value is an integer that is a string, make it an int
+        if isinstance(value, basestring) and value.isdigit():
+            value = int(value)
+
+        try:
+            return super(MACAddressField, self).from_db_value(
+                value, expression, connection, context
+            )
+        except exc.DjangoValidationError as err:
+            raise exc.ValidationError(err.message)
+
     def to_python(self, value):
+        # If value is an integer that is a string, make it an int
+        if isinstance(value, basestring) and value.isdigit():
+            value = int(value)
+
         try:
             return super(MACAddressField, self).to_python(value)
         except exc.DjangoValidationError as err:

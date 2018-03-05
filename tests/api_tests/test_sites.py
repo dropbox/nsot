@@ -12,7 +12,7 @@ from rest_framework import status
 
 from .fixtures import client
 from .util import (
-    assert_created, assert_deleted, assert_error, assert_success, TestSite,
+    assert_created, assert_deleted, assert_error, assert_success, SiteHelper,
     get_result
 )
 
@@ -38,7 +38,7 @@ def test_creation(client):
 
     # Create a Site
     site1_resp = client.create(site_uri, name='Test Site')
-    site1 = TestSite(site1_resp.json())
+    site1 = SiteHelper(site1_resp.json())
     site1_obj_uri = site1.detail_uri()
     assert_created(site1_resp, site1_obj_uri)
 
@@ -52,7 +52,7 @@ def test_creation(client):
 
     # Create another Site with a slightly different name
     site2_resp = client.create(site_uri, name='Test Site 2')
-    site2 = TestSite(site2_resp.json())
+    site2 = SiteHelper(site2_resp.json())
     site2_obj_uri = site2.detail_uri()
     assert_created(site2_resp, site2_obj_uri)
 
@@ -71,7 +71,7 @@ def test_update(client):
     site_uri = reverse('site-list')
 
     site_resp = client.create(site_uri, name='Test Site')
-    site = TestSite(site_resp.json())
+    site = SiteHelper(site_resp.json())
     site_obj_uri = site.detail_uri()
 
     # Update the Site name
@@ -107,7 +107,7 @@ def test_deletion(client):
     """Test DELETE of Site objects."""
     site_uri = reverse('site-list')
     site_resp = client.create(site_uri, name='Test Site')
-    site = TestSite(site_resp.json())
+    site = SiteHelper(site_resp.json())
 
     # URIs
     site_obj_uri = site.detail_uri()

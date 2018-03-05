@@ -5,24 +5,26 @@ Validators for validating object fields.
 from django.conf import settings
 from django.core.validators import EmailValidator
 import ipaddress
-from macaddress.formfields import MACAddressField as MACAddressFormField
+import netaddr
 
 from . import exc
 
 
 def validate_mac_address(value):
     """Validate whether ``value`` is a valid MAC address."""
-    if isinstance(value, basestring):
-        # If the incoming value is a string, cast it to an int
-        if value.isdigit():
-            value = int(value)
+    if value is None:
+        return value
 
-    field = MACAddressFormField(required=False)  # allow None
+    # If the incoming value is a string, cast it to an int
+    if isinstance(value, basestring) and value.isdigit():
+        value = int(value)
+
+    # Directly invoke EUI object instead of using MACAddressField
     try:
-        field.clean(value)
-    except exc.DjangoValidationError as err:
+        value = netaddr.EUI(value, version=48)
+    except (ValueError, TypeError, netaddr.AddrFormatError):
         raise exc.ValidationError({
-            'mac_address': err.message
+            'mac_address': 'Enter a valid MAC Address.'
         })
 
     return value

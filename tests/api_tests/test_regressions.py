@@ -17,7 +17,7 @@ from rest_framework import status
 from .fixtures import live_server, client, user, site
 from .util import (
     assert_created, assert_error, assert_success, assert_deleted, load_json,
-    Client, load, filter_networks, make_mac, TestSite, get_result
+    Client, load, filter_networks, make_mac, SiteHelper, get_result
 )
 
 
@@ -171,7 +171,7 @@ def test_natural_lookup_without_site(client, site):
 
     # Create 2nd site
     site2_resp = client.create(site_uri, name='Test Site 2')
-    site2 = TestSite(site2_resp.json())
+    site2 = SiteHelper(site2_resp.json())
 
     ###########
     # Devices #
@@ -243,7 +243,7 @@ def test_attribute_lookup_list_view_issues_169(client, site):
 
     # Create 2nd site
     site2_resp = client.create(site_uri, name='Test Site 2')
-    site2 = TestSite(site2_resp.json())
+    site2 = SiteHelper(site2_resp.json())
 
     # Attributes
     site1_attr_uri = site1.list_uri('attribute')
@@ -294,7 +294,7 @@ def test_interface_assign_address_500_issues_168(client, site):
 
     # Create 2nd site
     site2_resp = client.create(site_uri, name='Test Site 2')
-    site2 = TestSite(site2_resp.json())
+    site2 = SiteHelper(site2_resp.json())
 
     ############
     # Networks #

@@ -410,7 +410,9 @@ MACADDRESS_DEFAULT_DIALECT = 'macaddress.mac_linux'
 INTERFACE_DEFAULT_SPEED = 1000  # In Mbps (e.g. 1Gbps)
 
 # Default MAC address ('00:00:00:00:00:00')
-INTERFACE_DEFAULT_MAC = eui.EUI(0, dialect=macaddress.default_dialect())
+INTERFACE_DEFAULT_MAC = eui.EUI(
+    0, dialect=macaddress.default_dialect(), version=48
+)
 
 # These are mappings to the formal integer types from SNMP IF-MIB::ifType. The
 # types listed here are the most commonly found in the wild.

@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import unicode_literals
+from httplib import responses
 import logging
 
-from django.core.handlers.wsgi import STATUS_CODE_TEXT as status_text
 from django.shortcuts import render
 from django.views.generic import TemplateView
 
@@ -23,7 +23,7 @@ class FeView(TemplateView):
 
 def render_error(request, status_code, template_name='ui/error.html'):
     """Generic base for rendering error pages."""
-    message = status_text.get(status_code)
+    message = responses[status_code].upper()
     context = {'code': status_code, 'message': message}
     return render(request, template_name, context, status=status_code)
 

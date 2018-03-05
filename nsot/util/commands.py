@@ -1,13 +1,12 @@
-from __future__ import absolute_import, print_function
-
 """
 Customized base Django management command specialized for NSoT.
 """
 
+from __future__ import absolute_import, print_function
 import argparse
-from django.core.management.base import BaseCommand, CommandError
-from django.utils.log import getLogger
 import logging
+
+from django.core.management.base import BaseCommand, CommandError
 
 
 __all__ = ('NsotCommand', 'CommandError')
@@ -47,7 +46,7 @@ class NsotCommand(BaseCommand):
 
     def set_logging(self, verbosity):
         """Set the log-level."""
-        log = getLogger('nsot_server')
+        log = logging.getLogger('nsot_server')
 
         loglevel = self.get_loglevel(verbosity)
         log.setLevel(loglevel)
