@@ -99,7 +99,7 @@ def test_speed(device):
 
 
 def test_mac_address(device):
-    """Test mac"""
+    """Test mac_address."""
     iface = models.Interface.objects.create(device=device, name='eth0')
     assert iface.mac_address == settings.INTERFACE_DEFAULT_MAC
 
@@ -115,6 +115,7 @@ def test_mac_address(device):
     # Set mac by integer
     iface.mac_address = 122191241314
     iface.save()
+    iface.refresh_from_db()
 
     assert iface.mac_address == '00:1c:73:2a:60:62'
 

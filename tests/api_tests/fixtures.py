@@ -6,7 +6,7 @@ import pytest
 from pytest_django.fixtures import live_server, django_user_model, settings
 import requests
 
-from .util import Client, TestSite
+from .util import Client, SiteHelper
 
 
 log = logging.getLogger(__name__)
@@ -29,7 +29,7 @@ def site(live_server):
     site_uri = reverse('site-list')  # /api/sites/
     resp = client.create(site_uri, name='Test Site')
 
-    site = TestSite(resp.json())
+    site = SiteHelper(resp.json())
     return site
 
 

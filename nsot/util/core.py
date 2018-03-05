@@ -61,15 +61,34 @@ def generate_secret_key():
     return Fernet.generate_key()
 
 
-def get_field_attr(model, field_name, attr):
-    """Return the specified field for a model field"""
+def get_field_attr(model, field_name, attr_name):
+    """
+    Return the specified attribute value from a model field.
+
+    This is used for field overrides in API serializers to retrieve the
+    ``verbose_name`` and ``help_text`` model field attributes so they don't
+    need to be duplicated in code.
+
+    Example::
+
+        >>> get_field_attr(models.Interface, 'parent', 'help_text')
+        'Unique ID of the parent Interface.'
+
+    :param model:
+        Model class
+
+    :param field_name:
+        Model field name
+
+    :param attr_name:
+        Model field attribute name
+    """
     try:
-        field_data = model._meta.get_field_by_name(field_name)
-    except FieldDoesNotExist:
+        field = model._meta.get_field(field_name)
+    except (AttributeError, FieldDoesNotExist):
         return ''
     else:
-        field, model, direct, m2m = field_data
-        return getattr(field, attr, '')
+        return getattr(field, attr_name, '')
 
 
 def cidr_to_dict(cidr):

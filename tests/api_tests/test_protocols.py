@@ -15,7 +15,7 @@ from rest_framework import status
 from .fixtures import live_server, client, user, site, user_client
 from .util import (
     assert_created, assert_error, assert_success, assert_deleted, load_json,
-    Client, TestSite, load, filter_circuits, get_result
+    Client, SiteHelper, load, filter_circuits, get_result
 )
 
 
@@ -76,7 +76,7 @@ class TestProtocolType(object):
         """Test required_attributes are in same site."""
         site_uri = reverse('site-list')
         site_resp = client.create(site_uri, name='Other Site')
-        site2 = TestSite(site_resp.json())
+        site2 = SiteHelper(site_resp.json())
 
         # Create site2 attribute/protocoltype
         attr_uri = site2.list_uri('attribute')

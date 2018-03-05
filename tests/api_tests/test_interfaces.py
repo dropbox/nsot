@@ -600,6 +600,7 @@ def test_filters(site, client):
     expected = filter_interfaces(interfaces, wanted)
     mac_tests = (
         1,  # Integer
+        '1',  # Integer as a string
         '00:00:00:00:00:01',  # String
     )
     for mac in mac_tests:
