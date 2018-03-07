@@ -354,3 +354,10 @@ def test_bogus_url_raises_404(client, site):
         client.get(bogus_url),
         status.HTTP_404_NOT_FOUND
     )
+
+
+def test_swagger_docs_work(client):
+    """Make sure that Swagger endpoint returns 200."""
+    swagger_uri = reverse('swagger')
+    resp = client.get(swagger_uri)
+    assert resp.ok

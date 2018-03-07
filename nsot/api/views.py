@@ -423,7 +423,7 @@ class NetworkViewSet(ResourceViewSet):
     queryset = models.Network.objects.all()
     serializer_class = serializers.NetworkSerializer
     filter_class = filters.NetworkFilter
-    lookup_value_regex = '[a-fA-F0-9:.]+(?:\/\d+)?'
+    lookup_value_regex = '[a-fA-F0-9:./]+'
     natural_key = 'cidr'
 
     def allocate_networks(self, networks, site_pk, state='allocated'):
@@ -655,7 +655,7 @@ class InterfaceViewSet(ResourceViewSet):
     filter_class = filters.InterfaceFilter
     # Match on device_hostname:name or pk id
     # Being pretty vague here, so as to be minimally prescriptive
-    lookup_value_regex = '[^:]+:([^/]+|.+[0-9])|[0-9]+'
+    lookup_value_regex = '[a-zA-Z0-9:./-]*[0-9]'
     natural_key = 'name_slug'
 
     @cache_response(cache_errors=False, key_func=cache.list_key_func)
@@ -950,6 +950,7 @@ class UserViewSet(BaseNsotViewSet, mixins.CreateModelMixin):
 
 class NotFoundViewSet(viewsets.GenericViewSet):
     """Catchall for bad API endpoints."""
+    exclude_from_schema = True
     permission_classes = (permissions.IsAuthenticated,)
 
     def get_queryset(self):
