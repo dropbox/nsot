@@ -4,6 +4,7 @@ from django.conf import settings
 from django.conf.urls import include, url
 from django.contrib import admin
 from django.views.generic import RedirectView
+from rest_framework_swagger.views import get_swagger_view
 
 from ..api.views import NotFoundViewSet
 from ..ui.views import FeView
@@ -15,6 +16,9 @@ handler403 = 'nsot.ui.views.handle403'
 handler404 = 'nsot.ui.views.handle404'
 handler500 = 'nsot.ui.views.handle500'
 
+# This is the basic API explorer for Swagger/OpenAPI 2.0
+schema_view = get_swagger_view(title='NSoT API')
+
 
 urlpatterns = [
     # API
@@ -23,8 +27,8 @@ urlpatterns = [
     # Catchall for missing endpoints
     url(r'^api/.*/$', NotFoundViewSet.as_view({'get': 'list'})),
 
-    # Docs (Swagger)
-    url(r'^docs/', include('rest_framework_swagger.urls')),
+    # Docs (Swagger 2.0)
+    url(r'^docs/', schema_view, name='swagger'),
 
     # Admin
     url(r'^admin/', include(admin.site.urls)),
