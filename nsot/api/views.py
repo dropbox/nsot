@@ -776,7 +776,7 @@ class CircuitViewSet(ResourceViewSet):
         it is only defined here.
 
         Credit: https://github.com/miki725/django-rest-framework-bulk/issues/30
-        Source: http://bit.ly/2ilboIQ
+        Source: http://bit.ly/2HcyNnG
         """
         partial = kwargs.pop('partial', False)
 
@@ -799,12 +799,14 @@ class CircuitViewSet(ResourceViewSet):
                 data=item,
                 partial=partial,
             )
-
-            item_serializer.root = serializer
             if not item_serializer.is_valid():
                 validation_errors.append(item_serializer.errors)
 
-            validated_data.append(item_serializer.validated_data)
+            obj_data = item_serializer.validated_data
+            # By default validated_data does not have `id`, so adding it in
+            # validated_data of each item
+            obj_data['id'] = item['id']
+            validated_data.append(obj_data)
 
         if validation_errors:
             raise exc.ValidationError(validation_errors)
