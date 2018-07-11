@@ -5,6 +5,14 @@ Changelog
 Version History
 ===============
 
+.. _v1.4.0:
+
+1.4.0 (2018-07-10)
+------------------
+
+* Upgrade Django v1.11.11, djangorestframework to v3.7.7
+* Remove django-smart-selects, which is no longer necessary
+
 .. _v1.3.0:
 
 1.3.0 (2018-01-12)
