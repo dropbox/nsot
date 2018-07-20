@@ -155,6 +155,7 @@ class NsotSerializer(serializers.ModelSerializer):
             site_field = None
 
         if site_field not in data and 'site_pk' in kwargs:
+            data = data.copy()  # Get a mutable copy of the QueryDict
             data[site_field] = kwargs['site_pk']
 
         log.debug('NsotSerializer.to_internal_value() data [after] = %r', data)
