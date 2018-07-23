@@ -5,6 +5,16 @@ Changelog
 Version History
 ===============
 
+.. _v1.4.1:
+
+1.4.1 (2018-07-23)
+------------------
+
+* Fix bug in ``NsotSerializer.to_internal_value()`` that tried to modify an
+  immutable QueryDict.
+* Fix Bower registry URL (bower.herokuapp.com is deprecated).
+* Upgrade Gunicorn to 19.5.0, fixing CVE-2018-1000164.
+
 .. _v1.4.0:
 
 1.4.0 (2018-07-10)
