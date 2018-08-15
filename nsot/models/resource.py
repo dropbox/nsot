@@ -40,7 +40,7 @@ class ResourceSetTheoryQuerySet(models.query.QuerySet):
             objects = objects.filter(site=site_id)
 
         try:
-            attributes = util.parse_set_query(query)
+            query_fields = util.parse_set_query(query)
         except (ValueError, TypeError) as err:
             raise exc.ValidationError({
                 'query': err.message
@@ -48,8 +48,16 @@ class ResourceSetTheoryQuerySet(models.query.QuerySet):
 
         resource_name = self.model.__name__
 
+        # Grabbing the concrete fields for this Resource
+        concrete_field_names = []
+        # The below call can be replaced with .get_concrete_fields_with_model()
+        # once we upgrade to >= 2.1
+        concrete_fields = self.model._meta.concrete_fields
+        for field in concrete_fields:
+            concrete_field_names.append(field.name)
+
         # If there aren't any parsed attributes, don't return anything.
-        if not attributes:
+        if not query_fields:
             if unique:
                 raise exc.ValidationError({
                     'query': 'Query empty, unable to provide %s'
@@ -60,7 +68,7 @@ class ResourceSetTheoryQuerySet(models.query.QuerySet):
         # Iterate a/v pairs and combine query results using MySQL-compatible
         # set operations w/ the ORM
         log.debug('QUERY [start]: objects = %r', objects)
-        for action, name, value in attributes:
+        for action, name, value in query_fields:
             # Is this a regex pattern?
             regex_query = False
             if name.endswith('_regex'):
@@ -69,40 +77,72 @@ class ResourceSetTheoryQuerySet(models.query.QuerySet):
                 log.debug('Regex enabled for %r' % name)
 
             # Attribute lookup params
-            params = dict(
-                name=name, resource_name=resource_name
-            )
+            if name not in concrete_field_names:
+                params = dict(
+                    name=name, resource_name=resource_name
+                )
+            else:
+                params = dict()
+                params[name] = value
             # Only include site_id if it's set
             if site_id is not None:
                 params['site_id'] = site_id
 
             # If an Attribute doesn't exist, the set query is invalid. Return
             # an empty queryset. (fix #99)
-            try:
-                attr = Attribute.objects.get(
-                    **params
-                )
-            except Attribute.DoesNotExist as err:
-                raise exc.ValidationError({
-                    'query': '%s: %r' % (err.message.rstrip('.'), name)
-                })
+            if name in concrete_field_names:
+                try:
+                    # import pdb; pdb.set_trace()
+                    qfield = self.model.objects.filter(
+                        **params
+                    )
+                except self.model.DoesNotExist as err:
+                    raise exc.ValidationError({
+                        'query': '%s: %r' % (err.message.rstrip('.'), name)
+                    })
+
+            else:
+                try:
+                    qfield = Attribute.objects.get(
+                        **params
+                    )
+                except Attribute.DoesNotExist as err:
+                    # If the query field is not an attribute, check if it is a concrete
+                    # field on the resource. If not, then raise the exception
+                    raise exc.ValidationError({
+                        'query': '%s: %r' % (err.message.rstrip('.'), name)
+                    })
 
             # Set lookup params
-            next_set_params = {
-                'name': attr.name,
-                'value': value,
-                'resource_name': resource_name
-            }
+            if name not in concrete_field_names:
+                next_set_params = {
+                    'name': qfield.name,
+                    'value': value,
+                    'resource_name': resource_name
+                }
+            else:
+                next_set_params = {
+                    name: value
+                }
 
             # If it's a regex query, swap ``value`` with ``value__regex``.
             if regex_query:
                 next_set_params['value__regex'] = next_set_params.pop('value')
 
-            next_set = Q(
-                id__in=Value.objects.filter(
-                    **next_set_params
-                ).values_list('resource_id', flat=True)
-            )
+            # if name in concrete_field_names:
+            #     import pdb; pdb.set_trace()
+            if name not in concrete_field_names:
+                next_set = Q(
+                    id__in=Value.objects.filter(
+                        **next_set_params
+                    ).values_list('resource_id', flat=True)
+                )
+            else:
+                next_set = Q(
+                    id__in=self.model.objects.filter(
+                        **next_set_params
+                    ).values_list('id', flat=True)
+                )
 
             # This is the MySQL-compatible manual implementation of set theory,
             # baby!
