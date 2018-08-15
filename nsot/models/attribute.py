@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 import re
 
+from django.apps import apps
 from django.conf import settings
 from django.db import models
 
@@ -128,6 +129,20 @@ class Attribute(models.Model):
 
     def clean_name(self, value):
         value = validators.validate_name(value)
+        resource_cls = self._get_model_cls()
+
+        # Grabbing concrete fields from the resource class to check if the
+        # attr name is not a concrete field on the resource model object
+        concrete_field_names = []
+        concrete_fields = resource_cls._meta.concrete_fields
+        for field in concrete_fields:
+            concrete_field_names.append(field.name)
+
+        if value in concrete_field_names:
+            raise exc.ValidationError({
+                'name': ('Attribute name %r cannot be the same as a'
+                    ' concrete field on %r' % (value, self.resource_name))
+            })
 
         if not settings.ATTRIBUTE_NAME.match(value):
             raise exc.ValidationError({
@@ -141,6 +156,10 @@ class Attribute(models.Model):
         self.display = self.clean_display(self.display)
         self.resource_name = self.clean_resource_name(self.resource_name)
         self.name = self.clean_name(self.name)
+
+    def _get_model_cls(self):
+        # Wasn't sure on how to get the app name from django easily!
+        return apps.get_model('nsot', self.resource_name)
 
     def _validate_single_value(self, value, constraints=None):
         if not isinstance(value, basestring):
