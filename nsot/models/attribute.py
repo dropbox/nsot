@@ -158,6 +158,7 @@ class Attribute(models.Model):
         self.name = self.clean_name(self.name)
 
     def _get_model_cls(self):
+        # TODO: Make this better!
         # Wasn't sure on how to get the app name from django easily!
         return apps.get_model('nsot', self.resource_name)
 
