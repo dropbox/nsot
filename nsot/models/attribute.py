@@ -141,7 +141,7 @@ class Attribute(models.Model):
         if value in concrete_field_names:
             raise exc.ValidationError({
                 'name': ('Attribute name %r cannot be the same as a'
-                    ' concrete field on %r' % (value, self.resource_name))
+                        ' concrete field on %r' % (value, self.resource_name))
             })
 
         if not settings.ATTRIBUTE_NAME.match(value):

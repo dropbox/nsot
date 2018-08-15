@@ -107,8 +107,9 @@ class ResourceSetTheoryQuerySet(models.query.QuerySet):
                         **params
                     )
                 except Attribute.DoesNotExist as err:
-                    # If the query field is not an attribute, check if it is a concrete
-                    # field on the resource. If not, then raise the exception
+                    # If the query field is not an attribute, check if it is a
+                    # concrete field on the resource. If not, then raise
+                    # an exception
                     raise exc.ValidationError({
                         'query': '%s: %r' % (err.message.rstrip('.'), name)
                     })

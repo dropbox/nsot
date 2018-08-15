@@ -48,7 +48,7 @@ def test_conflict(site):
         site=site, name='test_attribute_2'
     )
 
-    with pytest.raises(DjangoValidationError):
+    with pytest.raises(exc.ValidationError):
         models.Attribute.objects.create(
             resource_name='Device',
             site=site, name='hostname'
