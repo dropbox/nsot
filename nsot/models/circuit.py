@@ -75,16 +75,8 @@ class Circuit(Resource):
 
     @property
     def addresses(self):
-        """Return addresses associated with this circuit. This includes addresses associated
-        with child interfaces."""
-        addresses = []
-        for interface in self.interfaces:
-            addresses.extend(interface.addresses.all())
-
-            # For each interface, get addresses of all child interfaces and extend the list.
-            for child in interface.children.all():
-                addresses.extend(child.addresses.all())
-
+        """Return addresses associated with this circuit."""
+        addresses = [a for i in self.interfaces for a in i.addresses.all()]
         return addresses
 
     @property

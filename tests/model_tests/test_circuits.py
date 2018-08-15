@@ -26,34 +26,24 @@ def test_creation(device):
         cidr='10.32.0.0/24', site=site,
     )
 
-    # A-side device/interface and child interface
+    # A-side device/interface
     device_a = device
     iface_a = models.Interface.objects.create(
-        device=device_a, name='ae0', addresses=['10.32.0.1/32']
-    )
-    child_iface_a = models.Interface.objects.create(
-        device=device_a, name='ae0.0', addresses=['10.32.0.3/32'], parent=iface_a
+        device=device_a, name='eth0/1', addresses=['10.32.0.1/32']
     )
 
-    # Z-side device/interface and child interface
+    # Z-side device/interface
     device_z = models.Device.objects.create(
         hostname='foo-bar2', site=site
     )
     iface_z = models.Interface.objects.create(
-        device=device_z, name='ae0', addresses=['10.32.0.2/32']
-    )
-    child_iface_z = models.Interface.objects.create(
-        device=device_z, name='ae0.0', addresses=['10.32.0.4/32'], parent=iface_z
+        device=device_z, name='eth0/1', addresses=['10.32.0.2/32']
     )
 
-    # Create the circuits
+    # Create the circuit
     circuit = models.Circuit.objects.create(
         endpoint_a=iface_a, endpoint_z=iface_z
     )
-    circuit_for_child_ifaces = models.Circuit.objects.create(
-        endpoint_a=child_iface_a, endpoint_z=child_iface_z
-    )
-
 
     # Interface inherits endpoint_a's site
     assert circuit.site == iface_a.site
@@ -70,8 +60,7 @@ def test_creation(device):
 
     # Assert property values
     assert circuit.interfaces == [iface_a, iface_z]
-    assert [str(a) for a in circuit.addresses] == ['10.32.0.1/32', '10.32.0.3/32', \
-                                                   '10.32.0.2/32', '10.32.0.4/32']
+    assert [str(a) for a in circuit.addresses] == ['10.32.0.1/32', '10.32.0.2/32']
     assert circuit.devices == [device_a, device_z]
 
     # Try to create another circuit w/ the same interfaces (expecting Django
