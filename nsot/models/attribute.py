@@ -129,7 +129,7 @@ class Attribute(models.Model):
 
     def clean_name(self, value):
         value = validators.validate_name(value)
-        resource_cls = self.get_resource_cls()
+        resource_cls = self.get_resource_class()
         concrete_field_names = resource_cls.get_concrete_field_names()
 
         if value in concrete_field_names:
