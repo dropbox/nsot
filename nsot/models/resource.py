@@ -47,14 +47,7 @@ class ResourceSetTheoryQuerySet(models.query.QuerySet):
             })
 
         resource_name = self.model.__name__
-
-        # Grabbing the concrete fields for this Resource
-        concrete_field_names = []
-        # The below call can be replaced with .get_concrete_fields_with_model()
-        # once we upgrade to >= 2.1
-        concrete_fields = self.model._meta.concrete_fields
-        for field in concrete_fields:
-            concrete_field_names.append(field.name)
+        concrete_field_names = self.model.get_concrete_field_names()
 
         # If there aren't any parsed attributes, don't return anything.
         if not query_fields:
@@ -90,18 +83,7 @@ class ResourceSetTheoryQuerySet(models.query.QuerySet):
 
             # If an Attribute doesn't exist, the set query is invalid. Return
             # an empty queryset. (fix #99)
-            if name in concrete_field_names:
-                try:
-                    # import pdb; pdb.set_trace()
-                    qfield = self.model.objects.filter(
-                        **params
-                    )
-                except self.model.DoesNotExist as err:
-                    raise exc.ValidationError({
-                        'query': '%s: %r' % (err.message.rstrip('.'), name)
-                    })
-
-            else:
+            if name not in concrete_field_names:
                 try:
                     qfield = Attribute.objects.get(
                         **params
@@ -113,8 +95,20 @@ class ResourceSetTheoryQuerySet(models.query.QuerySet):
                     raise exc.ValidationError({
                         'query': '%s: %r' % (err.message.rstrip('.'), name)
                     })
+            else:
+                try:
+                    qfield = self.model.objects.filter(
+                        **params
+                    )
+                except self.model.DoesNotExist as err:
+                    raise exc.ValidationError({
+                        'query': '%s: %r' % (err.message.rstrip('.'), name)
+                    })
 
             # Set lookup params
+            # Based on the above code block, qfield will only contain a
+            # `.name` in the case we're evaluating Attributes. For concrete
+            # fields, we only need the value of the field being evaluated.
             if name not in concrete_field_names:
                 next_set_params = {
                     'name': qfield.name,
@@ -130,8 +124,9 @@ class ResourceSetTheoryQuerySet(models.query.QuerySet):
             if regex_query:
                 next_set_params['value__regex'] = next_set_params.pop('value')
 
-            # if name in concrete_field_names:
-            #     import pdb; pdb.set_trace()
+            # If querying for an attribute object, we filter on
+            # ``resource_id`` on the results obtained. For concrete fields,
+            # we need to filter based on pk, ie, ``id``.
             if name not in concrete_field_names:
                 next_set = Q(
                     id__in=Value.objects.filter(
@@ -280,6 +275,21 @@ class Resource(models.Model):
 
     def _purge_attribute_index(self):
         self.attributes.all().delete()
+
+    @classmethod
+    def get_concrete_field_names(self):
+        """Returns a list of the concrete field names as strings
+        defined on the resource model"""
+
+        # Grabbing the concrete fields for this Resource
+        concrete_field_names = []
+        # The below call can be replaced with .get_concrete_fields_with_model()
+        # once we upgrade to >= 2.1
+        concrete_fields = self._meta.concrete_fields
+        for field in concrete_fields:
+            concrete_field_names.append(field.name)
+
+        return concrete_field_names
 
     def get_attributes(self):
         """Return the JSON-encoded attributes as a dict."""

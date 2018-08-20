@@ -129,14 +129,8 @@ class Attribute(models.Model):
 
     def clean_name(self, value):
         value = validators.validate_name(value)
-        resource_cls = self._get_model_cls()
-
-        # Grabbing concrete fields from the resource class to check if the
-        # attr name is not a concrete field on the resource model object
-        concrete_field_names = []
-        concrete_fields = resource_cls._meta.concrete_fields
-        for field in concrete_fields:
-            concrete_field_names.append(field.name)
+        resource_cls = self.get_resource_cls()
+        concrete_field_names = resource_cls.get_concrete_field_names()
 
         if value in concrete_field_names:
             raise exc.ValidationError({
@@ -157,7 +151,7 @@ class Attribute(models.Model):
         self.resource_name = self.clean_resource_name(self.resource_name)
         self.name = self.clean_name(self.name)
 
-    def _get_model_cls(self):
+    def get_resource_class(self):
         # TODO: Make this better!
         # Wasn't sure on how to get the app name from django easily!
         return apps.get_model('nsot', self.resource_name)
