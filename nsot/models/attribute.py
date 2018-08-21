@@ -152,8 +152,8 @@ class Attribute(models.Model):
         self.name = self.clean_name(self.name)
 
     def get_resource_class(self):
-        # TODO: Make this better!
-        # Wasn't sure on how to get the app name from django easily!
+        """This method returns the resource class that invoked the method"""
+
         return apps.get_model('nsot', self.resource_name)
 
     def _validate_single_value(self, value, constraints=None):

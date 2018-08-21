@@ -277,15 +277,15 @@ class Resource(models.Model):
         self.attributes.all().delete()
 
     @classmethod
-    def get_concrete_field_names(self):
+    def get_concrete_field_names(cls):
         """Returns a list of the concrete field names as strings
         defined on the resource model"""
 
         # Grabbing the concrete fields for this Resource
         concrete_field_names = []
-        # The below call can be replaced with .get_concrete_fields_with_model()
-        # once we upgrade to >= 2.1
-        concrete_fields = self._meta.concrete_fields
+        # TODO(nseshan): The below call can be replaced with
+        # .get_concrete_fields_with_model() once we upgrade to >= 2.1
+        concrete_fields = cls._meta.concrete_fields
         for field in concrete_fields:
             concrete_field_names.append(field.name)
 
