@@ -49,6 +49,36 @@ def test_conflict(site):
     )
 
 
+def test_attr_creation_name_in_concrete_fields(site):
+    with pytest.raises(exc.ValidationError):
+        models.Attribute.objects.create(
+            resource_name='Device',
+            site=site, name='hostname'
+        )
+
+
+def test_set_query_with_concrete_fields(site):
+    models.Attribute.objects.create(
+        site=site, resource_name='Network', name='test'
+    )
+    models.Network.objects.create(
+        site=site, cidr=u'10.0.0.0/24', attributes={'test': 'bar'}
+    )
+
+    assert list(models.Network.objects.set_query(
+        'test=bar prefix_length=24'))[0].cidr == '10.0.0.0/24'
+
+    models.Attribute.objects.create(
+        site=site, resource_name='Device', name='foo'
+    )
+    models.Device.objects.create(
+        site=site, hostname='foobar', attributes={'foo': 'bar'}
+    )
+
+    assert list(models.Device.objects.set_query(
+        'foo=bar hostname=foobar'))[0].hostname == 'foobar'
+
+
 def test_validation(site, transactional_db):
     with pytest.raises(exc.ValidationError):
         models.Attribute.objects.create(
