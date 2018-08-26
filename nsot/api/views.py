@@ -295,16 +295,18 @@ class NsotViewSet(BaseNsotViewSet, viewsets.ModelViewSet):
         except exc.ProtectedError as err:
             if force_delete:
                 new_parent = instance.parent
-                # Check if the network does not have a parent, check that it's children are not
-                # leaf nodes. If so, raise an error.
+                # Check if the network does not have a parent, check that it's
+                # children are not leaf nodes. If so, raise an error.
                 if not new_parent:
                     children = instance.get_children()
                     for child in children:
                         if child.is_leaf_node():
-                            raise exc.Conflict('You cannot forcefully delete a network ' \
-                                'that does not have a parent, and whose children are leaf nodes.')
-                # Otherwise, update all children to use the new parent and delete the old parent
-                # of these child nodes.
+                            raise exc.Conflict('You cannot forcefully delete a'
+                                               ' network that does not have a'
+                                               ' parent, and whose children'
+                                               ' are leaf nodes.')
+                # Otherwise, update all children to use the new parent and
+                # delete the old parent of these child nodes.
                 err.protected_objects.update(parent=new_parent)
                 models.Network.objects.filter(pk=instance.pk).delete()
             else:
