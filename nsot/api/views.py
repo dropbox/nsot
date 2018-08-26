@@ -288,8 +288,8 @@ class NsotViewSet(BaseNsotViewSet, viewsets.ModelViewSet):
         change = models.Change.objects.create(
             obj=instance, user=self.request.user, event='Delete'
         )
-        data = json.loads(self.request.query_params.get('data', ''))
-        force_delete = qpbool(data.get('force', False))
+        data = json.loads(self.request.query_params.get('data'))
+        force_delete = qpbool(data.get('force', 'False'))
         try:
             instance.delete()
         except exc.ProtectedError as err:
@@ -301,13 +301,13 @@ class NsotViewSet(BaseNsotViewSet, viewsets.ModelViewSet):
                     children = instance.get_children()
                     for child in children:
                         if child.is_leaf_node():
-                            raise exc.ProtectedError("""You cannot forcefully delete a network
-                                that does not have a parent, and whose children are leaf nodes.""")
+                            raise exc.Conflict('You cannot forcefully delete a network ' \
+                                'that does not have a parent, and whose children are leaf nodes.')
                 # Otherwise, update all children to use the new parent and delete the old parent
                 # of these child nodes.
                 err.protected_objects.update(parent=new_parent)
                 models.Network.objects.filter(pk=instance.pk).delete()
-        else:
+            else:
                 change.delete()
                 raise exc.Conflict(err.args[0])
 

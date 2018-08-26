@@ -2,6 +2,7 @@
 from __future__ import unicode_literals
 
 import pytest
+import json
 
 # Allow everything in there to access the DB
 pytestmark = pytest.mark.django_db
@@ -470,6 +471,67 @@ def test_deletion(site, client):
     net3 = get_result(net3_resp)
     net3_natural_uri = site.detail_uri('network', id=mkcidr(net3))
     assert_deleted(client.delete(net3_natural_uri))
+
+
+def test_force_deletion(site, client):
+    """Test forceful deletion of Networks and proper reparenting."""
+
+    net_uri = site.list_uri('network')
+    slash23 = '10.45.10.0/23'
+    slash32 = '10.45.10.1/32'
+    slash24 = '10.45.10.0/24'
+
+    # /23
+    net1_resp = client.create(net_uri, cidr=slash23)
+    net1 = get_result(net1_resp)
+    net1_obj_uri = site.detail_uri('network', id=net1['id'])
+
+    # /32
+    net2_resp = client.create(net_uri, cidr=slash32)
+    net2 = get_result(net2_resp)
+    net2_obj_uri = site.detail_uri('network', id=net2['id'])
+
+    # /24
+    net3_resp = client.create(net_uri, cidr=slash24)
+    net3 = get_result(net3_resp)
+    net3_obj_uri = site.detail_uri('network', id=net3['id'])
+    """
+    How this works:
+        - /23 parent w/ /32 child
+        - /24 created, /32 is now its child
+        - /23 is now parent of /24
+        - delete /24 should raise error
+        - force delete /24 should succeed
+        - /23 is parent of /32 again
+        - delete /23 should raise an error
+        - force delete /23 should raise an error.
+    """
+    # Delete /24 will fail, because it has a child.
+    resp = client.destroy(net3_obj_uri, data=json.dumps({'force': False}))
+    assert_error(resp, status.HTTP_409_CONFLICT)
+
+    # Forcefully delete the /24
+    assert_deleted(client.destroy(net3_obj_uri, data=json.dumps({'force': True})))
+
+    # Fetching the /32 should match the original payload
+    assert_success(client.retrieve(net2_obj_uri), net2)
+
+    # Oops, we added quad0 as a parent!
+    quad0_resp = client.create(net_uri, cidr='0.0.0.0/0')
+    quad0 = get_result(quad0_resp)
+    quad0_obj_uri= site.detail_uri('network', id=quad0['id'])
+    slash23_parent_uri = net1_obj_uri + 'parent/'
+
+    # /0 should be parent of /23
+    assert_success(client.retrieve(slash23_parent_uri), quad0)
+
+    # Force delete quad0 and /23 parent should be null
+    client.destroy(quad0_obj_uri, data=json.dumps({'force': True}))
+    assert_error(client.retrieve(slash23_parent_uri), status.HTTP_404_NOT_FOUND)
+
+    # Force delete /23 will fail, because it has no parent and children are leaf nodes.
+    resp = client.destroy(net1_obj_uri, data=json.dumps({'force': True}))
+    assert_error(resp, status.HTTP_409_CONFLICT)
 
 
 def test_mptt_detail_routes(site, client):
