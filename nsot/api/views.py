@@ -288,11 +288,14 @@ class NsotViewSet(BaseNsotViewSet, viewsets.ModelViewSet):
         change = models.Change.objects.create(
             obj=instance, user=self.request.user, event='Delete'
         )
-        data = json.loads(self.request.query_params.get('data'))
-        force_delete = qpbool(data.get('force', 'False'))
         try:
             instance.delete()
         except exc.ProtectedError as err:
+            force_delete = False
+            data = self.request.query_params.get('data', '')
+            if data:
+                data = json.loads(data)
+                force_delete = qpbool(data.get('force'))
             if force_delete:
                 new_parent = instance.parent
                 # Check if the network does not have a parent, check that it's
