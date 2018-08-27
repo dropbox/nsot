@@ -1,6 +1,5 @@
 from __future__ import unicode_literals
 from collections import namedtuple, OrderedDict
-import json
 import logging
 import warnings
 
