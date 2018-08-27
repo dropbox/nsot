@@ -507,11 +507,10 @@ def test_force_deletion(site, client):
         - force delete /23 should raise an error.
     """
     # Delete /24 will fail, because it has a child.
-    resp = client.destroy(net3_obj_uri, data=json.dumps({'force': False}))
-    assert_error(resp, status.HTTP_409_CONFLICT)
+    assert_error(client.destroy(net3_obj_uri), status.HTTP_409_CONFLICT)
 
     # Forcefully delete the /24
-    assert_deleted(client.destroy(net3_obj_uri, data=json.dumps({'force': True})))
+    assert_deleted(client.destroy(net3_obj_uri, force_delete=True))
 
     # Fetching the /32 should match the original payload
     assert_success(client.retrieve(net2_obj_uri), net2)
@@ -526,12 +525,11 @@ def test_force_deletion(site, client):
     assert_success(client.retrieve(slash23_parent_uri), quad0)
 
     # Force delete quad0 and /23 parent should be null
-    client.destroy(quad0_obj_uri, data=json.dumps({'force': True}))
+    client.destroy(quad0_obj_uri, force_delete=True)
     assert_error(client.retrieve(slash23_parent_uri), status.HTTP_404_NOT_FOUND)
 
     # Force delete /23 will fail, because it has no parent and children are leaf nodes.
-    resp = client.destroy(net1_obj_uri, data=json.dumps({'force': True}))
-    assert_error(resp, status.HTTP_409_CONFLICT)
+    assert_error(client.destroy(net1_obj_uri, force_delete=True), status.HTTP_409_CONFLICT)
 
 
 def test_mptt_detail_routes(site, client):
