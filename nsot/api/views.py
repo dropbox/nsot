@@ -287,12 +287,32 @@ class NsotViewSet(BaseNsotViewSet, viewsets.ModelViewSet):
         change = models.Change.objects.create(
             obj=instance, user=self.request.user, event='Delete'
         )
+        force_delete = qpbool(
+            self.request.query_params.get('force_delete', False)
+        )
 
         try:
             instance.delete()
         except exc.ProtectedError as err:
-            change.delete()
-            raise exc.Conflict(err.args[0])
+            if force_delete:
+                new_parent = instance.parent
+                # Check if the network does not have a parent, check that it's
+                # children are not leaf nodes. If so, raise an error.
+                if not new_parent:
+                    children = instance.get_children()
+                    for child in children:
+                        if child.is_leaf_node():
+                            raise exc.Conflict('You cannot forcefully delete a'
+                                               ' network that does not have a'
+                                               ' parent, and whose children'
+                                               ' are leaf nodes.')
+                # Otherwise, update all children to use the new parent and
+                # delete the old parent of these child nodes.
+                err.protected_objects.update(parent=new_parent)
+                models.Network.objects.filter(pk=instance.pk).delete()
+            else:
+                change.delete()
+                raise exc.Conflict(err.args[0])
 
 
 class SiteViewSet(NsotViewSet):
@@ -340,7 +360,6 @@ class ResourceViewSet(NsotBulkUpdateModelMixin, NsotViewSet,
         """Perform a set query."""
         query = request.query_params.get('query', '')
         unique = qpbool(request.query_params.get('unique', False))
-
         qs = self.queryset.set_query(query, site_id=site_pk, unique=unique)
         objects = self.filter_queryset(qs)
         return self.list(request, queryset=objects, *args, **kwargs)
