@@ -2,7 +2,6 @@
 from __future__ import unicode_literals
 
 import pytest
-import json
 
 # Allow everything in there to access the DB
 pytestmark = pytest.mark.django_db
