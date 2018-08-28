@@ -11,7 +11,7 @@ Version History
 ------------------
 
 * Fix #222: Enhanced set queries to support filtering by concrete object fields.
-  + A side effect of enablish this, attribute names now have a constraint which prohibit them from
+  + A side effect of enabling this, attribute names now have a constraint which prohibit them from
   being the same as a concrete field on the resource that the attribute is being created on.
 * Fix #121: Enabled forceful parent delete (and reparent) for Network objects.
   + Addresses scenario where a user accidentally adds a network. Previously, if that network had
