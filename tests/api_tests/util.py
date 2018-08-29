@@ -177,6 +177,9 @@ class Client(object):
     def retrieve(self, url, **kwargs):
         return self.get(url, params=kwargs)
 
+    def destroy(self, url, **kwargs):
+        return self.delete(url, params=kwargs)
+
 
 def load_json(relpath):
     """
