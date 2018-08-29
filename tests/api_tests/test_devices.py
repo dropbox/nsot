@@ -231,31 +231,6 @@ def test_set_queries(client, site):
     )
 
 
-def test_set_queries_with_concrete_fields(client, site):
-    """Test set queries that contain attrs as well as concrete_fields"""
-
-    # URIs
-    attr_uri = site.list_uri('attribute')
-    dev_uri = site.list_uri('device')
-    query_uri = site.query_uri('device')
-
-    # Pre-load the attributes
-    client.post(attr_uri, data=load('attributes.json'))
-
-    # Populate the device objects.
-    dev_resp = client.post(dev_uri, data=load('devices.json'))
-    devices = get_result(dev_resp)
-
-    # INTERSECTION: foo=bar owner=jathan hostname=foo-bar1
-    wanted = ['foo-bar1']
-    expected = filter_devices(devices, wanted)
-    assert_success(
-        client.retrieve(query_uri,
-            query='foo=bar owner=jathan hostname=foo-bar1'),
-        expected
-    )
-
-
 def test_update(client, user_client, user, site):
     """Test updating a device using pk."""
     # URIs
