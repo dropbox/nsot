@@ -5,6 +5,15 @@ Changelog
 Version History
 ===============
 
+.. _v1.4.3:
+
+1.4.3 (2018-08-30)
+------------------
+
+* This version reverts PR #222, which was pushed with release v1.4.2. The revert was prompted by
+  conflicts that this change caused with a few of Dropbox's internal tools. We plan to address
+  these conflicts and submit a new release once these issues are resolved.
+
 .. _v1.4.2:
 
 1.4.2 (2018-08-28)
@@ -20,6 +29,10 @@ Version History
   override the native Django ``PROTECT`` safe guard and forcefully delete the network. The only
   scenario where this is still not allowed is if the network in question has no parents and it's
   children are leaf nodes. In this case, an error is raised.
+* Fix #261: Enabled support to enumerate addresses for all child interfaces. Previously the
+  ``Addresses`` column of pynsot's circuits output only displayed the interfaces directly
+  associated with the circuit. This feature now appends the addresses for the children of those
+  addresses.
 
 .. _v1.4.1:
 
