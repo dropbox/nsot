@@ -321,42 +321,6 @@ def test_set_queries(client, site):
     )
 
 
-def test_set_queries_with_concrete_fields(client, site):
-    """Test filtering resources via set_queries using attrs
-    and concrete_fields"""
-
-    # URIs
-    attr_uri = site.list_uri('attribute')
-    net_uri = site.list_uri('network')
-    query_uri = site.query_uri('network')
-
-    # Pre-load the attributes
-    client.post(attr_uri, data=load('attributes.json'))
-
-    # Populate the network objects and retreive them for testing.
-    client.post(net_uri, data=load('networks.json'))
-    net_resp = client.retrieve(net_uri)
-    networks = get_result(net_resp)
-
-    # INTERSECTION: foo=bar owner=jathan prefix_length=16 ip_version=4
-    wanted = ['169.254.0.0/16']
-    expected = filter_networks(networks, wanted)
-    assert_success(
-        client.retrieve(query_uri,
-            query='foo=bar owner=jathan prefix_length=16 ip_version=4'),
-        expected
-    )
-
-    # INTERSECTION: foo=bar ip_version=4
-    wanted = ['10.0.0.0/8', '169.254.0.0/16']
-    expected = filter_networks(networks, wanted)
-    assert_success(
-        client.retrieve(query_uri,
-            query='foo=bar ip_version=4'),
-        expected
-    )
-
-
 def test_update(live_server, user, site):
     """Test updating Networks by pk and natural_key."""
     admin_client = Client(live_server, 'admin')
