@@ -5,6 +5,22 @@ Changelog
 Version History
 ===============
 
+.. _v1.4.3:
+
+1.4.3 (2018-08-30)
+------------------
+
+* This version reverts PR #222, which was pushed with release v1.4.2. The revert was prompted by
+  conflicts that this change caused with a few of Dropbox's internal tools. We plan to address
+  these conflicts and submit a new release once these issues are resolved.
+* Fix #121: Enabled forceful parent delete (and reparent) for Network objects.
+  + Addresses scenario where a user accidentally adds a network. Previously, if that network had
+  any children, deleting the network was impossible due to protections on the network database
+  field. The server changes in this release allow a newly added pynsot flag ``--force-delete`` to
+  override the native Django ``PROTECT`` safe guard and forcefully delete the network. The only
+  scenario where this is still not allowed is if the network in question has no parents and it's
+  children are leaf nodes. In this case, an error is raised.
+
 .. _v1.4.2:
 
 1.4.2 (2018-08-28)
@@ -13,13 +29,10 @@ Version History
 * Fix #222: Enhanced set queries to support filtering by concrete object fields.
   + A side effect of enabling this, attribute names now have a constraint which prohibit them from
   being the same as a concrete field on the resource that the attribute is being created on.
-* Fix #121: Enabled forceful parent delete (and reparent) for Network objects.
-  + Addresses scenario where a user accidentally adds a network. Previously, if that network had
-  any children, deleting the network was impossible due to protections on the network database
-  field. The server changes in this release allow a newly added pynsot flag ``--force-delete`` to
-  override the native Django ``PROTECT`` safe guard and forcefully delete the network. The only
-  scenario where this is still not allowed is if the network in question has no parents and it's
-  children are leaf nodes. In this case, an error is raised.
+* Fix #261: Enabled support to enumerate addresses for all child interfaces. Previously the
+  ``Addresses`` column of pynsot's circuits output only displayed the interfaces directly
+  associated with the circuit. This feature now appends the addresses for the children of those
+  addresses.
 
 .. _v1.4.1:
 
