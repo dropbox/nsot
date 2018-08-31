@@ -295,7 +295,7 @@ next_network
     length.
 
 next_address
-    Given a number of addresses, return that many next available IP addresses.
+    Given a number of addresses, return that many next available IP addresses. 
 
 Interfaces
 ----------
@@ -397,7 +397,8 @@ A typical Circuit object might look like:
 Addresses
 ~~~~~~~~~
 
-Returns the addresses assigned to the member Interfaces of the Circuit, if any.
+Returns the addresses assigned to the member Interfaces of the Circuit, as well as the addresses
+assigned to the child Interfaces of the Circuit, if any.
 
 Devices
 ~~~~~~~
