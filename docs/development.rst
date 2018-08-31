@@ -227,8 +227,14 @@ project maintainers, who have push access to the parent repository.
    just merged)
 #. Create a new git tag with this verison in the format of ``vX.Y.Z``
 #. Push up the new tag
-#. Create a new package and push it up to PyPI (where ``{version}`` is the
-   current release version):
+
+.. code-block:: bash
+
+    # 'upstream' here is the name of the remote, it may also be 'origin'
+    $ git push --tags upstream
+
+11. Create a new package and push it up to PyPI (where ``{version}`` is the
+    current release version):
 
 .. code-block:: bash
 
