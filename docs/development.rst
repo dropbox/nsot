@@ -220,14 +220,21 @@ project maintainers, who have push access to the parent repository.
    each PR merge works.
 #. Commit these changes to your branch.
 #. Open a release Pull Request against the ``master`` branch
-#. Merge the release Pull Request into ``master``
-#. Merge the release branch into ``develop`` and push that branch up
+#. On GitHub, merge the release Pull Request into ``master``
+#. Locally, merge the release branch into ``develop`` and push that ``develop``
+   branch up
 #. Switch to the ``master`` branch and pull the latest updates (with the PR you
    just merged)
 #. Create a new git tag with this verison in the format of ``vX.Y.Z``
 #. Push up the new tag
-#. Create a new package and push it up to PyPI (where ``{version}`` is the
-   current release version):
+
+.. code-block:: bash
+
+    # 'upstream' here is the name of the remote, it may also be 'origin'
+    $ git push --tags upstream
+
+11. Create a new package and push it up to PyPI (where ``{version}`` is the
+    current release version):
 
 .. code-block:: bash
 
