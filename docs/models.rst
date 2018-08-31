@@ -295,7 +295,7 @@ next_network
     length.
 
 next_address
-    Given a number of addresses, return that many next available IP addresses. 
+    Given a number of addresses, return that many next available IP addresses.
 
 Interfaces
 ----------
