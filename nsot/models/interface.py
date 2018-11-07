@@ -99,7 +99,7 @@ class Interface(Resource):
         null=True,
         help_text=(
             'Integer of Mbps of interface (e.g. 20000 for 20 Gbps). If not '
-            'provided, defaults to %d.' % settings.INTERFACE_DEFAULT_SPEED
+            'provided, defaults to %s.' % settings.INTERFACE_DEFAULT_SPEED
         )
     )
 
