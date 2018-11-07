@@ -96,6 +96,7 @@ class Interface(Resource):
     # SNMP: ifHighSpeed
     speed = models.IntegerField(
         blank=True, db_index=True, default=settings.INTERFACE_DEFAULT_SPEED,
+        null=True,
         help_text=(
             'Integer of Mbps of interface (e.g. 20000 for 20 Gbps). If not '
             'provided, defaults to %d.' % settings.INTERFACE_DEFAULT_SPEED
@@ -339,6 +340,9 @@ class Interface(Resource):
 
     def clean_speed(self, value):
         """Enforce valid speed."""
+        if value is None:
+            return value
+
         # We don't want floats because they can be misleading, also Django's
         # IntegerField will cast a float to an int, which loses precision.
         # TODO (jathan): Reconsider this as a float? Maybe? We might not care
