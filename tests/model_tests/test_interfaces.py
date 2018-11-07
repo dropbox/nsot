@@ -83,9 +83,15 @@ def test_speed(device):
     # Interface inherits default speed.
     assert iface.speed == settings.INTERFACE_DEFAULT_SPEED
 
-    # String integers are ok
+    # String integers are ok, and are converted to integers
     iface.speed = '10000'
     iface.save()
+    assert iface.speed == 10000
+
+    # Explicit None is ok, and should not be converted to the default
+    iface.speed = None
+    iface.save()
+    assert iface.speed is None
 
     # Bad strings are bad
     with pytest.raises(exc.ValidationError):

@@ -7,6 +7,7 @@ import pytest
 pytestmark = pytest.mark.django_db
 
 import copy
+from django.conf import settings
 from django.core.urlresolvers import reverse
 import json
 import logging
@@ -22,6 +23,15 @@ from .util import (
 
 
 log = logging.getLogger(__name__)
+
+
+@pytest.fixture
+def device(site, client):
+    dev_uri = site.list_uri('device')
+    dev_resp = client.create(dev_uri, hostname='foo-bar1')
+    dev = get_result(dev_resp)
+
+    return dev
 
 
 def test_creation(site, client):
@@ -111,6 +121,32 @@ def test_creation(site, client):
     interfaces = [ifc1, ifc2, ifc3, ifc4]
     expected = interfaces
     assert_success(client.get(ifc_uri), expected)
+
+
+def test_creation_speed(site, client, device):
+    """
+    Test the behavior of the ``speed`` field with creation
+    """
+    ifc_uri = site.list_uri('interface')
+
+    # Default, with speed omitted from request
+    response = client.create(ifc_uri, device=device['id'], name='eth1')
+    ifc = get_result(response)
+    assert ifc['speed'] == settings.INTERFACE_DEFAULT_SPEED
+
+    # Explicit speed
+    response = client.create(
+        ifc_uri, device=device['id'], name='eth2', speed=10000
+    )
+    ifc = get_result(response)
+    assert ifc['speed'] == 10000
+
+    # Speed set to None, should come back as None and not the default
+    response = client.create(
+        ifc_uri, device=device['id'], name='eth3', speed=None
+    )
+    ifc = get_result(response)
+    assert ifc['speed'] is None
 
 
 def test_tree_traversal(site, client):
