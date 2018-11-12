@@ -5,6 +5,21 @@ Changelog
 Version History
 ===============
 
+.. _v1.4.4:
+
+1.4.4 (2018-11-08)
+------------------
+
+* Allow the ``Interface.speed`` to be null. The existing behavior is preserved
+  where ``speed`` is set to the configured default value when the field is
+  omitted on Interface creation. It will only be set to a null value if
+  ``None`` is explicitly passed in, or the default is configured to be
+  ``None``.
+* Documentation fixes
+  * Clarify version release process.
+  * Update ``Circuit`` docs to reflect changes in how addresses are returned
+    (PR #335).
+
 .. _v1.4.3:
 
 1.4.3 (2018-08-30)
