@@ -24,8 +24,14 @@ skip ahead, this guide is for you.
 
        $ nsot-server init
 
-3. Start the server on ``8990/tcp`` (the default) and create a superuser
-   when prompted:
+3. Create a superuser and start the server on ``8990/tcp`` (the default):
+
+   .. code-block:: bash
+
+       $ nsot-server createsuperuser --email admin@localhost
+       Password:
+       Password (again):
+       Superuser created successfully.
 
    .. code-block:: bash
 
