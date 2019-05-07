@@ -636,6 +636,8 @@ class NetworkViewSet(ResourceViewSet):
         network = self.get_resource_object(pk, site_pk)
         assignments = network.assignments.all()
 
+        return self.list(request, queryset=assignments, *args, **kwargs)
+
     @list_route(methods=['get'])
     def reserved(self, request, site_pk=None, *args, **kwargs):
         """Display all reserved Networks."""
