@@ -287,32 +287,12 @@ class NsotViewSet(BaseNsotViewSet, viewsets.ModelViewSet):
         change = models.Change.objects.create(
             obj=instance, user=self.request.user, event='Delete'
         )
-        force_delete = qpbool(
-            self.request.query_params.get('force_delete', False)
-        )
 
         try:
             instance.delete()
         except exc.ProtectedError as err:
-            if force_delete:
-                new_parent = instance.parent
-                # Check if the network does not have a parent, check that it's
-                # children are not leaf nodes. If so, raise an error.
-                if not new_parent:
-                    children = instance.get_children()
-                    for child in children:
-                        if child.is_leaf_node():
-                            raise exc.Conflict('You cannot forcefully delete a'
-                                               ' network that does not have a'
-                                               ' parent, and whose children'
-                                               ' are leaf nodes.')
-                # Otherwise, update all children to use the new parent and
-                # delete the old parent of these child nodes.
-                err.protected_objects.update(parent=new_parent)
-                models.Network.objects.filter(pk=instance.pk).delete()
-            else:
-                change.delete()
-                raise exc.Conflict(err.args[0])
+            change.delete()
+            raise exc.Conflict(err.args[0])
 
 
 class SiteViewSet(NsotViewSet):
@@ -656,13 +636,33 @@ class NetworkViewSet(ResourceViewSet):
         network = self.get_resource_object(pk, site_pk)
         assignments = network.assignments.all()
 
-        return self.list(request, queryset=assignments, *args, **kwargs)
-
     @list_route(methods=['get'])
     def reserved(self, request, site_pk=None, *args, **kwargs):
         """Display all reserved Networks."""
         objects = models.Network.objects.reserved()
         return self.list(request, queryset=objects, *args, **kwargs)
+
+    # Shoutout to jathanism for suggesting the move of perform_destroy(()
+    # to the NetworkViewSet to make it more explicit.
+    def perform_destroy(self, instance):
+        """
+        Overload default to handle non-serializer exceptions, and log Change
+        events.
+        :param instance:
+            Model instance to delete
+        """
+        log.debug('NsotViewSet.perform_destroy() obj = %r', instance)
+        change = models.Change.objects.create(
+            obj=instance, user=self.request.user, event='Delete'
+        )
+        force_delete = qpbool(
+            self.request.query_params.get('force_delete', False)
+        )
+        try:
+            instance.delete(force_delete=force_delete)
+        except exc.ProtectedError as err:
+            change.delete()
+            raise exc.Conflict(err.args[0])
 
 
 class InterfaceViewSet(ResourceViewSet):

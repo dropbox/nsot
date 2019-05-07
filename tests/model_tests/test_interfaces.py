@@ -286,6 +286,29 @@ def test_device_hostname(device):
                                          name='eth0')
 
 
+def test_interface_networks_refresh(device):
+    """Test the interface parent networks refresh upon reparenting of a
+    Network object"""
+    cidr = '10.1.1.1/32'
+    parent_network = models.Network.objects.create(
+        cidr='10.1.1.0/24', site=device.site
+    )
+    intf_address = models.Network.objects.create(
+        cidr=cidr, site=device.site
+    )
+    intf = models.Interface.objects.create(device=device, name='eth0')
+    intf.assign_address(cidr)
+    intf.clean_addresses()
+    assert intf.get_networks() == ['10.1.1.0/24']
+
+    new_parent_network = models.Network.objects.create(
+        cidr='10.1.1.0/27', site=device.site
+    )
+
+    intf_obj = models.Interface.objects.get(device=device, name='eth0')
+    intf_obj.clean_addresses()
+    assert intf_obj.get_networks() == ['10.1.1.0/27']
+
 # TODO(jathan): This isn't implemented yet, but the idea is that there will be
 # pluggable parenting/inheritance strategies, with the "SNMP index" strategy as
 # the default/built-in (e.g. snmp_index, snmp_parent_index).

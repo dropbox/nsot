@@ -552,6 +552,33 @@ class Network(Resource):
         self.prefix_length = network.prefixlen
         self.state = self.clean_state(self.state)
 
+    # Shoutout to jathanism for this code.
+    def delete(self, **kwargs):
+        force_delete = kwargs.pop('force_delete', False)
+
+        try:
+            super(Network, self).delete(**kwargs)
+        except exc.ProtectedError as err:
+            if force_delete:
+                new_parent = self.parent
+                # Check if the network does not have a parent, check that it's
+                # children are not leaf nodes. If so, raise an error.
+                if not new_parent:
+                    children = self.get_children()
+                    for child in children:
+                        if child.is_leaf_node():
+                            raise exc.Conflict(
+                                'You cannot forcefully delete a network that'
+                                'does not have a parent, and whose children '
+                                ' are leaf nodes.'
+                            )
+                # Otherwise, update all children to use the new parent and
+                # delete the old parent of these child nodes.
+                err.protected_objects.update(parent=new_parent)
+                super(Network, self).delete(**kwargs)
+            else:
+                raise
+
     def save(self, *args, **kwargs):
         """This is stuff we want to happen upon save."""
         self.full_clean()  # First validate fields are correct
