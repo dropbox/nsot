@@ -420,7 +420,6 @@ def test_deletion(site, client):
     net2 = get_result(net2_resp)
     net2_obj_uri = site.detail_uri('network', id=net2['id'])
 
-    print net1_obj_uri
     # Don't allow delete when there's an attached subnet/ip
     assert_error(client.delete(net1_obj_uri), 
         status.HTTP_409_CONFLICT)
