@@ -11,6 +11,7 @@ import netaddr
 
 from .. import exc, fields, util, validators
 from . import constants
+from .assignment import Assignment
 from .resource import Resource, ResourceManager
 
 
@@ -588,3 +589,17 @@ class Network(Resource):
             'state': self.state,
             'attributes': self.get_attributes(),
         }
+
+
+# Signals
+def refresh_assignment_interface_networks(sender, instance, **kwargs):
+    for child in instance.children.all():
+        for assignment in child.assignments.all():
+            assignment.interface.clean_addresses()
+            assignment.interface.save()
+
+
+models.signals.post_save.connect(
+    refresh_assignment_interface_networks, sender=Network,
+    dispatch_uid='refresh_interface_assignment_networks_post_save_network'
+)
