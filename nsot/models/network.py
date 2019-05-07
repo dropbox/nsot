@@ -11,7 +11,6 @@ import netaddr
 
 from .. import exc, fields, util, validators
 from . import constants
-from .assignment import Assignment
 from .resource import Resource, ResourceManager
 
 
