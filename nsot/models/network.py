@@ -619,6 +619,10 @@ class Network(Resource):
 
 # Signals
 def refresh_assignment_interface_networks(sender, instance, **kwargs):
+    """This signal fires each time a Network object is saved. Upon save,
+    the signal iterates through all the child networks of the network
+    being saved and cleans the addresses and networks assigned to the
+    interfaces (if any) to which these child networks have been assigned."""
     for child in instance.children.all():
         for assignment in child.assignments.all():
             assignment.interface.clean_addresses()
