@@ -653,7 +653,7 @@ class NetworkViewSet(ResourceViewSet):
         :param instance:
             Model instance to delete
         """
-        log.debug('NsotViewSet.perform_destroy() obj = %r', instance)
+        log.debug('NetworkViewSet.perform_destroy() obj = %r', instance)
         change = models.Change.objects.create(
             obj=instance, user=self.request.user, event='Delete'
         )
