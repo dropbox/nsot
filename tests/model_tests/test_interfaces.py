@@ -299,14 +299,15 @@ def test_interface_networks_refresh(device):
     intf = models.Interface.objects.create(device=device, name='eth0')
     intf.assign_address(cidr)
     intf.clean_addresses()
+    intf.save()
     assert intf.get_networks() == ['10.1.1.0/24']
 
     new_parent_network = models.Network.objects.create(
         cidr='10.1.1.0/27', site=device.site
     )
+    new_parent_network.save()
 
     intf_obj = models.Interface.objects.get(device=device, name='eth0')
-    intf_obj.clean_addresses()
     assert intf_obj.get_networks() == ['10.1.1.0/27']
 
 # TODO(jathan): This isn't implemented yet, but the idea is that there will be
