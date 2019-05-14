@@ -7,7 +7,9 @@ skip ahead, this guide is for you.
 
 .. note::
     This quick start assumes a lot. If it doesn't work for you, please skip
-    this and read the :doc:`installation` guide.
+    this and read the installation_ guide.
+
+.. _installation: https://github.com/dropbox/nsot/blob/develop/docs/installation.rst
 
 1. Install NSoT:
 
@@ -22,8 +24,14 @@ skip ahead, this guide is for you.
 
        $ nsot-server init
 
-3. Start the server on ``8990/tcp`` (the default) and create a superuser
-   when prompted:
+3. Create a superuser and start the server on ``8990/tcp`` (the default):
+
+   .. code-block:: bash
+
+       $ nsot-server createsuperuser --email admin@localhost
+       Password:
+       Password (again):
+       Superuser created successfully.
 
    .. code-block:: bash
 
@@ -36,4 +44,6 @@ skip ahead, this guide is for you.
 
 5. Use the username/password created in step 3 to login.
 
-Now, head over to the :doc:`tutorial` to start getting acquainted with NSoT!
+Now, head over to the tutorial_ to start getting acquainted with NSoT!
+
+.. _tutorial: https://github.com/dropbox/nsot/blob/develop/docs/tutorial.rst

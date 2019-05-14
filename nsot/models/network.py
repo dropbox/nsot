@@ -552,6 +552,33 @@ class Network(Resource):
         self.prefix_length = network.prefixlen
         self.state = self.clean_state(self.state)
 
+    # Shoutout to jathanism for this code.
+    def delete(self, **kwargs):
+        force_delete = kwargs.pop('force_delete', False)
+
+        try:
+            super(Network, self).delete(**kwargs)
+        except exc.ProtectedError as err:
+            if force_delete:
+                new_parent = self.parent
+                # Check if the network does not have a parent, check that it's
+                # children are not leaf nodes. If so, raise an error.
+                if not new_parent:
+                    children = self.get_children()
+                    for child in children:
+                        if child.is_leaf_node():
+                            raise exc.Conflict(
+                                'You cannot forcefully delete a network that'
+                                'does not have a parent, and whose children '
+                                ' are leaf nodes.'
+                            )
+                # Otherwise, update all children to use the new parent and
+                # delete the old parent of these child nodes.
+                err.protected_objects.update(parent=new_parent)
+                super(Network, self).delete(**kwargs)
+            else:
+                raise
+
     def save(self, *args, **kwargs):
         """This is stuff we want to happen upon save."""
         self.full_clean()  # First validate fields are correct
@@ -588,3 +615,26 @@ class Network(Resource):
             'state': self.state,
             'attributes': self.get_attributes(),
         }
+
+
+# Signals
+def refresh_assignment_interface_networks(sender, instance, **kwargs):
+    """This signal fires each time a Network object is saved. Upon save,
+    the signal iterates through all the child networks of the network
+    being saved and cleans the addresses and networks assigned to the
+    interfaces (if any) to which these child networks have been assigned.
+
+    We need to clean the addresses on an Interface upon a call to save()
+    on Network due to the Interface model caching _addresses & _networks
+    which causes the update on the Network object to not cascade onto the
+    corresponding Interface object."""
+    for child in instance.children.all():
+        for assignment in child.assignments.all():
+            assignment.interface.clean_addresses()
+            assignment.interface.save()
+
+
+models.signals.post_save.connect(
+    refresh_assignment_interface_networks, sender=Network,
+    dispatch_uid='refresh_interface_assignment_networks_post_save_network'
+)

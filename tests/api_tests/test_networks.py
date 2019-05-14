@@ -421,7 +421,8 @@ def test_deletion(site, client):
     net2_obj_uri = site.detail_uri('network', id=net2['id'])
 
     # Don't allow delete when there's an attached subnet/ip
-    assert_error(client.delete(net1_obj_uri), status.HTTP_409_CONFLICT)
+    assert_error(client.delete(net1_obj_uri), 
+        status.HTTP_409_CONFLICT)
 
     # Delete the child Network
     client.delete(net2_obj_uri)
@@ -470,7 +471,8 @@ def test_force_deletion(site, client):
         - force delete /23 should raise an error.
     """
     # Delete /24 will fail, because it has a child.
-    assert_error(client.destroy(net3_obj_uri), status.HTTP_409_CONFLICT)
+    assert_error(client.destroy(net3_obj_uri),
+        status.HTTP_409_CONFLICT)
 
     # Forcefully delete the /24
     assert_deleted(client.destroy(net3_obj_uri, force_delete=True))
