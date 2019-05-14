@@ -5,6 +5,18 @@ Changelog
 Version History
 ===============
 
+.. _v1.4.5:
+
+1.4.5 (2019-05-14)
+------------------
+
+* Fix #344: Refresh interface address and network assignments each time a
+  Network object is saved. This was necessary because, if a network object
+  is reparented, the interfaces that have IPs assigned from the children of
+  this network object, do not get updated to reflect the new parent network.
+  The bug fix in this version ensures that the interfaces will always reflect
+  the correct parent networks.
+
 .. _v1.4.4:
 
 1.4.4 (2018-11-08)
