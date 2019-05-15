@@ -1,4 +1,4 @@
-enum34~=1.0.4
+enum34~=1.0.4; python_version < '3.4'
 cffi>=1.4.1,<2.0.0
 pyasn1~=0.1.9
 six~=1.10.0
