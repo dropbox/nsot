@@ -3,6 +3,11 @@ cache: pip
 
 python:
     - '2.7'
+    - '3.6'
+
+matrix:
+  allow_failures:
+    - python: 3.6
 
 install:
     - pip install -r requirements-dev.txt
@@ -17,5 +22,3 @@ after_success: curl -X POST http://readthedocs.org/build/nsot
 notifications:
   slack:
     secure: UdmH92LEpYke+NnslEx5lE4vjuqu719Wl5OPQPHPUACaKb1teA2yew5YjR/GxWh0Gy9nOcxpSL6xw1ODj3v6EzjvtVAcOzScFHbYUemdWlPLlYE5r9/rYIYVEChYIPQJ3uEhPJRys9ugXcZBdH2vgeXF4FW8Ftjxoqd+XCExB04=
-
-sudo: false
