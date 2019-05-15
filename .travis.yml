@@ -7,7 +7,7 @@ python:
 
 matrix:
   allow_failures:
-    - python: 3.6
+    - python: '3.6'
 
 install:
     - pip install -r requirements-dev.txt
