@@ -454,7 +454,10 @@ def change_api_updated_at(sender=None, instance=None, *args, **kwargs):
 def update_device_interfaces(sender, instance, **kwargs):
     """Anytime a device is saved, update device_hostname on its interfaces"""
     interfaces = Interface.objects.filter(device=instance)
-    interfaces.update(device_hostname=instance.hostname)
+    for interface in interfaces.iterator():
+        interface.device_hostname = instance.hostname
+        interface.name_slug = None  # null so model validation resets name_slug
+        interface.save()
 
 
 models.signals.post_save.connect(
