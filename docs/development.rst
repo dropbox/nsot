@@ -136,7 +136,6 @@ Front-end Development
 We use a combination JavaScript utilities to do front-end development:
 
 + `npm <https://www.npmjs.com/>`_ - npm is used to manage our build dependencies
-+ `bower <http://bower.io/>`_ - bower to manage our web dependencies
 + `gulp <http://gulpjs.com/>`_ - gulp for building, linting, testing
 
 **Note:** You do not have to install these yourself! When you run ``setup.py develop``,
@@ -161,21 +160,17 @@ want to add new build dependencies, for example `gulp-concat
 Adding New Web Dependencies
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Adding new web dependencies are done through bower:
-
 .. code-block:: bash
 
-    # Install lodaash, updating bower.json with the new dependency
-    $ bower install lodash --save
+    # Install lodaash, updating package.json with a new dependency
+    $ npm install lodash --save
+    $ npm shrinkwrap --dev
 
-Unfortunately, bower doesn't have a shrinkwrap/freeze feature so you'll
-want to update the version string to make the version explicit for repeatable
-builds.
 
-We make use of bower's "main file" concept to distribute only "main" files.
+We use npmfiles to  distribute only "main" files.
 Most packages don't consider consider the minified versions of their project to
 be their main files so you'll likely also need to update the ``overrides``
-section of ``bower.json`` with which files to distribute.
+section of ``package.json`` with which files to distribute.
 
 .. _versioning:
 

@@ -14,7 +14,6 @@
  * gulp clean - Remove built assets
  * gulp build - Build all static assets for distribution
  * gulp lint - Lint JavaScript and CSS files
- * gulp bower - Update local cache for web dependencies
  */
 
 var gulp = require('gulp');
@@ -29,8 +28,7 @@ var uglify = require('gulp-uglify');
 var rename = require('gulp-rename');
 var minifyCss = require('gulp-minify-css');
 var csslint = require('gulp-csslint');
-var mainBowerFiles = require('main-bower-files');
-var bower = require('gulp-bower');
+var mainNpmFiles = require('npmfiles');
 var sort = require('gulp-sort');
 var del = require('del');
 
@@ -67,14 +65,6 @@ gulp.task('lint:style', function() {
  * Top level Task to run all lint tasks.
  */
 gulp.task('lint', ['lint:js', 'lint:style']);
-
-
-/**
- * Updates the local cache of bower dependencies
- */
-gulp.task('bower', function() {
-    return bower({ cmd: 'update'});
-});
 
 
 /**
@@ -132,12 +122,12 @@ gulp.task('build:images', function() {
 
 
 /**
- * Uses bower to install the "main" files into our build. In most cases
+ * Install the "main" files into our build. In most cases
  * the "main" files are manually specified in the `overrides` section
- * of bower.json
+ * of package.json
  */
-gulp.task('build:3rdparty', ['bower'], function() {
-    return gulp.src(mainBowerFiles(), {base: '_bc'})
+gulp.task('build:3rdparty', function() {
+    return gulp.src(mainNpmFiles())
         .pipe(gulp.dest(BUILD_DEST + 'vendor'))
 });
 
