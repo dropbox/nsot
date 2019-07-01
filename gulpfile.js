@@ -58,7 +58,7 @@ var VENDOR_FILES = [
     'font-awesome/css/font-awesome.min.css',
     'jquery/dist/jquery.min.js',
     'jquery/dist/jquery.min.map',
-    'lodash/chain/lodash.js',
+    'lodash/lodash.min.js',
     'moment/min/moment.min.js',
     'ng-tags-input/build/ng-tags-input.bootstrap.min.css',
     'ng-tags-input/build/ng-tags-input.min.js',

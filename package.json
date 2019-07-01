@@ -12,6 +12,7 @@
     "font-awesome": "4.3.0",
     "jquery": "2.1.4",
     "lodash": "3.7.0",
+    "lodash-cli": "3.7.0",
     "moment": "2.10.2",
     "ng-tags-input": "2.3.0"
   },
