@@ -146,7 +146,7 @@ Adding New Build Dependencies
 
 For the most part you shouldn't need to care about these details though if you
 want to add new build dependencies, for example `gulp-concat
-<https://github.com/contra/gulp-concat>`_, you would run the followiing:
+<https://github.com/contra/gulp-concat>`_, you would run the following:
 
 .. code-block:: bash
 
@@ -162,14 +162,14 @@ Adding New Web Dependencies
 
 .. code-block:: bash
 
-    # Install lodaash, updating package.json with a new dependency
+    # Install lodash, updating package.json with a new dependency
     $ npm install lodash --save
     $ npm shrinkwrap --dev
-    # Update VENDOR_SRC in gulpfile.js with the source files to include
+    # Update VENDOR_FILES in gulpfile.js with the source files to include
 
 We explicitly include minified versions of web dependencies, so after
 updating ``package.json`` with the new package you need to update the
-VENDOR_SRC variable in ``gulpfile.js`` to let the build workflow know
+VENDOR_FILES variable in ``gulpfile.js`` to let the build workflow know
 which files to include.
 
 .. _versioning:

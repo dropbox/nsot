@@ -39,8 +39,9 @@ var JS_SRC = SRC_ROOT + 'js/**/*.js';
 var STYLE_SRC = SRC_ROOT + 'style/**/*.css';
 var TEMPLATE_SRC = SRC_ROOT + 'templates/**/*.html';
 var IMAGE_SRC = SRC_ROOT + 'images/**';
-var VENDOR_SRC = './node_modules/';
 
+// Souce files from third-party libs to include in the build
+var VENDOR_SRC = './node_modules/';
 var VENDOR_FILES = [
     'angular/angular.min.js',
     'angular/angular.min.js.map',
@@ -146,9 +147,7 @@ gulp.task('build:images', function() {
 
 
 /**
- * Install the "main" files into our build. In most cases
- * the "main" files are manually specified in the `overrides` section
- * of package.json
+ * Install the web sources into our build
  */
 gulp.task('build:3rdparty', function() {
     return gulp.src(
