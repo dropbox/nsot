@@ -165,12 +165,12 @@ Adding New Web Dependencies
     # Install lodaash, updating package.json with a new dependency
     $ npm install lodash --save
     $ npm shrinkwrap --dev
+    # Update VENDOR_SRC in gulpfile.js with the source files to include
 
-
-We use npmfiles to  distribute only "main" files.
-Most packages don't consider consider the minified versions of their project to
-be their main files so you'll likely also need to update the ``overrides``
-section of ``package.json`` with which files to distribute.
+We explicitly include minified versions of web dependencies, so after
+updating ``package.json`` with the new package you need to update the
+VENDOR_SRC variable in ``gulpfile.js`` to let the build workflow know
+which files to include.
 
 .. _versioning:
 
