@@ -28,9 +28,9 @@ var uglify = require('gulp-uglify');
 var rename = require('gulp-rename');
 var minifyCss = require('gulp-minify-css');
 var csslint = require('gulp-csslint');
-var mainNpmFiles = require('npmfiles');
 var sort = require('gulp-sort');
 var del = require('del');
+var path = require('path');
 
 var SRC_ROOT = './nsot/static/src/';
 var BUILD_DEST = './nsot/static/build/';
@@ -39,7 +39,31 @@ var JS_SRC = SRC_ROOT + 'js/**/*.js';
 var STYLE_SRC = SRC_ROOT + 'style/**/*.css';
 var TEMPLATE_SRC = SRC_ROOT + 'templates/**/*.html';
 var IMAGE_SRC = SRC_ROOT + 'images/**';
+var VENDOR_SRC = './node_modules/';
 
+var VENDOR_FILES = [
+    'angular/angular.min.js',
+    'angular/angular.min.js.map',
+    'angular-chart.js/dist/angular-chart.min.css',
+    'angular-chart.js/dist/angular-chart.min.js',
+    'angular-chart.js/dist/angular-chart.min.js.map',
+    'angular-resource/angular-resource.min.js',
+    'angular-resource/angular-resource.min.js.map',
+    'angular-route/angular-route.min.js',
+    'angular-route/angular-route.min.js.map',
+    'chart.js/Chart.min.js',
+    'bootstrap/dist/js/bootstrap.min.js',
+    'bootstrap/dist/css/bootstrap.min.css',
+    'font-awesome/fonts/*',
+    'font-awesome/css/font-awesome.min.css',
+    'jquery/dist/jquery.min.js',
+    'jquery/dist/jquery.min.map',
+    'lodash/chain/lodash.js',
+    'moment/min/moment.min.js',
+    'ng-tags-input/build/ng-tags-input.bootstrap.min.css',
+    'ng-tags-input/build/ng-tags-input.min.js',
+    'ng-tags-input/build/ng-tags-input.min.css',
+]
 
 /**
  * Task to lint JavaScript files.
@@ -127,8 +151,10 @@ gulp.task('build:images', function() {
  * of package.json
  */
 gulp.task('build:3rdparty', function() {
-    return gulp.src(mainNpmFiles())
-        .pipe(gulp.dest(BUILD_DEST + 'vendor'))
+    return gulp.src(
+        VENDOR_FILES.map(f => path.join(VENDOR_SRC, f)),
+        {base: VENDOR_SRC}
+    ).pipe(gulp.dest(BUILD_DEST + 'vendor'))
 });
 
 
