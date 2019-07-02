@@ -14,7 +14,6 @@
  * gulp clean - Remove built assets
  * gulp build - Build all static assets for distribution
  * gulp lint - Lint JavaScript and CSS files
- * gulp bower - Update local cache for web dependencies
  */
 
 var gulp = require('gulp');
@@ -29,10 +28,9 @@ var uglify = require('gulp-uglify');
 var rename = require('gulp-rename');
 var minifyCss = require('gulp-minify-css');
 var csslint = require('gulp-csslint');
-var mainBowerFiles = require('main-bower-files');
-var bower = require('gulp-bower');
 var sort = require('gulp-sort');
 var del = require('del');
+var path = require('path');
 
 var SRC_ROOT = './nsot/static/src/';
 var BUILD_DEST = './nsot/static/build/';
@@ -42,6 +40,31 @@ var STYLE_SRC = SRC_ROOT + 'style/**/*.css';
 var TEMPLATE_SRC = SRC_ROOT + 'templates/**/*.html';
 var IMAGE_SRC = SRC_ROOT + 'images/**';
 
+// Souce files from third-party libs to include in the build
+var VENDOR_SRC = './node_modules/';
+var VENDOR_FILES = [
+    'angular/angular.min.js',
+    'angular/angular.min.js.map',
+    'angular-chart.js/dist/angular-chart.min.css',
+    'angular-chart.js/dist/angular-chart.min.js',
+    'angular-chart.js/dist/angular-chart.min.js.map',
+    'angular-resource/angular-resource.min.js',
+    'angular-resource/angular-resource.min.js.map',
+    'angular-route/angular-route.min.js',
+    'angular-route/angular-route.min.js.map',
+    'chart.js/Chart.min.js',
+    'bootstrap/dist/js/bootstrap.min.js',
+    'bootstrap/dist/css/bootstrap.min.css',
+    'font-awesome/fonts/*',
+    'font-awesome/css/font-awesome.min.css',
+    'jquery/dist/jquery.min.js',
+    'jquery/dist/jquery.min.map',
+    'lodash/lodash.min.js',
+    'moment/min/moment.min.js',
+    'ng-tags-input/build/ng-tags-input.bootstrap.min.css',
+    'ng-tags-input/build/ng-tags-input.min.js',
+    'ng-tags-input/build/ng-tags-input.min.css',
+]
 
 /**
  * Task to lint JavaScript files.
@@ -67,14 +90,6 @@ gulp.task('lint:style', function() {
  * Top level Task to run all lint tasks.
  */
 gulp.task('lint', ['lint:js', 'lint:style']);
-
-
-/**
- * Updates the local cache of bower dependencies
- */
-gulp.task('bower', function() {
-    return bower({ cmd: 'update'});
-});
 
 
 /**
@@ -132,13 +147,13 @@ gulp.task('build:images', function() {
 
 
 /**
- * Uses bower to install the "main" files into our build. In most cases
- * the "main" files are manually specified in the `overrides` section
- * of bower.json
+ * Install the web sources into our build
  */
-gulp.task('build:3rdparty', ['bower'], function() {
-    return gulp.src(mainBowerFiles(), {base: '_bc'})
-        .pipe(gulp.dest(BUILD_DEST + 'vendor'))
+gulp.task('build:3rdparty', function() {
+    return gulp.src(
+        VENDOR_FILES.map(f => path.join(VENDOR_SRC, f)),
+        {base: VENDOR_SRC}
+    ).pipe(gulp.dest(BUILD_DEST + 'vendor'))
 });
 
 

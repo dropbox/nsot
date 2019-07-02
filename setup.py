@@ -66,6 +66,16 @@ class BuildStatic(Command):
         log.info('running [npm install --quiet]')
         check_output(['npm', 'install', '--quiet'], cwd=ROOT)
 
+        log.info('running [lodash -o node_modules/lodash/lodash.js]')
+        check_output(
+            [
+                os.path.join(ROOT, 'node_modules', '.bin', 'lodash'),
+                '-o',
+                os.path.join(ROOT, 'node_modules', 'lodash', 'lodash.js'),
+            ],
+            cwd=ROOT
+        )
+
         log.info('running [gulp clean]')
         check_output(
             [os.path.join(ROOT, 'node_modules', '.bin', 'gulp'), 'clean'],

@@ -136,7 +136,6 @@ Front-end Development
 We use a combination JavaScript utilities to do front-end development:
 
 + `npm <https://www.npmjs.com/>`_ - npm is used to manage our build dependencies
-+ `bower <http://bower.io/>`_ - bower to manage our web dependencies
 + `gulp <http://gulpjs.com/>`_ - gulp for building, linting, testing
 
 **Note:** You do not have to install these yourself! When you run ``setup.py develop``,
@@ -147,7 +146,7 @@ Adding New Build Dependencies
 
 For the most part you shouldn't need to care about these details though if you
 want to add new build dependencies, for example `gulp-concat
-<https://github.com/contra/gulp-concat>`_, you would run the followiing:
+<https://github.com/contra/gulp-concat>`_, you would run the following:
 
 .. code-block:: bash
 
@@ -161,21 +160,17 @@ want to add new build dependencies, for example `gulp-concat
 Adding New Web Dependencies
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Adding new web dependencies are done through bower:
-
 .. code-block:: bash
 
-    # Install lodaash, updating bower.json with the new dependency
-    $ bower install lodash --save
+    # Install lodash, updating package.json with a new dependency
+    $ npm install lodash --save
+    $ npm shrinkwrap --dev
+    # Update VENDOR_FILES in gulpfile.js with the source files to include
 
-Unfortunately, bower doesn't have a shrinkwrap/freeze feature so you'll
-want to update the version string to make the version explicit for repeatable
-builds.
-
-We make use of bower's "main file" concept to distribute only "main" files.
-Most packages don't consider consider the minified versions of their project to
-be their main files so you'll likely also need to update the ``overrides``
-section of ``bower.json`` with which files to distribute.
+We explicitly include minified versions of web dependencies, so after
+updating ``package.json`` with the new package you need to update the
+VENDOR_FILES variable in ``gulpfile.js`` to let the build workflow know
+which files to include.
 
 .. _versioning:
 
