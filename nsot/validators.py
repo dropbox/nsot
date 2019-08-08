@@ -6,6 +6,7 @@ from django.conf import settings
 from django.core.validators import EmailValidator
 import ipaddress
 import netaddr
+import six
 
 from . import exc
 
@@ -16,7 +17,7 @@ def validate_mac_address(value):
         return value
 
     # If the incoming value is a string, cast it to an int
-    if isinstance(value, basestring) and value.isdigit():
+    if isinstance(value, six.string_types) and value.isdigit():
         value = int(value)
 
     # Directly invoke EUI object instead of using MACAddressField
@@ -42,7 +43,7 @@ def validate_name(value):
 def validate_cidr(value):
     """Validate whether ``value`` is a validr IPv4/IPv6 CIDR."""
     try:
-        cidr = ipaddress.ip_network(unicode(value))
+        cidr = ipaddress.ip_network(six.text_type(value))
     except ValueError:
         raise exc.ValidationError({
             'cidr': '%r does not appear to be an IPv4 or IPv6 network' % value

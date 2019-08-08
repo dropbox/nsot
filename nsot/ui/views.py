@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import unicode_literals
-from httplib import responses
+from six.moves.http_client import responses
 import logging
 
 from django.shortcuts import render

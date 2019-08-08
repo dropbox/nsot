@@ -14,7 +14,7 @@ from setuptools.command.sdist import sdist as SDistCommand
 
 ROOT = os.path.realpath(os.path.join(os.path.dirname(__file__)))
 
-execfile('nsot/version.py')
+from nsot.version import __version__
 
 with open('requirements.txt') as requirements:
     required = requirements.read().splitlines()
