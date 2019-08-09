@@ -2,6 +2,8 @@
 Utilities for unit-testsing of API endpoints.
 """
 
+from __future__ import print_function
+
 from hashlib import sha1
 import json
 import os
