@@ -9,6 +9,7 @@ import shlex
 from cryptography.fernet import Fernet
 from django.core.exceptions import FieldDoesNotExist
 from logan.runner import run_app
+import six
 
 
 log = logging.getLogger(__name__)
@@ -195,7 +196,7 @@ def parse_set_query(query):
     """
     log.debug('Incoming query = %r' % (query,))
 
-    if not isinstance(query, basestring):
+    if not isinstance(query, six.string_types):
         raise TypeError('Query must be a string.')
 
     queries = shlex.split(query)

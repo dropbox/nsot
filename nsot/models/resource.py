@@ -4,6 +4,7 @@ import logging
 
 from django.db import models
 from django.db.models.query_utils import Q
+import six
 
 from .. import exc, fields, util
 from .attribute import Attribute
@@ -273,7 +274,7 @@ class Resource(models.Model):
         # Attributes that are required according to ``valid_attributes``, but
         # are not found incoming in ``attributes``.
         missing_attributes = {
-            attribute.name for attribute in valid_attributes.itervalues()
+            attribute.name for attribute in six.itervalues(valid_attributes)
             if attribute.required and attribute.name not in attributes
         }
         log.debug('Resource.set_attributes() missing_attributes = %r',
@@ -289,7 +290,7 @@ class Resource(models.Model):
         # Run validation each attribute value and prepare them for DB
         # insertion, raising any validation errors immediately.
         inserts = []
-        for name, value in attributes.iteritems():
+        for name, value in six.iteritems(attributes):
             if name not in valid_attributes:
                 raise exc.ValidationError({
                     'attributes': 'Attribute name ({}) does not exist.'.format(
@@ -297,7 +298,7 @@ class Resource(models.Model):
                     )
                 })
 
-            if not isinstance(name, basestring):
+            if not isinstance(name, six.string_types):
                 raise exc.ValidationError({
                     'attributes': 'Attribute names must be a string type.'
                 })

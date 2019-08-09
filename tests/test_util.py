@@ -46,7 +46,7 @@ def test_parse_set_query():
     }
 
     # Make sure that result matches expected_result
-    for query, expected_result in set_tests.iteritems():
+    for query, expected_result in set_tests.items():
         result = util.parse_set_query(query)
         assert result == expected_result
 
