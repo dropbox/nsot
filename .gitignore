@@ -5,9 +5,6 @@ staticfiles
 *.sqlite-journal
 *.sqlite3
 
-# Bower Components
-_bc
-
 # Node
 /npm-debug.log
 /node_modules

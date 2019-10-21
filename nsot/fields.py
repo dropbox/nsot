@@ -9,6 +9,7 @@ from django_extensions.db.fields.json import JSONField
 from macaddress.fields import MACAddressField as BaseMACAddressField
 import ipaddress
 import logging
+import six
 import types
 
 from . import exc
@@ -60,7 +61,7 @@ class BinaryIPAddressField(models.Field):
 
     def _parse_ip_address(self, value):
         try:
-            obj = ipaddress.ip_address(unicode(value))
+            obj = ipaddress.ip_address(six.text_type(value))
         except ValueError:
             obj = ipaddress.ip_address(bytes(value))
 
@@ -113,7 +114,7 @@ class MACAddressField(BaseMACAddressField):
     """
     def from_db_value(self, value, expression, connection, context):
         # If value is an integer that is a string, make it an int
-        if isinstance(value, basestring) and value.isdigit():
+        if isinstance(value, six.string_types) and value.isdigit():
             value = int(value)
 
         try:
@@ -125,7 +126,7 @@ class MACAddressField(BaseMACAddressField):
 
     def to_python(self, value):
         # If value is an integer that is a string, make it an int
-        if isinstance(value, basestring) and value.isdigit():
+        if isinstance(value, six.string_types) and value.isdigit():
             value = int(value)
 
         try:

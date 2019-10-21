@@ -2,16 +2,18 @@
 Utilities for unit-testsing of API endpoints.
 """
 
+from __future__ import print_function
+
 from hashlib import sha1
 import json
 import os
-from urlparse import urlparse
 
 from django.core.urlresolvers import reverse
 import macaddress
 import netaddr
 from rest_framework import status
 import requests
+from six.moves.urllib.parse import urlparse
 
 
 '''
@@ -26,13 +28,21 @@ __all__ = (
 
 def _deep_sort(obj):
     """Sort the items in an object so comparisons succeed."""
+
     if isinstance(obj, dict):
         return {
             key: _deep_sort(value)
-            for key, value in obj.iteritems()
+            for key, value in obj.items()
         }
     elif isinstance(obj, list):
-        return sorted(_deep_sort(elem) for elem in obj)
+        def sort_key(obj):
+            if isinstance(obj, dict):
+                # Dicts have no natural sorting in Python3, so sort by keys
+                return list(obj.keys())
+            else:
+                return obj
+
+        return sorted((_deep_sort(elem) for elem in obj), key=sort_key)
     return obj
 
 
@@ -72,8 +82,8 @@ def assert_success(response, data=None, ignore_order=True):
 
     if data is not None:
 
-        print 'OUTPUT_DATA = %r' % (output,)
-        print 'EXPECTED_DATA = %r' % (data,)
+        print('OUTPUT_DATA = %r' % (output,))
+        print('EXPECTED_DATA = %r' % (data,))
         if ignore_order:
             assert _deep_sort(output) == _deep_sort(data)
         else:

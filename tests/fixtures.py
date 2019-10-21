@@ -10,6 +10,7 @@ from hashlib import sha1
 import ipaddress
 import pytest
 import random
+import six
 import socket
 import struct
 import time
@@ -130,7 +131,7 @@ def generate_attributes(attributes=None, as_dict=True):
     if attributes is None:
         attributes = ATTRIBUTE_DATA
     attrs = []
-    for attr_name, attr_values in attributes.iteritems():
+    for attr_name, attr_values in six.iteritems(attributes):
         if random.choice((True, False)):
             attr_value = random.choice(attr_values)
             attrs.append(Attribute(attr_name, attr_value))
@@ -194,5 +195,5 @@ def rando_set_action():
 def rando_set_query():
     action = rando_set_action()
     return ' '.join(
-        action + '%s=%s' % (k, v) for k,v in generate_attributes().iteritems()
+        action + '%s=%s' % (k, v) for k,v in six.iteritems(generate_attributes())
     )

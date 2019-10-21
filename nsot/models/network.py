@@ -8,6 +8,7 @@ from django.conf import settings
 from django.db import models
 import ipaddress
 import netaddr
+import six
 
 from .. import exc, fields, util, validators
 from . import constants
@@ -75,7 +76,7 @@ class NetworkManager(ResourceManager):
             supernets.reverse()
 
         # Enumerate all unique networks and prefixes
-        network_addresses = {unicode(s.network) for s in supernets}
+        network_addresses = {six.text_type(s.network) for s in supernets}
         prefix_lengths = {s.prefixlen for s in supernets}
         del supernets  # Free the memory because DevOps.
 
@@ -387,7 +388,7 @@ class Network(Resource):
         elapsed_time = time.time() - start_time
         log.debug('>> WANTED = %s', wanted)
         log.debug('>> ELAPSED TIME: %s' % elapsed_time)
-        return wanted if as_objects else [unicode(w) for w in wanted]
+        return wanted if as_objects else [six.text_type(w) for w in wanted]
 
     def get_next_address(self, num=None, strict=False, as_objects=True):
         """
@@ -531,11 +532,11 @@ class Network(Resource):
         network = cidr  # In-case we're not a unicode string.
 
         # Convert to unicode in case it's bytes.
-        if isinstance(cidr, basestring):
-            cidr = unicode(cidr)
+        if isinstance(cidr, six.string_types):
+            cidr = six.text_type(cidr)
 
         # Convert a unicode string to an IPNetwork.
-        if isinstance(cidr, unicode):
+        if isinstance(cidr, six.text_type):
             try:
                 network = ipaddress.ip_network(cidr)
             except ValueError as err:
@@ -547,8 +548,8 @@ class Network(Resource):
             self.is_ip = True
 
         self.ip_version = str(network.version)
-        self.network_address = unicode(network.network_address)
-        self.broadcast_address = unicode(network.broadcast_address)
+        self.network_address = six.text_type(network.network_address)
+        self.broadcast_address = six.text_type(network.broadcast_address)
         self.prefix_length = network.prefixlen
         self.state = self.clean_state(self.state)
 
@@ -568,9 +569,9 @@ class Network(Resource):
                     for child in children:
                         if child.is_leaf_node():
                             raise exc.Conflict(
-                                'You cannot forcefully delete a network that'
+                                'You cannot forcefully delete a network that '
                                 'does not have a parent, and whose children '
-                                ' are leaf nodes.'
+                                'are leaf nodes.'
                             )
                 # Otherwise, update all children to use the new parent and
                 # delete the old parent of these child nodes.

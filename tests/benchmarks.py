@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 from django.db import transaction
 import ipaddress
 import pytest
@@ -26,4 +28,4 @@ def test_create_1024(site):
                 site=site, cidr=ip.exploded, attributes={'aaaa': 'value'}
             )
 
-    print 'Finished in {} seconds.'.format(time.time() - start)
+    print('Finished in {} seconds.'.format(time.time() - start))

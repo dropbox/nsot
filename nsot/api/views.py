@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 from collections import namedtuple, OrderedDict
 import logging
+import six
 import warnings
 
 from django.conf import settings
@@ -141,7 +142,7 @@ class BaseNsotViewSet(viewsets.ReadOnlyModelViewSet):
         pk = self.kwargs.get('pk')
 
         # When coming from detail routes, pk might not be a string.
-        if isinstance(pk, (int, long)):
+        if isinstance(pk, six.integer_types):
             pk = str(pk)
 
         # Start prepping our kwargs for lookup.

@@ -1,4 +1,5 @@
 from django.db import models
+import six
 
 from .. import exc
 from .attribute import Attribute
@@ -48,7 +49,7 @@ class Protocol(Resource):
     )
 
     def __unicode__(self):
-        description = unicode(self.type)
+        description = six.text_type(self.type)
 
         if self.circuit:
             description += ' over %s' % self.circuit

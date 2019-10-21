@@ -5,6 +5,21 @@ Changelog
 Version History
 ===============
 
+
+.. _v1.4.6:
+
+1.4.6 (2019-10-21)
+------------------
+
+* Multiple Python 3 compatibility improvements
+* Upgraded dependencies 
+  * cryptography => 2.8
+  * gevent => 1.4.0
+  * PyYAML => 5.1
+* Bower removed from frontend build process, replace with npm
+* Interface.name_slug now updates when Device.hostname does
+
+
 .. _v1.4.5:
 
 1.4.5 (2019-05-14)
@@ -16,6 +31,7 @@ Version History
   this network object, do not get updated to reflect the new parent network.
   The bug fix in this version ensures that the interfaces will always reflect
   the correct parent networks.
+
 
 .. _v1.4.4:
 

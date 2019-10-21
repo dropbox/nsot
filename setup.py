@@ -14,7 +14,7 @@ from setuptools.command.sdist import sdist as SDistCommand
 
 ROOT = os.path.realpath(os.path.join(os.path.dirname(__file__)))
 
-execfile('nsot/version.py')
+from nsot.version import __version__    # noqa
 
 with open('requirements.txt') as requirements:
     required = requirements.read().splitlines()
@@ -65,6 +65,16 @@ class BuildStatic(Command):
     def run(self):
         log.info('running [npm install --quiet]')
         check_output(['npm', 'install', '--quiet'], cwd=ROOT)
+
+        log.info('running [lodash -o node_modules/lodash/lodash.js]')
+        check_output(
+            [
+                os.path.join(ROOT, 'node_modules', '.bin', 'lodash'),
+                '-o',
+                os.path.join(ROOT, 'node_modules', 'lodash', 'lodash.js'),
+            ],
+            cwd=ROOT
+        )
 
         log.info('running [gulp clean]')
         check_output(

@@ -13,7 +13,7 @@ import ipaddress
 
 from nsot import exc, models
 
-from .fixtures import admin_user, user, site, transactional_db
+from .fixtures import admin_user, device, user, site, transactional_db
 from ..util import load_json
 
 
@@ -121,3 +121,28 @@ def test_next_network_bug_issues_247(site):
     next_24 = parent.get_next_network(prefix_length=24)
 
     assert next_24 == expected_24
+
+
+def test_device_save_interface_name_slug_issues_356(site, device):
+    """
+    Test for a bug where the ``post_save`` signal for ``Device`` does not
+    update the ``Interface.name_slug`` field because ``Device.save()`` is not
+    called when using the queryset ``.update()`` method.
+
+    Ref: https://github.com/dropbox/nsot/issues/356
+    """
+
+    # Original interface slug 'foo-bar1:eth0'
+    expected = 'foo-bar1:eth0'
+    interface = device.interfaces.create(name='eth0')
+    assert interface.name_slug == expected
+
+    # Rename the device, refresh interface
+    device.hostname = 'new-hostname'
+    device.save()
+    device.refresh_from_db()
+    interface.refresh_from_db()
+
+    # New slug should be 'new_hostname:eth0'
+    expected = 'new-hostname:eth0'
+    assert interface.name_slug == expected
