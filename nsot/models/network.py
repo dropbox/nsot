@@ -569,9 +569,9 @@ class Network(Resource):
                     for child in children:
                         if child.is_leaf_node():
                             raise exc.Conflict(
-                                'You cannot forcefully delete a network that'
+                                'You cannot forcefully delete a network that '
                                 'does not have a parent, and whose children '
-                                ' are leaf nodes.'
+                                'are leaf nodes.'
                             )
                 # Otherwise, update all children to use the new parent and
                 # delete the old parent of these child nodes.
