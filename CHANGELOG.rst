@@ -5,6 +5,19 @@ Changelog
 Version History
 ===============
 
+.. _v1.4.6:
+
+1.4.6 (2019-10-21)
+------------------
+
+* Multiple Python 3 compatibility improvements
+* Upgraded dependencies 
+  * cryptography => 2.8
+  * gevent => 1.4.0
+  * PyYAML => 5.1
+* Bower removed from frontend build process, replace with npm
+* Interface.name_slug now updates when Device.hostname does
+
 .. _v1.4.4:
 
 1.4.4 (2018-11-08)
