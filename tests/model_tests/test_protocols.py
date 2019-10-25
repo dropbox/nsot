@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
+from __future__ import absolute_import
 import pytest
 from nsot import exc, models
 from .fixtures import circuit, site
+import six
 
 
 # Allow everything in there to access the DB
@@ -220,7 +222,7 @@ class TestUnicode(ProtocolTestCase):
         assert base_protocol.circuit is not None
         assert base_protocol.interface is None
 
-        assert unicode(base_protocol) == expected
+        assert six.text_type(base_protocol) == expected
 
     def test_interface(self, base_protocol, interface):
         """
@@ -234,7 +236,7 @@ class TestUnicode(ProtocolTestCase):
         assert base_protocol.interface is not None
         assert base_protocol.circuit is None
 
-        assert unicode(base_protocol) == expected
+        assert six.text_type(base_protocol) == expected
 
     def test_neither_circuit_nor_interface(self, base_protocol):
         """
@@ -245,7 +247,7 @@ class TestUnicode(ProtocolTestCase):
         assert base_protocol.circuit is None
         assert base_protocol.interface is None
 
-        assert unicode(base_protocol) == expected
+        assert six.text_type(base_protocol) == expected
 
     def test_both_circuit_and_interface(self, base_protocol, circuit,
                                         interface):
@@ -261,4 +263,4 @@ class TestUnicode(ProtocolTestCase):
         assert base_protocol.circuit is not None
         assert base_protocol.interface is not None
 
-        assert unicode(base_protocol) == expected
+        assert six.text_type(base_protocol) == expected

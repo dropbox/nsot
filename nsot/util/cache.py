@@ -2,6 +2,7 @@
 Used for caching read-only REST API responses (provided by drf-extensions).
 """
 
+from __future__ import absolute_import
 import logging
 from rest_framework_extensions.key_constructor import bits, constructors
 from django.core.cache import cache as djcache

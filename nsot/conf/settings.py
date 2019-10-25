@@ -4,6 +4,7 @@ Django settings for nsot project using Django 1.8.
 
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
+from __future__ import absolute_import
 import macaddress
 from netaddr import eui
 import os

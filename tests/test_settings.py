@@ -10,6 +10,8 @@ https://docs.djangoproject.com/en/1.8/ref/settings/
 """
 
 
+from __future__ import absolute_import
+SECRET_KEY = u'fMK68NKgazLCjjTXjDtthhoRUS8IV4lwD-9G7iVd2Xs='
 from nsot.conf.settings import *
 import os.path
 
@@ -70,7 +72,6 @@ SERVE_STATIC_FILES = True
 # encryption/decryption of sessions and auth tokens. A unique key is randomly
 # generated for you when you utilize ``nsot-server init``
 # https://cryptography.io/en/latest/fernet/#cryptography.fernet.Fernet.generate_key
-SECRET_KEY = u'fMK68NKgazLCjjTXjDtthhoRUS8IV4lwD-9G7iVd2Xs='
 
 # Header to check for Authenticated Email. This is intended for use behind an
 # authenticating reverse proxy.

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
+from __future__ import absolute_import
 import pytest
 
 from django.db import IntegrityError
@@ -14,6 +15,7 @@ import re
 from nsot import exc, models
 
 from .fixtures import device, user, site
+from six.moves import zip
 
 
 # Allow everything in there to access the DB

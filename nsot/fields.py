@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
+from __future__ import absolute_import
 from django.conf import settings
 from django.db.backends.sqlite3.base import DatabaseWrapper
 from django.db import models
@@ -10,7 +11,6 @@ from macaddress.fields import MACAddressField as BaseMACAddressField
 import ipaddress
 import logging
 import six
-import types
 
 from . import exc
 
@@ -36,9 +36,7 @@ if not hasattr(DatabaseWrapper, 'get_new_connection_is_patched'):
         conn.text_factory = bytes
         return conn
 
-    DatabaseWrapper.get_new_connection = types.MethodType(
-        _get_new_connection_tolerant, None, DatabaseWrapper
-    )
+    DatabaseWrapper.get_new_connection = _get_new_connection_tolerant
     DatabaseWrapper.get_new_connection_is_patched = True
 
 

@@ -1,6 +1,7 @@
 """
 NSoT demo settings.
 """
+from __future__ import absolute_import
 from nsot.conf.settings import *
 import os
 import os.path
