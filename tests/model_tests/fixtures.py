@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 from django.contrib.auth.models import Group
 import pytest
 from pytest_django.fixtures import  django_user_model, transactional_db

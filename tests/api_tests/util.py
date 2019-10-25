@@ -4,6 +4,7 @@ Utilities for unit-testsing of API endpoints.
 
 from __future__ import print_function
 
+from __future__ import absolute_import
 from hashlib import sha1
 import json
 import os

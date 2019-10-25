@@ -2,6 +2,7 @@
 Configuration file for the unit tests via py.test.
 """
 
+from __future__ import absolute_import
 import betamax
 import os
 

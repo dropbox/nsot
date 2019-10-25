@@ -2,6 +2,7 @@
 Make dummy data and fixtures and stuff to use in benchmarking.
 """
 
+from __future__ import absolute_import
 import collections
 import faker
 import json
@@ -14,6 +15,7 @@ import six
 import socket
 import struct
 import time
+from six.moves import range
 
 
 # Constants and stuff

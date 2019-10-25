@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
+from __future__ import absolute_import
 from rest_framework_bulk.routes import BulkRouter
 from rest_framework_nested.routers import NestedSimpleRouter
 

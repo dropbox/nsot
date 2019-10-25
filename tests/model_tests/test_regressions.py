@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
+from __future__ import absolute_import
 import logging
 
 import pytest
+from six.moves import range
 # Allow everything in there to access the DB
 pytestmark = pytest.mark.django_db
 

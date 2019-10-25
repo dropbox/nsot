@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from __future__ import absolute_import
 from distutils import log
 from distutils.core import Command
 import os

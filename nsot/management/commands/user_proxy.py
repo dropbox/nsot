@@ -7,7 +7,7 @@ Please, don't use me in production!
 """
 
 
-import BaseHTTPServer
+import six.moves.BaseHTTPServer
 from django.conf import settings
 import getpass
 import socket
@@ -81,7 +81,7 @@ class Command(NsotCommand):
 
         # Try to start the server
         try:
-            server = BaseHTTPServer.HTTPServer(
+            server = six.moves.BaseHTTPServer.HTTPServer(
                 (address, listen_port), UserProxyHandler
             )
         except socket.error as err:

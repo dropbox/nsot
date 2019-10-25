@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+from __future__ import absolute_import
 from custom_user.admin import EmailUserAdmin
 from django.contrib.auth import get_user_model
 from django.contrib import admin
