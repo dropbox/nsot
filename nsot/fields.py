@@ -11,7 +11,6 @@ from macaddress.fields import MACAddressField as BaseMACAddressField
 import ipaddress
 import logging
 import six
-import types
 
 from . import exc
 

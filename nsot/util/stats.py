@@ -1,10 +1,10 @@
 from __future__ import unicode_literals, print_function
+from __future__ import absolute_import
 
 """
 Gettings stats out of NSoT.
 """
 
-from __future__ import absolute_import
 from netaddr import IPNetwork, IPSet
 
 
