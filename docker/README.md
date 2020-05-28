@@ -13,13 +13,20 @@ the default is:
 $ docker run -p 8990:8990 -d --name=nsot nsot/nsot start --noinput
 ```
 
-Image tags should correspond with NSoT release version numbers. Basic usage is
+Image tags should correspond with NSoT release version numbers. Basic usage on Linux (bash) is
 like:
 
 ```bash
 
 $ NSOT_SECRET='X9HqplzM_0E3Ghf3QOPDnO2k5VpVHkfzsZsVer4OeKA='
 $ docker run -p 8990:8990 -d --name=nsot -e NSOT_SECRET=$NSOT_SECRET nsot/nsot:1.0.10
+```
+For Windows this should be tweaked slightly (powershell) to:
+
+```powershell
+
+> $env:NSOT_SECRET='X9HqplzM_0E3Ghf3QOPDnO2k5VpVHkfzsZsVer4OeKA='
+> docker run -p 8990:8990 -d --name=nsot -e NSOT_SECRET=$env:NSOT_SECRET nsot/nsot:1.0.10
 ```
 
 ## Getting started
