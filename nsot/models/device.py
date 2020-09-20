@@ -3,29 +3,37 @@ from __future__ import unicode_literals
 from __future__ import absolute_import
 from django.conf import settings
 from django.db import models
+from django.utils.encoding import python_2_unicode_compatible
 
 from .. import exc
 from .circuit import Circuit
 from .resource import Resource
 
 
+@python_2_unicode_compatible
 class Device(Resource):
     """Represents a network device."""
+
     hostname = models.CharField(
-        max_length=255, null=False, db_index=True,
-        help_text='The hostname of the Device.'
+        max_length=255,
+        null=False,
+        db_index=True,
+        help_text="The hostname of the Device.",
     )
     site = models.ForeignKey(
-        'Site', db_index=True, related_name='devices',
-        on_delete=models.PROTECT, verbose_name='Site',
-        help_text='Unique ID of the Site this Device is under.'
+        "Site",
+        db_index=True,
+        related_name="devices",
+        on_delete=models.PROTECT,
+        verbose_name="Site",
+        help_text="Unique ID of the Site this Device is under.",
     )
 
-    def __unicode__(self):
-        return u'%s' % self.hostname
+    def __str__(self):
+        return "%s" % self.hostname
 
     class Meta:
-        unique_together = ('site', 'hostname')
+        unique_together = ("site", "hostname")
         index_together = unique_together
 
     @property
@@ -42,13 +50,11 @@ class Device(Resource):
 
     def clean_hostname(self, value):
         if not value:
-            raise exc.ValidationError({
-                'hostname': 'Hostname must be non-zero length string.'
-            })
+            raise exc.ValidationError(
+                {"hostname": "Hostname must be non-zero length string."}
+            )
         if not settings.DEVICE_NAME.match(value):
-            raise exc.ValidationError({
-                'name': 'Invalid name: %r.' % value
-            })
+            raise exc.ValidationError({"name": "Invalid name: %r." % value})
         return value
 
     def clean_fields(self, exclude=None):
@@ -60,8 +66,8 @@ class Device(Resource):
 
     def to_dict(self):
         return {
-            'id': self.id,
-            'site_id': self.site_id,
-            'hostname': self.hostname,
-            'attributes': self.get_attributes(),
+            "id": self.id,
+            "site_id": self.site_id,
+            "hostname": self.hostname,
+            "attributes": self.get_attributes(),
         }

@@ -13,102 +13,104 @@ from nsot.util.commands import NsotCommand, CommandError
 
 
 class Command(NsotCommand):
-    help = 'Start the NSoT server process.'
+    help = "Start the NSoT server process."
 
     def add_arguments(self, parser):
         parser.add_argument(
-            'service',
-            nargs='?',
-            default='http',
-            help='Starts the specified service.',
+            "service",
+            nargs="?",
+            default="http",
+            help="Starts the specified service.",
         )
         parser.add_argument(
-            '--debug',
-            action='store_true',
+            "--debug",
+            action="store_true",
             default=False,
-            help='Toggle debug output.',
+            help="Toggle debug output.",
         )
         parser.add_argument(
-            '--max-requests',
+            "--max-requests",
             type=int,
             default=settings.NSOT_MAX_REQUESTS,
             help=(
-                'The maximum number of requests a worker will process before '
-                'restarting.'
+                "The maximum number of requests a worker will process before "
+                "restarting."
             ),
         )
         parser.add_argument(
-            '--max-requests-jitter',
+            "--max-requests-jitter",
             type=int,
             default=settings.NSOT_MAX_REQUESTS_JITTER,
-            help=(
-                'The maximum jitter to add to the max_requests setting.'
-            ),
+            help=("The maximum jitter to add to the max_requests setting."),
         )
         parser.add_argument(
-            '--noinput',
-            action='store_true',
+            "--noinput",
+            action="store_true",
             default=False,
-            help='Tells Django to NOT prompt the user for input of any kind.',
+            help="Tells Django to NOT prompt the user for input of any kind.",
         )
         parser.add_argument(
-            '--no-collectstatic',
-            action='store_false',
-            dest='collectstatic',
+            "--no-collectstatic",
+            action="store_false",
+            dest="collectstatic",
             default=True,
-            help='Do not automatically collect static files into STATIC_ROOT.',
+            help="Do not automatically collect static files into STATIC_ROOT.",
         )
         parser.add_argument(
-            '--no-upgrade',
-            action='store_false',
-            dest='upgrade',
+            "--no-upgrade",
+            action="store_false",
+            dest="upgrade",
             default=True,
-            help='Do not automatically perform any database upgrades.',
+            help="Do not automatically perform any database upgrades.",
         )
         parser.add_argument(
-            '--preload',
-            action='store_true',
+            "--preload",
+            action="store_true",
             default=settings.NSOT_PRELOAD,
             help=(
-                'Load application code before the worker processes are '
-                'forked.'
+                "Load application code before the worker processes are "
+                "forked."
             ),
         )
         parser.add_argument(
-            '-a', '--address',
+            "-a",
+            "--address",
             type=str,
-            default='%s:%s' % (settings.NSOT_HOST, settings.NSOT_PORT),
-            help='Host:port to listen on.',
+            default="%s:%s" % (settings.NSOT_HOST, settings.NSOT_PORT),
+            help="Host:port to listen on.",
         )
         parser.add_argument(
-            '-k', '--worker-class',
+            "-k",
+            "--worker-class",
             type=str,
             default=settings.NSOT_WORKER_CLASS,
-            help='The type of gunicorn workers to use.',
+            help="The type of gunicorn workers to use.",
         )
         parser.add_argument(
-            '-t', '--timeout',
+            "-t",
+            "--timeout",
             type=int,
             default=settings.NSOT_WORKER_TIMEOUT,
-            help='Timeout before gunicorn workers are killed/restarted.',
+            help="Timeout before gunicorn workers are killed/restarted.",
         )
         parser.add_argument(
-            '-w', '--workers',
+            "-w",
+            "--workers",
             type=int,
             default=settings.NSOT_NUM_WORKERS,
             help=(
-                'The number of gunicorn worker processes for handling '
-                'requests.'
+                "The number of gunicorn worker processes for handling "
+                "requests."
             ),
         )
 
     def handle(self, **options):
-        address = options.get('address')
+        address = options.get("address")
 
         # Break address into host:port
         if address:
-            if ':' in address:
-                host, port = address.split(':', 1)
+            if ":" in address:
+                host, port = address.split(":", 1)
                 port = int(port)
             else:
                 host = address
@@ -117,38 +119,38 @@ class Command(NsotCommand):
             host, port = None, None
 
         services = {
-            'http': http.NsotHTTPServer,
+            "http": http.NsotHTTPServer,
         }
 
         # Ensure we perform an upgrade before starting any service.
-        if options.get('upgrade'):
+        if options.get("upgrade"):
             print("Performing upgrade before service startup...")
             call_command(
-                'upgrade', verbosity=0, noinput=options.get('noinput')
+                "upgrade", verbosity=0, noinput=options.get("noinput")
             )
 
         # Ensure we collect static before starting any service, but only if
         # SERVE_STATIC_FILES=True.
-        if options.get('collectstatic') and settings.SERVE_STATIC_FILES:
+        if options.get("collectstatic") and settings.SERVE_STATIC_FILES:
             print("Performing collectstatic before service startup...")
-            call_command('collectstatic', interactive=False, ignore=['src'])
+            call_command("collectstatic", interactive=False, ignore=["src"])
 
-        service_name = options.get('service')
+        service_name = options.get("service")
         try:
             service_class = services[service_name]
         except KeyError:
-            raise CommandError('%r is not a valid service' % service_name)
+            raise CommandError("%r is not a valid service" % service_name)
 
         service = service_class(
-            debug=options.get('debug'),
+            debug=options.get("debug"),
             host=host,
             port=port,
-            workers=options.get('workers'),
-            worker_class=options.get('worker_class'),
-            timeout=options.get('timeout'),
-            max_requests=options.get('max_requests'),
-            max_requests_jitter=options.get('max_requests_jitter'),
-            preload=options.get('preload'),
+            workers=options.get("workers"),
+            worker_class=options.get("worker_class"),
+            timeout=options.get("timeout"),
+            max_requests=options.get("max_requests"),
+            max_requests_jitter=options.get("max_requests_jitter"),
+            preload=options.get("preload"),
         )
 
         # Remove command line arguments to avoid optparse failures with service

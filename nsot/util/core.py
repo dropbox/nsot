@@ -15,15 +15,22 @@ import six
 
 log = logging.getLogger(__name__)
 
-_TRUTHY = set([
-    'true', 'yes', 'on', '1', ''
-])
+_TRUTHY = set(["true", "yes", "on", "1", ""])
 
 
 __all__ = (
-    'qpbool', 'normalize_auth_header', 'generate_secret_key', 'get_field_attr',
-    'SetQuery', 'parse_set_query', 'generate_settings', 'initialize_app',
-    'main', 'cidr_to_dict', 'slugify', 'slugify_interface'
+    "qpbool",
+    "normalize_auth_header",
+    "generate_secret_key",
+    "get_field_attr",
+    "SetQuery",
+    "parse_set_query",
+    "generate_settings",
+    "initialize_app",
+    "main",
+    "cidr_to_dict",
+    "slugify",
+    "slugify_interface",
 )
 
 
@@ -50,7 +57,7 @@ def normalize_auth_header(header):
     :param header:
         Header name
     """
-    return 'HTTP_' + header.upper().replace('-', '_')
+    return "HTTP_" + header.upper().replace("-", "_")
 
 
 def generate_secret_key():
@@ -60,7 +67,8 @@ def generate_secret_key():
     >>> generate_secret_key()
     '1BpuqeM5d5pi-U2vIsqeQ8YnTrXRRUAfqV-hu6eQ5Gw='
     """
-    return Fernet.generate_key()
+    key = Fernet.generate_key()
+    return str(key.decode("utf-8"))
 
 
 def get_field_attr(model, field_name, attr_name):
@@ -88,9 +96,9 @@ def get_field_attr(model, field_name, attr_name):
     try:
         field = model._meta.get_field(field_name)
     except (AttributeError, FieldDoesNotExist):
-        return ''
+        return ""
     else:
-        return getattr(field, attr_name, '')
+        return getattr(field, attr_name, "")
 
 
 def cidr_to_dict(cidr):
@@ -104,10 +112,11 @@ def cidr_to_dict(cidr):
         IPv4/IPv6 CIDR string
     """
     from .. import validators
+
     cidr = validators.validate_cidr(cidr)
     return {
-        'network_address': cidr.network_address,
-        'prefix_length': cidr.prefixlen,
+        "network_address": cidr.network_address,
+        "prefix_length": cidr.prefixlen,
     }
 
 
@@ -128,8 +137,8 @@ def slugify(s):
         String to slugify
     """
 
-    disallowed_chars = ['/']
-    replacement = '_'
+    disallowed_chars = ["/"]
+    replacement = "_"
 
     for char in disallowed_chars:
         s = s.replace(char, replacement)
@@ -137,8 +146,9 @@ def slugify(s):
     return s
 
 
-def slugify_interface(interface=None, device_hostname=None, name=None,
-                      **kwargs):
+def slugify_interface(
+    interface=None, device_hostname=None, name=None, **kwargs
+):
     """
     Return a slug (natural key) representation of an Interface.
 
@@ -157,17 +167,17 @@ def slugify_interface(interface=None, device_hostname=None, name=None,
     :rtype: str
     """
     if not (interface or (device_hostname and name)):
-        raise RuntimeError('Either interface or device_hostname/name required')
+        raise RuntimeError("Either interface or device_hostname/name required")
 
     if interface is None:
         interface = dict(device_hostname=device_hostname, name=name)
 
-    slug = '{device_hostname}:{name}'.format(**interface)
+    slug = "{device_hostname}:{name}".format(**interface)
     return slug
 
 
 #: Namedtuple for resultant items from ``parse_set_query()``
-SetQuery = collections.namedtuple('SetQuery', 'action name value')
+SetQuery = collections.namedtuple("SetQuery", "action name value")
 
 
 def parse_set_query(query):
@@ -195,28 +205,28 @@ def parse_set_query(query):
     :param query:
         Set query string
     """
-    log.debug('Incoming query = %r' % (query,))
+    log.debug("Incoming query = %r" % (query,))
 
     if not isinstance(query, six.string_types):
-        raise TypeError('Query must be a string.')
+        raise TypeError("Query must be a string.")
 
     queries = shlex.split(query)
 
     attributes = []
     for q in queries:
-        if q.startswith('+'):
-            action = 'union'
+        if q.startswith("+"):
+            action = "union"
             q = q[1:]
-        elif q.startswith('-'):
-            action = 'difference'
+        elif q.startswith("-"):
+            action = "difference"
             q = q[1:]
         else:
-            action = 'intersection'
+            action = "intersection"
 
-        name, _, value = q.partition('=')
+        name, _, value = q.partition("=")
         attributes.append(SetQuery(action, name, value))
 
-    log.debug('Outgoing attributes = %r' % (attributes,))
+    log.debug("Outgoing attributes = %r" % (attributes,))
     return attributes
 
 
@@ -340,20 +350,21 @@ def initialize_app(config):
         # conditions w/ database updates, this should be the first place we
         # look.
         from django.db import connections
-        connections['default'].allow_thread_sharing = True
+
+        connections["default"].allow_thread_sharing = True
 
 
 def main():
     """CLI application used to manage NSoT."""
     run_app(
-        project='nsot',
-        default_config_path='~/.nsot/nsot.conf.py',
-        default_settings='nsot.conf.settings',
+        project="nsot",
+        default_config_path="~/.nsot/nsot.conf.py",
+        default_settings="nsot.conf.settings",
         settings_initializer=generate_settings,
-        settings_envvar='NSOT_CONF',
+        settings_envvar="NSOT_CONF",
         initializer=initialize_app,
     )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

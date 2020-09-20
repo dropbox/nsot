@@ -10,8 +10,8 @@ def migrate_network_fields(apps, schema_editor):
     """
     Migrate new Network fields.
     """
-    Network = apps.get_model('nsot', 'Network')
-    Network_temp = apps.get_model('nsot', 'Network_temp')
+    Network = apps.get_model("nsot", "Network")
+    Network_temp = apps.get_model("nsot", "Network_temp")
     for net in Network.objects.iterator():
         net_tmp = Network_temp.objects.create(
             network_address=net.network_address,
@@ -29,12 +29,10 @@ def migrate_network_fields(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('nsot', '0016_move_device_data'),
+        ("nsot", "0016_move_device_data"),
     ]
 
     operations = [
-
         # Network _attributes_cache, new_id
         migrations.RunPython(migrate_network_fields),
-
     ]

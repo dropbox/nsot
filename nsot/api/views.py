@@ -9,7 +9,10 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 from rest_framework import (
-    mixins, status as status_codes, permissions, viewsets
+    mixins,
+    status as status_codes,
+    permissions,
+    viewsets,
 )
 from rest_framework.views import APIView
 from rest_framework.decorators import detail_route, list_route
@@ -56,7 +59,7 @@ class BaseNsotViewSet(viewsets.ReadOnlyModelViewSet):
     def not_found(self, pk=None, site_pk=None, msg=None):
         """Standard formatting for 404 errors."""
         if msg is None:
-            msg = 'No such {} found at (site_id, id) = ({}, {})'.format(
+            msg = "No such {} found at (site_id, id) = ({}, {})".format(
                 self.model_name, site_pk, pk
             )
         raise exc.NotFound(msg)
@@ -75,11 +78,11 @@ class BaseNsotViewSet(viewsets.ReadOnlyModelViewSet):
             (Optional) Dict of extra headers
         """
         if headers is None:
-            headers = self.kwargs.get('headers')
+            headers = self.kwargs.get("headers")
 
         # Default status 200 if not provided otherwise.
         if status is None:
-            status = self.kwargs.get('status', status_codes.HTTP_200_OK)
+            status = self.kwargs.get("status", status_codes.HTTP_200_OK)
 
         return Response(data, status=status, headers=headers)
 
@@ -107,10 +110,10 @@ class BaseNsotViewSet(viewsets.ReadOnlyModelViewSet):
         # If the incoming pk has changed, store it in view kwargs. This is so
         # that nested routers and detail routes work properly such as when
         # calling ``GET /api/sites/1/networks/40/parent/``.
-        if 'pk' in self.kwargs:
-            self.kwargs['pk'] = pk
-        if 'site_pk' in self.kwargs:
-            self.kwargs['site_pk'] = site_pk
+        if "pk" in self.kwargs:
+            self.kwargs["pk"] = pk
+        if "site_pk" in self.kwargs:
+            self.kwargs["site_pk"] = site_pk
 
         obj = self.get_object()
         serializer = self.get_serializer(obj, *args, **kwargs)
@@ -139,8 +142,8 @@ class BaseNsotViewSet(viewsets.ReadOnlyModelViewSet):
         queryset = self.queryset
 
         # Retrieve the pk, site_pk args from the view's kwargs.
-        site_pk = self.kwargs.get('site_pk')
-        pk = self.kwargs.get('pk')
+        site_pk = self.kwargs.get("site_pk")
+        pk = self.kwargs.get("pk")
 
         # When coming from detail routes, pk might not be a string.
         if isinstance(pk, six.integer_types):
@@ -149,12 +152,12 @@ class BaseNsotViewSet(viewsets.ReadOnlyModelViewSet):
         # Start prepping our kwargs for lookup.
         lookup_kwargs = {}
         if site_pk is not None:
-            lookup_kwargs['site'] = site_pk
+            lookup_kwargs["site"] = site_pk
 
         # If pk is null, is a digit, or if we don't have a natural_key, lookup
         # by pk.
         if pk is None or pk.isdigit() or self.natural_key is None:
-            lookup_kwargs['pk'] = pk
+            lookup_kwargs["pk"] = pk
 
         # Otherwise prepare the natural_key for a single object lookup.
         else:
@@ -174,10 +177,8 @@ class BaseNsotViewSet(viewsets.ReadOnlyModelViewSet):
         #   /api/sites/1/devices/).
         except exc.MultipleObjectsReturned:
             raise exc.ValidationError(
-                'Multiple %ss matched %s=%r. Use a site-specific endpoint '
-                'or lookup by ID.' % (
-                    self.model_name, self.natural_key, pk
-                )
+                "Multiple %ss matched %s=%r. Use a site-specific endpoint "
+                "or lookup by ID." % (self.model_name, self.natural_key, pk)
             )
 
         # May raise a permission denied.
@@ -195,11 +196,12 @@ class ChangeViewSet(BaseNsotViewSet):
     modification. Changes are immutable and can only be removed by deleting the
     entire Site.
     """
-    queryset = models.Change.objects.order_by('-change_at')
-    serializer_class = serializers.ChangeSerializer
-    filter_fields = ('event', 'resource_name', 'resource_id')
 
-    @detail_route(methods=['get'])
+    queryset = models.Change.objects.order_by("-change_at")
+    serializer_class = serializers.ChangeSerializer
+    filter_fields = ("event", "resource_name", "resource_id")
+
+    @detail_route(methods=["get"])
     def diff(self, request, *args, **kwargs):
         return self.success(self.get_object().diff)
 
@@ -209,6 +211,7 @@ class NsotViewSet(BaseNsotViewSet, viewsets.ModelViewSet):
     Generic mutable viewset that logs all change events and includes support
     for bulk creation of objects.
     """
+
     def perform_create(self, serializer):
         """Support bulk create.
 
@@ -220,21 +223,21 @@ class NsotViewSet(BaseNsotViewSet, viewsets.ModelViewSet):
         except exc.DjangoValidationError as err:
             raise exc.ValidationError(err.message_dict)
         except exc.IntegrityError as err:
-            raise exc.Conflict(err.message)
-        except exc.ObjectDoesNotExist as err:
+            raise exc.Conflict(str(err))
+        except exc.ObjectDoesNotExist:
             raise exc.BadRequest(
-                "Site with id number %s does not exist" %
-                self.kwargs['site_pk']
+                "Site with id number %s does not exist"
+                % self.kwargs["site_pk"]
             )
         else:
             # This is so that we can always work w/ objects as a list
             if not isinstance(objects, list):
                 objects = [objects]
 
-        log.debug('NsotViewSet.perform_create() objects = %r', objects)
+        log.debug("NsotViewSet.perform_create() objects = %r", objects)
         for obj in objects:
             models.Change.objects.create(
-                obj=obj, user=self.request.user, event='Create'
+                obj=obj, user=self.request.user, event="Create"
             )
 
     def get_success_headers(self, data):
@@ -247,8 +250,8 @@ class NsotViewSet(BaseNsotViewSet, viewsets.ModelViewSet):
         # TODO(jathan): Implement hyperlinked fields in the API?
         try:
             # return {'Location': data[api_settings.URL_FIELD_NAME]}
-            location = '%s%s/' % (self.request.path_info, data['id'])
-            return {'Location': location}
+            location = "%s%s/" % (self.request.path_info, data["id"])
+            return {"Location": location}
         except (TypeError, KeyError):
             return {}
 
@@ -265,16 +268,16 @@ class NsotViewSet(BaseNsotViewSet, viewsets.ModelViewSet):
         except exc.DjangoValidationError as err:
             raise exc.ValidationError(err.message_dict)
         except exc.IntegrityError as err:
-            raise exc.Conflict(err.message)
+            raise exc.Conflict(str(err))
         else:
             # This is so that we can always work w/ objects as a list
             if not isinstance(objects, list):
                 objects = [objects]
 
-        log.debug('NsotViewSet.perform_update() objects = %r', objects)
+        log.debug("NsotViewSet.perform_update() objects = %r", objects)
         for obj in objects:
             models.Change.objects.create(
-                obj=obj, user=self.request.user, event='Update'
+                obj=obj, user=self.request.user, event="Update"
             )
 
     def perform_destroy(self, instance):
@@ -285,9 +288,9 @@ class NsotViewSet(BaseNsotViewSet, viewsets.ModelViewSet):
         :param instance:
             Model instance to delete
         """
-        log.debug('NsotViewSet.perform_destroy() obj = %r', instance)
+        log.debug("NsotViewSet.perform_destroy() obj = %r", instance)
         change = models.Change.objects.create(
-            obj=instance, user=self.request.user, event='Delete'
+            obj=instance, user=self.request.user, event="Delete"
         )
 
         try:
@@ -301,21 +304,23 @@ class SiteViewSet(NsotViewSet):
     """
     API endpoint that allows Sites to be viewed or edited.
     """
+
     queryset = models.Site.objects.all()
     serializer_class = serializers.SiteSerializer
-    filter_fields = ('name',)
+    filter_fields = ("name",)
 
 
 class ValueViewSet(NsotViewSet):
     """
     API endpoint that allows Attribute Values to be viewed or edited.
     """
+
     queryset = models.Value.objects.all()
     serializer_class = serializers.ValueSerializer
-    filter_fields = ('name', 'value', 'resource_name', 'resource_id')
+    filter_fields = ("name", "value", "resource_name", "resource_id")
 
     def get_serializer_class(self):
-        if self.request.method == 'POST':
+        if self.request.method == "POST":
             return serializers.ValueCreateSerializer
         return self.serializer_class
 
@@ -325,23 +330,25 @@ class NsotBulkUpdateModelMixin(bulk_mixins.BulkUpdateModelMixin):
     The default mixin isn't using super() so multiple-inheritance breaks. This
     fixes it for our use-case.
     """
+
     def perform_update(self, serializer):
         super(bulk_mixins.BulkUpdateModelMixin, self).perform_update(
             serializer
         )
 
 
-class ResourceViewSet(NsotBulkUpdateModelMixin, NsotViewSet,
-                      bulk_mixins.BulkCreateModelMixin):
+class ResourceViewSet(
+    NsotBulkUpdateModelMixin, NsotViewSet, bulk_mixins.BulkCreateModelMixin
+):
     """
     Resource views that include set query list endpoints.
     """
 
-    @list_route(methods=['get'])
+    @list_route(methods=["get"])
     def query(self, request, site_pk=None, *args, **kwargs):
         """Perform a set query."""
-        query = request.query_params.get('query', '')
-        unique = qpbool(request.query_params.get('unique', False))
+        query = request.query_params.get("query", "")
+        unique = qpbool(request.query_params.get("unique", False))
         qs = self.queryset.set_query(query, site_id=site_pk, unique=unique)
         objects = self.filter_queryset(qs)
         return self.list(request, queryset=objects, *args, **kwargs)
@@ -355,8 +362,8 @@ class ResourceViewSet(NsotBulkUpdateModelMixin, NsotViewSet,
 
         # Backup the original kwargs
         orig_kwargs = self.kwargs.copy()
-        self.kwargs['pk'] = pk
-        self.kwargs['site_pk'] = site_pk
+        self.kwargs["pk"] = pk
+        self.kwargs["site_pk"] = site_pk
 
         # Get our object and restore the original kwargs
         obj = self.get_object()
@@ -369,14 +376,15 @@ class AttributeViewSet(ResourceViewSet):
     """
     API endpoint that allows Attributes to be viewed or edited.
     """
+
     queryset = models.Attribute.objects.all()
     serializer_class = serializers.AttributeSerializer
     filter_class = filters.AttributeFilter
 
     def get_serializer_class(self):
-        if self.request.method == 'POST':
+        if self.request.method == "POST":
             return serializers.AttributeCreateSerializer
-        if self.request.method in ('PUT', 'PATCH'):
+        if self.request.method in ("PUT", "PATCH"):
             return serializers.AttributeUpdateSerializer
         return self.serializer_class
 
@@ -385,22 +393,23 @@ class DeviceViewSet(ResourceViewSet):
     """
     API endpoint that allows Devices to be viewed or edited.
     """
+
     queryset = models.Device.objects.all()
     serializer_class = serializers.DeviceSerializer
     filter_class = filters.DeviceFilter
-    natural_key = 'hostname'
+    natural_key = "hostname"
 
     def get_serializer_class(self):
-        if self.request.method == 'POST':
+        if self.request.method == "POST":
             return serializers.DeviceCreateSerializer
-        if self.request.method == 'PUT':
+        if self.request.method == "PUT":
             return serializers.DeviceUpdateSerializer
-        if self.request.method == 'PATCH':
+        if self.request.method == "PATCH":
             return serializers.DevicePartialUpdateSerializer
 
         return self.serializer_class
 
-    @detail_route(methods=['get'])
+    @detail_route(methods=["get"])
     def interfaces(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return all interfaces for this Device."""
         device = self.get_resource_object(pk, site_pk)
@@ -408,7 +417,7 @@ class DeviceViewSet(ResourceViewSet):
 
         return self.list(request, queryset=interfaces, *args, **kwargs)
 
-    @detail_route(methods=['get'])
+    @detail_route(methods=["get"])
     def circuits(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return a list of Circuits for this Device"""
         device = self.get_resource_object(pk, site_pk)
@@ -421,27 +430,31 @@ class NetworkViewSet(ResourceViewSet):
     """
     API endpoint that allows Networks to be viewed or edited.
     """
+
     queryset = models.Network.objects.all()
     serializer_class = serializers.NetworkSerializer
     filter_class = filters.NetworkFilter
-    lookup_value_regex = '[a-fA-F0-9:./]+'
-    natural_key = 'cidr'
+    lookup_value_regex = "[a-fA-F0-9:./]+"
+    natural_key = "cidr"
 
-    def allocate_networks(self, networks, site_pk, state='allocated'):
+    # Thd default number of networks that is returned
+    DEFAULT_NETWORK_NUM = 1
+
+    def allocate_networks(self, networks, site_pk, state="allocated"):
         site = models.Site.objects.get(pk=site_pk)
         for n in networks:
             obj = models.Network(cidr=n, site=site, state=state)
             obj.save()
             models.Change.objects.create(
-               obj=obj, user=self.request.user, event='Create'
+                obj=obj, user=self.request.user, event="Create"
             )
 
     def get_serializer_class(self):
-        if self.request.method == 'POST':
+        if self.request.method == "POST":
             return serializers.NetworkCreateSerializer
-        if self.request.method == 'PUT':
+        if self.request.method == "PUT":
             return serializers.NetworkUpdateSerializer
-        if self.request.method == 'PATCH':
+        if self.request.method == "PATCH":
             return serializers.NetworkPartialUpdateSerializer
 
         return self.serializer_class
@@ -450,7 +463,7 @@ class NetworkViewSet(ResourceViewSet):
         """Return a dict of kwargs for natural_key lookup."""
         return cidr_to_dict(filter_value)
 
-    @list_route(methods=['get'])
+    @list_route(methods=["get"])
     def query(self, request, site_pk=None, *args, **kwargs):
         """Override base query to inherit filtering by query params."""
         self.queryset = self.get_queryset()
@@ -458,13 +471,13 @@ class NetworkViewSet(ResourceViewSet):
             request, site_pk, *args, **kwargs
         )
 
-    @detail_route(methods=['get'])
+    @detail_route(methods=["get"])
     def closest_parent(self, request, pk=None, site_pk=None, *args, **kwargs):
         """
         Return the closest matching parent of this Network even if it doesn't
         exist in the database.
         """
-        prefix_length = request.query_params.get('prefix_length', 0)
+        prefix_length = request.query_params.get("prefix_length", 0)
 
         # Get closest parent or 404
         try:
@@ -478,80 +491,86 @@ class NetworkViewSet(ResourceViewSet):
 
         return self.retrieve(request, pk, site_pk, *args, **kwargs)
 
-    @detail_route(methods=['get'])
+    @detail_route(methods=["get"])
     def subnets(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return subnets of this Network."""
         network = self.get_resource_object(pk, site_pk)
 
         params = request.query_params
-        include_networks = qpbool(params.get('include_networks', True))
-        include_ips = qpbool(params.get('include_ips', True))
-        direct = qpbool(params.get('direct', False))
+        include_networks = qpbool(params.get("include_networks", True))
+        include_ips = qpbool(params.get("include_ips", True))
+        direct = qpbool(params.get("direct", False))
 
         networks = network.subnets(
             include_networks=include_networks,
-            include_ips=include_ips, direct=direct
+            include_ips=include_ips,
+            direct=direct,
         )
 
         return self.list(request, queryset=networks, *args, **kwargs)
 
-    @detail_route(methods=['get'])
+    @detail_route(methods=["get"])
     def supernets(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return supernets of this Network."""
         network = self.get_resource_object(pk, site_pk)
 
         params = request.query_params
-        direct = qpbool(params.get('direct', False))
+        direct = qpbool(params.get("direct", False))
 
         networks = network.supernets(direct=direct)
 
         return self.list(request, queryset=networks, *args, **kwargs)
 
-    @detail_route(methods=['get', 'post'])
+    @detail_route(methods=["get", "post"])
     def next_network(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return next available networks from this Network."""
         network = self.get_resource_object(pk, site_pk)
         params = request.query_params
-        prefix_length = params.get('prefix_length')
-        num = params.get('num')
-        strict = qpbool(params.get('strict_allocation', False))
+
+        prefix_length = params.get("prefix_length")
+        num = params.get("num", self.DEFAULT_NETWORK_NUM)
+        strict = qpbool(params.get("strict_allocation", False))
+
         networks = network.get_next_network(
             prefix_length, num, strict, as_objects=False
         )
-        if request.method == 'POST':
-            if qpbool(params.get('reserve', False)):
+
+        if request.method == "POST":
+            if qpbool(params.get("reserve", False)):
                 state = models.Network.RESERVED
             else:
                 state = models.Network.ALLOCATED
             self.allocate_networks(networks, site_pk, state)
         return self.success(networks)
 
-    @detail_route(methods=['get', 'post'])
+    @detail_route(methods=["get", "post"])
     def next_address(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return next available IPs from this Network."""
         network = self.get_resource_object(pk, site_pk)
         params = request.query_params
-        num = params.get('num')
-        strict = qpbool(params.get('strict_allocation', False))
+
+        num = params.get("num", self.DEFAULT_NETWORK_NUM)
+        strict = qpbool(params.get("strict_allocation", False))
         addresses = network.get_next_address(num, strict, as_objects=False)
-        if request.method == 'POST':
-            if qpbool(params.get('reserve', False)):
+
+        if request.method == "POST":
+            if qpbool(params.get("reserve", False)):
                 state = models.Network.RESERVED
             else:
                 state = models.Network.ALLOCATED
             self.allocate_networks(addresses, site_pk, state)
         return self.success(addresses)
 
-    @detail_route(methods=['get'])
+    @detail_route(methods=["get"])
     def ancestors(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return ancestors of this Network."""
         network = self.get_resource_object(pk, site_pk)
-        ascending = qpbool(request.query_params.get('ascending', False))
+        ascending = qpbool(request.query_params.get("ascending", False))
         ancestors = network.get_ancestors(ascending=ascending)
 
         return self.list(request, queryset=ancestors, *args, **kwargs)
 
-    @detail_route(methods=['get'])
+    @detail_route(methods=["get"])
     def children(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return the immediate children of this Network."""
         network = self.get_resource_object(pk, site_pk)
@@ -559,7 +578,7 @@ class NetworkViewSet(ResourceViewSet):
 
         return self.list(request, queryset=children, *args, **kwargs)
 
-    @detail_route(methods=['get'])
+    @detail_route(methods=["get"])
     def descendants(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return descendants of this Network."""
         network = self.get_resource_object(pk, site_pk)
@@ -568,7 +587,7 @@ class NetworkViewSet(ResourceViewSet):
         return self.list(request, queryset=descendants, *args, **kwargs)
 
     # TODO(jathan): Remove this no earlier than v1.3 release.
-    @detail_route(methods=['get'])
+    @detail_route(methods=["get"])
     def descendents(self, request, pk=None, site_pk=None, *args, **kwargs):
         """
         Return descendants of this Network.
@@ -579,8 +598,8 @@ class NetworkViewSet(ResourceViewSet):
         instead.
         """
         warning_message = (
-            'The `descendents` API endpoint is pending deprecation. '
-            'Use the `descendants` API endpoint instead.'
+            "The `descendents` API endpoint is pending deprecation. "
+            "Use the `descendants` API endpoint instead."
         )
 
         # Display pending until v1.2, and remove in v1.3
@@ -588,15 +607,13 @@ class NetworkViewSet(ResourceViewSet):
         log.warn(warning_message)
 
         # Inject the Warning header (per RFC 7234)
-        self.kwargs['headers'] = {
-            'Warning': '299 - "%s"' % warning_message
-        }
+        self.kwargs["headers"] = {"Warning": '299 - "%s"' % warning_message}
 
         return self.descendants(
             request, pk=pk, site_pk=site_pk, *args, **kwargs
         )
 
-    @detail_route(methods=['get'])
+    @detail_route(methods=["get"])
     def parent(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return the parent of this Network."""
         network = self.get_resource_object(pk, site_pk)
@@ -608,7 +625,7 @@ class NetworkViewSet(ResourceViewSet):
 
         return self.retrieve(request, pk, site_pk, *args, **kwargs)
 
-    @detail_route(methods=['get'])
+    @detail_route(methods=["get"])
     def root(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return the parent of all ancestors for this Network."""
         network = self.get_resource_object(pk, site_pk)
@@ -620,19 +637,19 @@ class NetworkViewSet(ResourceViewSet):
 
         return self.retrieve(request, pk, site_pk, *args, **kwargs)
 
-    @detail_route(methods=['get'])
+    @detail_route(methods=["get"])
     def siblings(self, request, pk=None, site_pk=None, *args, **kwargs):
         """
         Return Networks with the same parent. Root nodes are
         siblings to other root nodes.
         """
         network = self.get_resource_object(pk, site_pk)
-        include_self = qpbool(request.query_params.get('include_self', False))
+        include_self = qpbool(request.query_params.get("include_self", False))
         descendents = network.get_siblings(include_self=include_self)
 
         return self.list(request, queryset=descendents, *args, **kwargs)
 
-    @detail_route(methods=['get'])
+    @detail_route(methods=["get"])
     def assignments(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return the interface assignments for this Network."""
         network = self.get_resource_object(pk, site_pk)
@@ -640,7 +657,7 @@ class NetworkViewSet(ResourceViewSet):
 
         return self.list(request, queryset=assignments, *args, **kwargs)
 
-    @list_route(methods=['get'])
+    @list_route(methods=["get"])
     def reserved(self, request, site_pk=None, *args, **kwargs):
         """Display all reserved Networks."""
         objects = models.Network.objects.reserved()
@@ -655,12 +672,12 @@ class NetworkViewSet(ResourceViewSet):
         :param instance:
             Model instance to delete
         """
-        log.debug('NetworkViewSet.perform_destroy() obj = %r', instance)
+        log.debug("NetworkViewSet.perform_destroy() obj = %r", instance)
         change = models.Change.objects.create(
-            obj=instance, user=self.request.user, event='Delete'
+            obj=instance, user=self.request.user, event="Delete"
         )
         force_delete = qpbool(
-            self.request.query_params.get('force_delete', False)
+            self.request.query_params.get("force_delete", False)
         )
         try:
             instance.delete(force_delete=force_delete)
@@ -673,13 +690,14 @@ class InterfaceViewSet(ResourceViewSet):
     """
     API endpoint that allows Interfaces to be viewed or edited.
     """
+
     queryset = models.Interface.objects.all()
     serializer_class = serializers.InterfaceSerializer
     filter_class = filters.InterfaceFilter
     # Match on device_hostname:name or pk id
     # Being pretty vague here, so as to be minimally prescriptive
-    lookup_value_regex = '[a-zA-Z0-9:./-]*[0-9]'
-    natural_key = 'name_slug'
+    lookup_value_regex = "[a-zA-Z0-9:./-]*[0-9]"
+    natural_key = "name_slug"
 
     @cache_response(cache_errors=False, key_func=cache.list_key_func)
     def list(self, *args, **kwargs):
@@ -692,35 +710,35 @@ class InterfaceViewSet(ResourceViewSet):
         return super(InterfaceViewSet, self).retrieve(*args, **kwargs)
 
     def get_serializer_class(self):
-        if self.request.method == 'POST':
+        if self.request.method == "POST":
             return serializers.InterfaceCreateSerializer
-        if self.request.method == 'PUT':
+        if self.request.method == "PUT":
             return serializers.InterfaceUpdateSerializer
-        if self.request.method == 'PATCH':
+        if self.request.method == "PATCH":
             return serializers.InterfacePartialUpdateSerializer
         return self.serializer_class
 
-    @detail_route(methods=['get'])
+    @detail_route(methods=["get"])
     def addresses(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return a list of addresses for this Interface."""
         interface = self.get_resource_object(pk, site_pk)
         addresses = interface.addresses.all()
         return self.list(request, queryset=addresses, *args, **kwargs)
 
-    @detail_route(methods=['get'])
+    @detail_route(methods=["get"])
     def assignments(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return a list of information about my assigned addresses."""
         interface = self.get_resource_object(pk, site_pk)
         assignments = interface.assignments.all()
         return self.list(request, queryset=assignments, *args, **kwargs)
 
-    @detail_route(methods=['get'])
+    @detail_route(methods=["get"])
     def networks(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return all the containing Networks for my assigned addresses."""
         interface = self.get_resource_object(pk, site_pk)
         return self.list(request, queryset=interface.networks, *args, **kwargs)
 
-    @detail_route(methods=['get'])
+    @detail_route(methods=["get"])
     def parent(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return the parent of this Interface."""
         interface = self.get_resource_object(pk, site_pk)
@@ -731,35 +749,39 @@ class InterfaceViewSet(ResourceViewSet):
             pk = None
         return self.retrieve(request, pk, site_pk, *args, **kwargs)
 
-    @detail_route(methods=['get'])
+    @detail_route(methods=["get"])
     def ancestors(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return all the ancestors of this Interface."""
         interface = self.get_resource_object(pk, site_pk)
-        return self.list(request, queryset=interface.get_ancestors(), *args,
-                         **kwargs)
+        return self.list(
+            request, queryset=interface.get_ancestors(), *args, **kwargs
+        )
 
-    @detail_route(methods=['get'])
+    @detail_route(methods=["get"])
     def children(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return all the immediate children of this Interface."""
         interface = self.get_resource_object(pk, site_pk)
-        return self.list(request, queryset=interface.get_children(), *args,
-                         **kwargs)
+        return self.list(
+            request, queryset=interface.get_children(), *args, **kwargs
+        )
 
-    @detail_route(methods=['get'])
+    @detail_route(methods=["get"])
     def descendants(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return all the descendants of this Interface."""
         interface = self.get_resource_object(pk, site_pk)
-        return self.list(request, queryset=interface.get_descendants(), *args,
-                         **kwargs)
+        return self.list(
+            request, queryset=interface.get_descendants(), *args, **kwargs
+        )
 
-    @detail_route(methods=['get'])
+    @detail_route(methods=["get"])
     def siblings(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return all the siblings of this Interface."""
         interface = self.get_resource_object(pk, site_pk)
-        return self.list(request, queryset=interface.get_siblings(), *args,
-                         **kwargs)
+        return self.list(
+            request, queryset=interface.get_siblings(), *args, **kwargs
+        )
 
-    @detail_route(methods=['get'])
+    @detail_route(methods=["get"])
     def root(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return the root of the tree this Interface is part of."""
         interface = self.get_resource_object(pk, site_pk)
@@ -767,7 +789,7 @@ class InterfaceViewSet(ResourceViewSet):
         pk = root.id
         return self.retrieve(request, pk, site_pk, *args, **kwargs)
 
-    @detail_route(methods=['get'])
+    @detail_route(methods=["get"])
     def circuit(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return the Circuit I am associated with"""
         interface = self.get_resource_object(pk, site_pk)
@@ -775,7 +797,7 @@ class InterfaceViewSet(ResourceViewSet):
             cir = serializers.CircuitSerializer(interface.circuit)
             return self.success(cir.data)
         except models.Circuit.DoesNotExist:
-            msg = 'No Circuit found at Interface (site_id, id) = ({}, {})'
+            msg = "No Circuit found at Interface (site_id, id) = ({}, {})"
             msg = msg.format(site_pk, pk)
             self.not_found(pk, msg=msg)
 
@@ -784,10 +806,11 @@ class CircuitViewSet(ResourceViewSet):
     """
     API endpoint that allows Circuits to be viewed or edited.
     """
+
     queryset = models.Circuit.objects.all()
     serializer_class = serializers.CircuitSerializer
     filter_class = filters.CircuitFilter
-    natural_key = 'name_slug'
+    natural_key = "name_slug"
 
     # TODO(jathan): Revisit this if and when we upgrade or replace
     # django-rest-framework-bulk==0.2.1
@@ -801,7 +824,7 @@ class CircuitViewSet(ResourceViewSet):
         Credit: https://github.com/miki725/django-rest-framework-bulk/issues/30
         Source: http://bit.ly/2HcyNnG
         """
-        partial = kwargs.pop('partial', False)
+        partial = kwargs.pop("partial", False)
 
         # restrict the update to the filtered queryset
         serializer = self.get_serializer(
@@ -817,7 +840,7 @@ class CircuitViewSet(ResourceViewSet):
         for item in request.data:
             item_serializer = self.get_serializer(
                 get_object_or_404(
-                    self.filter_queryset(self.get_queryset()), pk=item['id']
+                    self.filter_queryset(self.get_queryset()), pk=item["id"]
                 ),
                 data=item,
                 partial=partial,
@@ -828,7 +851,7 @@ class CircuitViewSet(ResourceViewSet):
             obj_data = item_serializer.validated_data
             # By default validated_data does not have `id`, so adding it in
             # validated_data of each item
-            obj_data['id'] = item['id']
+            obj_data["id"] = item["id"]
             validated_data.append(obj_data)
 
         if validation_errors:
@@ -850,16 +873,16 @@ class CircuitViewSet(ResourceViewSet):
         return super(CircuitViewSet, self).retrieve(*args, **kwargs)
 
     def get_serializer_class(self):
-        if self.request.method == 'POST':
+        if self.request.method == "POST":
             return serializers.CircuitCreateSerializer
-        if self.request.method == 'PUT':
+        if self.request.method == "PUT":
             return serializers.CircuitUpdateSerializer
-        if self.request.method == 'PATCH':
+        if self.request.method == "PATCH":
             return serializers.CircuitPartialUpdateSerializer
 
         return self.serializer_class
 
-    @detail_route(methods=['get'])
+    @detail_route(methods=["get"])
     def addresses(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return a list of addresses for the interfaces on this Circuit."""
         circuit = self.get_resource_object(pk, site_pk)
@@ -867,7 +890,7 @@ class CircuitViewSet(ResourceViewSet):
 
         return self.list(request, queryset=addresses, *args, **kwargs)
 
-    @detail_route(methods=['get'])
+    @detail_route(methods=["get"])
     def devices(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return a list of devices for this Circuit."""
         circuit = self.get_resource_object(pk, site_pk)
@@ -875,7 +898,7 @@ class CircuitViewSet(ResourceViewSet):
 
         return self.list(request, queryset=devices, *args, **kwargs)
 
-    @detail_route(methods=['get'])
+    @detail_route(methods=["get"])
     def interfaces(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return a list of interfaces for this Circuit."""
         circuit = self.get_resource_object(pk, site_pk)
@@ -888,42 +911,45 @@ class ProtocolTypeViewSet(NsotViewSet):
     """
     API endpoint that allows ProtocolTypes to be viewed or edited.
     """
+
     queryset = models.ProtocolType.objects.all()
     serializer_class = serializers.ProtocolTypeSerializer
     filter_class = filters.ProtocolTypeFilter
-    natural_key = 'name'
+    natural_key = "name"
 
 
 class ProtocolViewSet(ResourceViewSet):
     """
     API endpoint that allows Protocols to be viewed or edited.
     """
+
     queryset = models.Protocol.objects.all()
     serializer_class = serializers.ProtocolSerializer
     filter_class = filters.ProtocolFilter
 
     def get_serializer_class(self):
-        if self.request.method == 'POST':
+        if self.request.method == "POST":
             return serializers.ProtocolCreateSerializer
-        if self.request.method == 'PUT':
+        if self.request.method == "PUT":
             return serializers.ProtocolUpdateSerializer
-        if self.request.method == 'PATCH':
+        if self.request.method == "PATCH":
             return serializers.ProtocolPartialUpdateSerializer
 
         return self.serializer_class
 
 
 #: Namedtuple for retrieving pk and user object of current user.
-UserPkInfo = namedtuple('UserPkInfo', 'user pk')
+UserPkInfo = namedtuple("UserPkInfo", "user pk")
 
 
 class UserViewSet(BaseNsotViewSet, mixins.CreateModelMixin):
     """
     This viewset automatically provides `list` and `detail` actins.
     """
+
     queryset = get_user_model().objects.all()
     serializer_class = serializers.UserSerializer
-    filter_fields = ('email',)
+    filter_fields = ("email",)
 
     def get_user_and_pk(self, request, pk=None, site_pk=None):
         # If pk is 0, return the current user.
@@ -943,7 +969,7 @@ class UserViewSet(BaseNsotViewSet, mixins.CreateModelMixin):
         user, pk = self.get_user_and_pk(request, pk, site_pk)
 
         params = request.query_params
-        with_secret_key = params.get('with_secret_key', None)
+        with_secret_key = params.get("with_secret_key", None)
 
         # If with_secret_key is set, confirm that the requested user object
         # matches the current user.
@@ -952,13 +978,13 @@ class UserViewSet(BaseNsotViewSet, mixins.CreateModelMixin):
                 raise exc.Forbidden(
                     "Can't access secret_key of user that isn't you."
                 )
-            kwargs['with_secret_key'] = qpbool(with_secret_key)
+            kwargs["with_secret_key"] = qpbool(with_secret_key)
 
         return super(UserViewSet, self).retrieve(
             request, pk, site_pk, *args, **kwargs
         )
 
-    @detail_route(methods=['post'])
+    @detail_route(methods=["post"])
     def rotate_secret_key(self, request, pk=None, *args, **kwargs):
         user, pk = self.get_user_and_pk(request, pk)
 
@@ -973,6 +999,7 @@ class UserViewSet(BaseNsotViewSet, mixins.CreateModelMixin):
 
 class NotFoundViewSet(viewsets.GenericViewSet):
     """Catchall for bad API endpoints."""
+
     exclude_from_schema = True
     permission_classes = (permissions.IsAuthenticated,)
 
@@ -996,17 +1023,19 @@ class AuthTokenLoginView(APIView):
         serializer = serializers.AuthTokenSerializer(data=request.data)
 
         if serializer.is_valid():
-            user = serializer.validated_data['user']
-            data = {'auth_token': user.generate_auth_token()}
+            user = serializer.validated_data["user"]
+            data = {"auth_token": user.generate_auth_token()}
 
             if request.version == settings.NSOT_API_VERSION:
                 return Response(data)
 
             return Response(
-                OrderedDict([
-                    ('status', 'ok'),
-                    ('data', data),
-                ])
+                OrderedDict(
+                    [
+                        ("status", "ok"),
+                        ("data", data),
+                    ]
+                )
             )
         raise exc.Unauthorized(serializer.errors)
 
@@ -1020,8 +1049,10 @@ class AuthTokenVerifyView(APIView):
             return Response(True)
 
         return Response(
-            OrderedDict([
-                ('status', 'ok'),
-                ('data', True),
-            ])
+            OrderedDict(
+                [
+                    ("status", "ok"),
+                    ("data", True),
+                ]
+            )
         )

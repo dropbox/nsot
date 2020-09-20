@@ -2,20 +2,16 @@ language: python
 cache: pip
 
 python:
-    - '2.7'
+  - '3.6'
+  - '3.7'
+  - '3.8'
 
 install:
-    - pip install -r requirements-dev.txt
-    - pip install .
+  - pip install -U pip
+  - pip install poetry
+  - poetry install
 
 script:
-    - flake8
-    - NSOT_API_VERSION=1.0 py.test -vv tests/
-
-after_success: curl -X POST http://readthedocs.org/build/nsot
-
-notifications:
-  slack:
-    secure: UdmH92LEpYke+NnslEx5lE4vjuqu719Wl5OPQPHPUACaKb1teA2yew5YjR/GxWh0Gy9nOcxpSL6xw1ODj3v6EzjvtVAcOzScFHbYUemdWlPLlYE5r9/rYIYVEChYIPQJ3uEhPJRys9ugXcZBdH2vgeXF4FW8Ftjxoqd+XCExB04=
-
-sudo: false
+  - poetry run flake8
+  - poetry run black --check nsot/
+  - NSOT_API_VERSION=1.0 poetry run pytest -vv tests/

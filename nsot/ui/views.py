@@ -19,13 +19,14 @@ class FeView(TemplateView):
     Any additional context needed to be passed to the templates, should be
     added in ``nsot.ui.context_processors``
     """
-    template_name = 'ui/app.html'
+
+    template_name = "ui/app.html"
 
 
-def render_error(request, status_code, template_name='ui/error.html'):
+def render_error(request, status_code, template_name="ui/error.html"):
     """Generic base for rendering error pages."""
     message = responses[status_code].upper()
-    context = {'code': status_code, 'message': message}
+    context = {"code": status_code, "message": message}
     return render(request, template_name, context, status=status_code)
 
 

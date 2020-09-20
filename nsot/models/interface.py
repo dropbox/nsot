@@ -7,6 +7,7 @@ from django.conf import settings
 from django.core.cache import cache as djcache
 from django.db import models
 from django.utils import timezone
+from django.utils.encoding import python_2_unicode_compatible
 
 from .assignment import Assignment
 from .circuit import Circuit
@@ -21,73 +22,99 @@ from . import constants
 log = logging.getLogger(__name__)
 
 
+@python_2_unicode_compatible
 class Interface(Resource):
     """A network interface."""
+
     # if_name
     # SNMP: ifName
     # if_description
     # SNMP: ifDescr
     name = models.CharField(
-        max_length=255, null=False, db_index=True,
-        help_text='The name of the interface as it appears on the Device.'
+        max_length=255,
+        null=False,
+        db_index=True,
+        help_text="The name of the interface as it appears on the Device.",
     )
 
     # This doesn't use the built-in SlugField since we're doing our own
     # slugification (django.utils.text.slugify() is too agressive)
     name_slug = models.CharField(
-        db_index=True, editable=False, max_length=255, null=True, unique=True,
+        db_index=True,
+        editable=False,
+        max_length=255,
+        null=True,
+        unique=True,
         help_text=(
-            'Slugified version of the name field, used for the natural key'
-        )
+            "Slugified version of the name field, used for the natural key"
+        ),
     )
 
     # if_addr
     # m2m Network object /32 or /128
     addresses = models.ManyToManyField(
-        'Network', db_index=True, related_name='addresses',
-        through='Assignment',
-        help_text='Network addresses assigned to this Interface'
+        "Network",
+        db_index=True,
+        related_name="addresses",
+        through="Assignment",
+        help_text="Network addresses assigned to this Interface",
     )
 
     # if_alias - String of interface description
     # SNMP: ifAlias
     description = models.CharField(
-        max_length=255, default='', blank=True, null=False,
-        help_text='A brief yet helpful description.'
+        max_length=255,
+        default="",
+        blank=True,
+        null=False,
+        help_text="A brief yet helpful description.",
     )
 
     # server_id
     device = models.ForeignKey(
-        'Device', db_index=True, related_name='interfaces', null=False,
-        verbose_name='Device', help_text='Unique ID of the connected Device.'
+        "Device",
+        db_index=True,
+        related_name="interfaces",
+        null=False,
+        verbose_name="Device",
+        help_text="Unique ID of the connected Device.",
     )
 
     # Cached hostname of the associated device
     device_hostname = models.CharField(
-        max_length=255, null=False, blank=True, db_index=True, editable=False,
+        max_length=255,
+        null=False,
+        blank=True,
+        db_index=True,
+        editable=False,
         help_text=(
-            'The hostname of the Device to which the interface is bound. '
-            '(Internal use only)'
-        )
+            "The hostname of the Device to which the interface is bound. "
+            "(Internal use only)"
+        ),
     )
 
     # if_type - Integer of interface type id (Ethernet, LAG, etc.)
     # SNMP: ifType
     type = models.IntegerField(
-        'Interface Type', choices=settings.INTERFACE_TYPE_CHOICES,
+        "Interface Type",
+        choices=settings.INTERFACE_TYPE_CHOICES,
         default=settings.INTERFACE_DEFAULT_TYPE,
-        null=False, db_index=True,
-        help_text="If not provided, defaults to 'ethernet'."
+        null=False,
+        db_index=True,
+        help_text="If not provided, defaults to 'ethernet'.",
     )
 
     # if_physical_address - Integer of hex MAC address
     # SNMP: ifPhysAddress
     mac_address = fields.MACAddressField(
-        'MAC Address', blank=True, db_index=True, null=True,
-        default=int(settings.INTERFACE_DEFAULT_MAC), help_text=(
-            'If not provided, defaults to %s.' %
-            settings.INTERFACE_DEFAULT_MAC
-        )
+        "MAC Address",
+        blank=True,
+        db_index=True,
+        null=True,
+        default=int(settings.INTERFACE_DEFAULT_MAC),
+        help_text=(
+            "If not provided, defaults to %s." % settings.INTERFACE_DEFAULT_MAC
+        ),
     )
 
     # if_speed - Should not be used. Caps at 4.3GB (2^32)
@@ -96,27 +123,37 @@ class Interface(Resource):
     # if_high_speed - Integer of Mbps of interface (e.g. 20000 for 20 Gbps)
     # SNMP: ifHighSpeed
     speed = models.IntegerField(
-        blank=True, db_index=True, default=settings.INTERFACE_DEFAULT_SPEED,
+        blank=True,
+        db_index=True,
+        default=settings.INTERFACE_DEFAULT_SPEED,
         null=True,
         help_text=(
-            'Integer of Mbps of interface (e.g. 20000 for 20 Gbps). If not '
-            'provided, defaults to %s.' % settings.INTERFACE_DEFAULT_SPEED
-        )
+            "Integer of Mbps of interface (e.g. 20000 for 20 Gbps). If not "
+            "provided, defaults to %s." % settings.INTERFACE_DEFAULT_SPEED
+        ),
     )
 
     parent = models.ForeignKey(
-        'self', blank=True, null=True, related_name='children',
-        default=None, db_index=True, on_delete=models.PROTECT,
-        verbose_name='Parent', help_text='Unique ID of the parent Interface.',
+        "self",
+        blank=True,
+        null=True,
+        related_name="children",
+        default=None,
+        db_index=True,
+        on_delete=models.PROTECT,
+        verbose_name="Parent",
+        help_text="Unique ID of the parent Interface.",
     )
 
     # We are currently inferring the site_id from the parent Device in the
     # .save() method. We don't want to even care about the site_id , but it
     # simplifies managing them this way.
     site = models.ForeignKey(
-        'Site', db_index=True, related_name='interfaces',
+        "Site",
+        db_index=True,
+        related_name="interfaces",
         on_delete=models.PROTECT,
-        help_text='Unique ID of the Site this Interface is under.'
+        help_text="Unique ID of the Site this Interface is under.",
     )
 
     # Where list of assigned addresses is cached.
@@ -126,7 +163,7 @@ class Interface(Resource):
     _networks_cache = fields.JSONField(null=False, blank=True, default=[])
 
     def __init__(self, *args, **kwargs):
-        self._set_addresses = kwargs.pop('addresses', None)
+        self._set_addresses = kwargs.pop("addresses", None)
         super(Interface, self).__init__(*args, **kwargs)
 
     ##########################################
@@ -146,21 +183,18 @@ class Interface(Resource):
     # lldp_remote_port_desc
     # lldp_remote_system_name
 
-    def __unicode__(self):
+    def __str__(self):
         return self.name_slug
 
     class Meta:
-        unique_together = ('device', 'name')
-        index_together = [
-            unique_together,
-            ('device_hostname', 'name')
-        ]
+        unique_together = ("device", "name")
+        index_together = [unique_together, ("device_hostname", "name")]
 
     @property
     def networks(self):
         """Return all the parent Networks for my addresses."""
         return Network.objects.filter(
-            id__in=list(self.addresses.values_list('parent', flat=True))
+            id__in=list(self.addresses.values_list("parent", flat=True))
         ).distinct()
 
     @property
@@ -225,20 +259,20 @@ class Interface(Resource):
         :param partial:
             Whether this is a partial update.
         """
-        log.debug(
-            'Interface.set_addresses() addresses = %r', addresses
-        )
+        log.debug("Interface.set_addresses() addresses = %r", addresses)
 
         # If no addresses and it's a partial update, NOOP.
         if addresses is None and partial:
             return None
 
         if not isinstance(addresses, list):
-            raise exc.ValidationError({
-                'addresses': 'Expected list but received {}'.format(
-                    type(addresses)
-                )
-            })
+            raise exc.ValidationError(
+                {
+                    "addresses": "Expected list but received {}".format(
+                        type(addresses)
+                    )
+                }
+            )
 
         if overwrite:
             self._purge_assignments()
@@ -297,7 +331,8 @@ class Interface(Resource):
         Return Interfaces with the same parent and device id as an Interface.
         """
         return Interface.objects.filter(
-            parent=self.parent, device=self.device).exclude(id=self.id)
+            parent=self.parent, device=self.device
+        ).exclude(id=self.id)
 
     def get_assignments(self):
         """Return a list of information about my assigned addresses."""
@@ -349,25 +384,19 @@ class Interface(Resource):
         # TODO (jathan): Reconsider this as a float? Maybe? We might not care
         # about things like 1.544 (T1) anymore...
         if isinstance(value, float):
-            raise exc.ValidationError({
-                'speed': 'Speed must be an integer.'
-            })
+            raise exc.ValidationError({"speed": "Speed must be an integer."})
 
         try:
             value = int(value)
         except ValueError:
-            raise exc.ValidationError({
-                'speed': 'Invalid speed: %r' % value
-            })
+            raise exc.ValidationError({"speed": "Invalid speed: %r" % value})
         else:
             return value
 
     def clean_type(self, value):
         """Enforce valid type."""
         if value not in constants.INTERFACE_TYPES:
-            raise exc.ValidationError({
-                'type': 'Invalid type: %r' % value
-            })
+            raise exc.ValidationError({"type": "Invalid type: %r" % value})
 
         return value
 
@@ -391,10 +420,14 @@ class Interface(Resource):
         if parent is None:
             return parent
         if parent.device_hostname != self.device_hostname:
-            raise exc.ValidationError({
-                'parent': ("Parent's device does not match device with host "
-                           "name %r" % self.device_hostname)
-            })
+            raise exc.ValidationError(
+                {
+                    "parent": (
+                        "Parent's device does not match device with host "
+                        "name %r" % self.device_hostname
+                    )
+                }
+            )
         return parent
 
     def clean_fields(self, exclude=None):
@@ -429,27 +462,27 @@ class Interface(Resource):
 
     def to_dict(self):
         return {
-            'id': self.id,
-            'parent_id': self.parent_id,
-            'parent': self.parent and self.parent.name_slug,
-            'name': self.name,
-            'name_slug': self.name_slug,
-            'device': self.device_id,
-            'device_hostname': self.device_hostname,
-            'description': self.description,
-            'addresses': self.get_addresses(),
-            'networks': self.get_networks(),
-            'mac_address': self.get_mac_address(),
-            'speed': self.speed,
-            'type': self.type,
-            'attributes': self.get_attributes(),
+            "id": self.id,
+            "parent_id": self.parent_id,
+            "parent": self.parent and self.parent.name_slug,
+            "name": self.name,
+            "name_slug": self.name_slug,
+            "device": self.device_id,
+            "device_hostname": self.device_hostname,
+            "description": self.description,
+            "addresses": self.get_addresses(),
+            "networks": self.get_networks(),
+            "mac_address": self.get_mac_address(),
+            "speed": self.speed,
+            "type": self.type,
+            "attributes": self.get_attributes(),
         }
 
 
 # Signals
 def change_api_updated_at(sender=None, instance=None, *args, **kwargs):
     """Anytime the API is updated, invalidate the cache."""
-    djcache.set('api_updated_at_timestamp', timezone.now())
+    djcache.set("api_updated_at_timestamp", timezone.now())
 
 
 def update_device_interfaces(sender, instance, **kwargs):
@@ -462,14 +495,17 @@ def update_device_interfaces(sender, instance, **kwargs):
 
 
 models.signals.post_save.connect(
-    change_api_updated_at, sender=Interface,
-    dispatch_uid='invalidate_cache_post_save_interface'
+    change_api_updated_at,
+    sender=Interface,
+    dispatch_uid="invalidate_cache_post_save_interface",
 )
 models.signals.post_delete.connect(
-    change_api_updated_at, sender=Interface,
-    dispatch_uid='invalidate_cache_post_delete_interface'
+    change_api_updated_at,
+    sender=Interface,
+    dispatch_uid="invalidate_cache_post_delete_interface",
 )
 models.signals.post_save.connect(
-    update_device_interfaces, sender=Device,
-    dispatch_uid='update_interface_post_save_device'
+    update_device_interfaces,
+    sender=Device,
+    dispatch_uid="update_interface_post_save_device",
 )

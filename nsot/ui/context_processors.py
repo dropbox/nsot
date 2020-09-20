@@ -18,4 +18,5 @@ from __future__ import absolute_import
 def app_version(request):
     """A template variable to display current version."""
     from nsot import __version__
-    return {'NSOT_VERSION': __version__}
+
+    return {"NSOT_VERSION": __version__}

@@ -9,13 +9,22 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('nsot', '0013_auto_20151002_1443'),
+        ("nsot", "0013_auto_20151002_1443"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='interface',
-            name='parent',
-            field=models.ForeignKey(related_name='children', on_delete=django.db.models.deletion.PROTECT, default=None, to='nsot.Interface', blank=True, help_text='Unique ID of the parent Interface.', null=True, verbose_name='Parent'),
+            model_name="interface",
+            name="parent",
+            field=models.ForeignKey(
+                related_name="children",
+                on_delete=django.db.models.deletion.PROTECT,
+                default=None,
+                to="nsot.Interface",
+                blank=True,
+                help_text="Unique ID of the parent Interface.",
+                null=True,
+                verbose_name="Parent",
+            ),
         ),
     ]

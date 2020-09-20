@@ -7,6 +7,7 @@ from operator import attrgetter
 
 from django.conf import settings
 from django.db import models
+from django.utils.encoding import python_2_unicode_compatible
 import ipaddress
 import netaddr
 import six
@@ -19,8 +20,10 @@ from .resource import Resource, ResourceManager
 log = logging.getLogger(__name__)
 
 
+@python_2_unicode_compatible
 class NetworkManager(ResourceManager):
     """Manager for NetworkInterface objects."""
+
     def get_by_address(self, cidr, site=None):
         """
         Lookup a Network object by ``cidr``.
@@ -33,7 +36,7 @@ class NetworkManager(ResourceManager):
         """
         lookup_kwargs = util.cidr_to_dict(cidr)
         if site is not None:
-            lookup_kwargs['site'] = site
+            lookup_kwargs["site"] = site
 
         address = Network.objects.get(**lookup_kwargs)
         return address
@@ -61,18 +64,15 @@ class NetworkManager(ResourceManager):
         try:
             prefix_length = int(prefix_length)
         except ValueError:
-            raise exc.ValidationError({
-                'prefix_length': 'Invalid prefix_length: %r' %
-                prefix_length
-            })
+            raise exc.ValidationError(
+                {"prefix_length": "Invalid prefix_length: %r" % prefix_length}
+            )
 
         # Walk the supernets backwrds from smallest to largest prefix.
         try:
             supernets = leaf.supernet(prefixlen=prefix_length)
         except ValueError as err:
-            raise exc.ValidationError({
-                'prefix_length': err.message
-            })
+            raise exc.ValidationError({"prefix_length": str(err)})
         else:
             supernets.reverse()
 
@@ -83,26 +83,26 @@ class NetworkManager(ResourceManager):
 
         # Prepare the queryset filter
         lookup_kwargs = {
-            'network_address__in': network_addresses,
-            'prefix_length__in': prefix_lengths,
-            'ip_version': ip_version,
-            'broadcast_address__gte': broadcast_address,
+            "network_address__in": network_addresses,
+            "prefix_length__in": prefix_lengths,
+            "ip_version": ip_version,
+            "broadcast_address__gte": broadcast_address,
         }
         if site is not None:
-            lookup_kwargs['site'] = site
+            lookup_kwargs["site"] = site
 
         # Search for possible ancestors by network/prefix, returning them in
         # reverse order, so that we can choose the first one.
-        possible_ancestors = Network.objects.filter(
-            **lookup_kwargs
-        ).order_by('-prefix_length')
+        possible_ancestors = Network.objects.filter(**lookup_kwargs).order_by(
+            "-prefix_length"
+        )
 
         # If we've got any matches, the first one is our closest parent.
         try:
             return possible_ancestors[0]
         except IndexError:
             raise Network.DoesNotExist(
-                'Network matching query does not exist.'
+                "Network matching query does not exist."
             )
 
     def reserved(self):
@@ -111,10 +111,11 @@ class NetworkManager(ResourceManager):
 
 class Network(Resource):
     """Represents a subnet or IP address."""
-    ALLOCATED = 'allocated'
-    ASSIGNED = 'assigned'
-    ORPHANED = 'orphaned'
-    RESERVED = 'reserved'
+
+    ALLOCATED = "allocated"
+    ASSIGNED = "assigned"
+    ORPHANED = "orphaned"
+    RESERVED = "reserved"
 
     STATE_CHOICES = (
         (ALLOCATED, ALLOCATED.title()),
@@ -125,58 +126,83 @@ class Network(Resource):
     BUSY_STATES = [ASSIGNED, RESERVED]
 
     network_address = fields.BinaryIPAddressField(
-        max_length=16, null=False, db_index=True,
-        verbose_name='Network Address',
+        max_length=16,
+        null=False,
+        db_index=True,
+        verbose_name="Network Address",
         help_text=(
-            'The network address for the Network. The network address and '
-            'the prefix length together uniquely define a network.'
-        )
+            "The network address for the Network. The network address and "
+            "the prefix length together uniquely define a network."
+        ),
     )
     broadcast_address = fields.BinaryIPAddressField(
-        max_length=16, null=False, db_index=True,
-        help_text='The broadcast address for the Network. (Internal use only)'
+        max_length=16,
+        null=False,
+        db_index=True,
+        help_text="The broadcast address for the Network. (Internal use only)",
     )
     prefix_length = models.IntegerField(
-        null=False, db_index=True, verbose_name='Prefix Length',
-        help_text='Length of the Network prefix, in bits.'
+        null=False,
+        db_index=True,
+        verbose_name="Prefix Length",
+        help_text="Length of the Network prefix, in bits.",
     )
     ip_version = models.CharField(
-        max_length=1, null=False, db_index=True,
-        choices=constants.IP_VERSION_CHOICES
+        max_length=1,
+        null=False,
+        db_index=True,
+        choices=constants.IP_VERSION_CHOICES,
     )
     is_ip = models.BooleanField(
-        null=False, default=False, db_index=True, editable=False,
-        help_text='Whether the Network is a host address or not.'
+        null=False,
+        default=False,
+        db_index=True,
+        editable=False,
+        help_text="Whether the Network is a host address or not.",
     )
     site = models.ForeignKey(
-        'Site', db_index=True, related_name='networks',
-        on_delete=models.PROTECT, verbose_name='Site',
-        help_text='Unique ID of the Site this Network is under.'
+        "Site",
+        db_index=True,
+        related_name="networks",
+        on_delete=models.PROTECT,
+        verbose_name="Site",
+        help_text="Unique ID of the Site this Network is under.",
     )
     parent = models.ForeignKey(
-        'self', blank=True, null=True, related_name='children', default=None,
-        db_index=True, on_delete=models.PROTECT,
-        help_text='The parent Network of the Network.'
+        "self",
+        blank=True,
+        null=True,
+        related_name="children",
+        default=None,
+        db_index=True,
+        on_delete=models.PROTECT,
+        help_text="The parent Network of the Network.",
     )
     state = models.CharField(
-        max_length=20, null=False, db_index=True,
-        choices=STATE_CHOICES, default=ALLOCATED,
-        help_text='The allocation state of the Network.'
+        max_length=20,
+        null=False,
+        db_index=True,
+        choices=STATE_CHOICES,
+        default=ALLOCATED,
+        help_text="The allocation state of the Network.",
     )
 
     # Implements .objects.get_by_address() and .get_closest_parent()
     objects = NetworkManager()
 
     def __init__(self, *args, **kwargs):
-        self._cidr = kwargs.pop('cidr', None)
+        self._cidr = kwargs.pop("cidr", None)
         super(Network, self).__init__(*args, **kwargs)
 
-    def __unicode__(self):
+    def __str__(self):
         return self.cidr
 
     class Meta:
         unique_together = (
-            'site', 'ip_version', 'network_address', 'prefix_length'
+            "site",
+            "ip_version",
+            "network_address",
+            "prefix_length",
         )
         index_together = unique_together
 
@@ -188,7 +214,7 @@ class Network(Resource):
 
         if discover_mode and direct:
             raise exc.ValidationError(
-                'Direct is incompatible with discover_mode.'
+                "Direct is incompatible with discover_mode."
             )
 
         if for_update:
@@ -203,11 +229,16 @@ class Network(Resource):
             ip_version=self.ip_version,
             prefix_length__lt=self.prefix_length,
             network_address__lte=self.network_address,
-            broadcast_address__gte=self.broadcast_address
+            broadcast_address__gte=self.broadcast_address,
         )
 
-    def subnets(self, include_networks=True, include_ips=True, direct=False,
-                for_update=False):
+    def subnets(
+        self,
+        include_networks=True,
+        include_ips=True,
+        direct=False,
+        for_update=False,
+    ):
         query = Network.objects.all()
 
         if not any([include_networks, include_ips]) or self.is_ip:
@@ -230,11 +261,12 @@ class Network(Resource):
             ip_version=self.ip_version,
             prefix_length__gt=self.prefix_length,
             network_address__gte=self.network_address,
-            broadcast_address__lte=self.broadcast_address
+            broadcast_address__lte=self.broadcast_address,
         )
 
-    def get_next_network(self, prefix_length, num=None, strict=False,
-                         as_objects=True):
+    def get_next_network(
+        self, prefix_length, num=1, strict=False, as_objects=True
+    ):
         """
         Return a list of the next available networks.
 
@@ -265,22 +297,24 @@ class Network(Resource):
         try:
             prefix_length = int(prefix_length)
         except (TypeError, ValueError) as err:
-            raise exc.ValidationError({'prefix_length': err.message})
+            raise exc.ValidationError({"prefix_length": str(err)})
 
         if prefix_length < self.prefix_length:
-            raise exc.ValidationError({
-                'prefix_length': 'New prefix must be longer than %r' %
-                self.prefix_length
-            })
-
-        # Default to 1.
-        if num is None or num < 1:
-            num = 1
+            raise exc.ValidationError(
+                {
+                    "prefix_length": "New prefix must be longer than %r"
+                    % self.prefix_length
+                }
+            )
 
         try:
             num = int(num)
-        except ValueError as err:
-            raise exc.ValidationError({'num': err.message})
+        except (TypeError, ValueError) as err:
+            raise exc.ValidationError({"num": str(err)})
+
+        # Always default to 1 for numbers less than 1.
+        if num < 1:
+            num = 1
 
         cidr = self.ip_network
 
@@ -288,15 +322,15 @@ class Network(Resource):
             try:
                 next(cidr.subnets(new_prefix=prefix_length))
             except ValueError as err:
-                raise exc.ValidationError({'prefix_length': err.message})
+                raise exc.ValidationError({"prefix_length": str(err)})
 
         if strict:
             children = [c.ip_network for c in self.get_children()]
         else:
             children = [
-                c.ip_network for c in self.get_descendants() if (
-                    c.prefix_length >= prefix_length
-                )
+                c.ip_network
+                for c in self.get_descendants()
+                if (c.prefix_length >= prefix_length)
             ]
 
         exclude_nums = {}
@@ -332,8 +366,9 @@ class Network(Resource):
         counter = int(cidr.network_address)
 
         # The upper limit is parent network prefix + 1
-        upper = int(cidr.network_address) + 2 ** (cidr.max_prefixlen -
-                                                  cidr.prefixlen)
+        upper = int(cidr.network_address) + 2 ** (
+            cidr.max_prefixlen - cidr.prefixlen
+        )
 
         while counter < upper:
             # If we have requested number of networks then we can break
@@ -374,11 +409,9 @@ class Network(Resource):
             # address in subnet
             if cidr.prefixlen in settings.NETWORK_INTERCONNECT_PREFIXES:
                 pass
-            elif (
-                prefix_length in settings.HOST_PREFIXES and (
-                    next_subnet.network_address == cidr.network_address or
-                    next_subnet.broadcast_address == cidr.broadcast_address
-                )
+            elif prefix_length in settings.HOST_PREFIXES and (
+                next_subnet.network_address == cidr.network_address
+                or next_subnet.broadcast_address == cidr.broadcast_address
             ):
                 # Otherwise we skip first and last address in subnet
                 continue
@@ -387,11 +420,11 @@ class Network(Resource):
             wanted.append(next_subnet)
 
         elapsed_time = time.time() - start_time
-        log.debug('>> WANTED = %s', wanted)
-        log.debug('>> ELAPSED TIME: %s' % elapsed_time)
+        log.debug(">> WANTED = %s", wanted)
+        log.debug(">> ELAPSED TIME: %s" % elapsed_time)
         return wanted if as_objects else [six.text_type(w) for w in wanted]
 
-    def get_next_address(self, num=None, strict=False, as_objects=True):
+    def get_next_address(self, num=1, strict=False, as_objects=True):
         """
         Return a list of the next available addresses.
 
@@ -403,12 +436,14 @@ class Network(Resource):
         :param as_objects:
             Whether to return IPNetwork objects or strings
         """
-        prefix_map = {'4': 32, '6': 128}  # Map ip_version => prefix_length
+        prefix_map = {"4": 32, "6": 128}  # Map ip_version => prefix_length
         prefix_length = prefix_map.get(self.ip_version)
 
         return self.get_next_network(
-            prefix_length=prefix_length, num=num, strict=strict,
-            as_objects=as_objects
+            prefix_length=prefix_length,
+            num=num,
+            strict=strict,
+            as_objects=as_objects,
         )
 
     def is_child_node(self):
@@ -431,7 +466,7 @@ class Network(Resource):
 
     def get_ancestors(self, ascending=False):
         """Return my ancestors."""
-        query = self.supernets().order_by('network_address', 'prefix_length')
+        query = self.supernets().order_by("network_address", "prefix_length")
         if ascending:
             query = query.reverse()
         return query
@@ -439,13 +474,13 @@ class Network(Resource):
     def get_children(self):
         """Return my immediate children."""
         return self.subnets(include_ips=True, direct=True).order_by(
-            'network_address', 'prefix_length'
+            "network_address", "prefix_length"
         )
 
     def get_descendants(self):
         """Return all of my children!"""
         return self.subnets(include_ips=True).order_by(
-            'network_address', 'prefix_length'
+            "network_address", "prefix_length"
         )
 
     def get_root(self):
@@ -461,7 +496,7 @@ class Network(Resource):
         """
         query = Network.objects.filter(
             parent=self.parent, site=self.site
-        ).order_by('network_address', 'prefix_length')
+        ).order_by("network_address", "prefix_length")
         if not include_self:
             query = query.exclude(id=self.id)
 
@@ -487,7 +522,7 @@ class Network(Resource):
 
     @property
     def cidr(self):
-        return u'%s/%s' % (self.network_address, self.prefix_length)
+        return "%s/%s" % (self.network_address, self.prefix_length)
 
     @property
     def ip_network(self):
@@ -503,7 +538,7 @@ class Network(Resource):
             prefix_length__gt=self.prefix_length,
             ip_version=self.ip_version,
             network_address__gte=self.network_address,
-            broadcast_address__lte=self.broadcast_address
+            broadcast_address__lte=self.broadcast_address,
         )
 
         query.update(parent=self)
@@ -512,9 +547,7 @@ class Network(Resource):
         """Enforce that state is one of the valid states."""
         value = value.lower()
         if value not in [s[0] for s in self.STATE_CHOICES]:
-            raise exc.ValidationError({
-                'state': 'Invalid state: %r' % value
-            })
+            raise exc.ValidationError({"state": "Invalid state: %r" % value})
 
         return value
 
@@ -523,7 +556,7 @@ class Network(Resource):
         cidr = self._cidr
         if cidr is None:
             if self.network_address and self.prefix_length:
-                cidr = u'%s/%s' % (self.network_address, self.prefix_length)
+                cidr = "%s/%s" % (self.network_address, self.prefix_length)
 
         if not cidr:
             msg = "Invalid CIDR: {}. Must be IPv4/IPv6 notation.".format(cidr)
@@ -541,9 +574,7 @@ class Network(Resource):
             try:
                 network = ipaddress.ip_network(cidr)
             except ValueError as err:
-                raise exc.ValidationError({
-                    'cidr': err.message
-                })
+                raise exc.ValidationError({"cidr": str(err)})
 
         if network.network_address == network.broadcast_address:
             self.is_ip = True
@@ -556,7 +587,7 @@ class Network(Resource):
 
     # Shoutout to jathanism for this code.
     def delete(self, **kwargs):
-        force_delete = kwargs.pop('force_delete', False)
+        force_delete = kwargs.pop("force_delete", False)
 
         try:
             super(Network, self).delete(**kwargs)
@@ -570,9 +601,9 @@ class Network(Resource):
                     for child in children:
                         if child.is_leaf_node():
                             raise exc.Conflict(
-                                'You cannot forcefully delete a network that '
-                                'does not have a parent, and whose children '
-                                'are leaf nodes.'
+                                "You cannot forcefully delete a network that "
+                                "does not have a parent, and whose children "
+                                "are leaf nodes."
                             )
                 # Otherwise, update all children to use the new parent and
                 # delete the old parent of these child nodes.
@@ -585,16 +616,16 @@ class Network(Resource):
         """This is stuff we want to happen upon save."""
         self.full_clean()  # First validate fields are correct
 
-        for_update = kwargs.pop('for_update', False)
+        for_update = kwargs.pop("for_update", False)
 
         # Calculate our supernets and determine if we require a parent.
         supernets = self.supernets(discover_mode=True, for_update=for_update)
         if supernets:
-            parent = max(supernets, key=attrgetter('prefix_length'))
+            parent = max(supernets, key=attrgetter("prefix_length"))
             self.parent = parent
 
         if self.parent is None and self.is_ip:
-            raise exc.ValidationError('IP Address needs base network.')
+            raise exc.ValidationError("IP Address needs base network.")
 
         # Save, so we get an ID, and register our parent.
         super(Network, self).save(*args, **kwargs)
@@ -605,17 +636,17 @@ class Network(Resource):
 
     def to_dict(self):
         return {
-            'id': self.id,
-            'cidr': self.cidr,
-            'parent_id': self.parent_id,
-            'parent': self.parent and self.parent.cidr,
-            'site_id': self.site_id,
-            'is_ip': self.is_ip,
-            'ip_version': self.ip_version,
-            'network_address': self.network_address,
-            'prefix_length': self.prefix_length,
-            'state': self.state,
-            'attributes': self.get_attributes(),
+            "id": self.id,
+            "cidr": self.cidr,
+            "parent_id": self.parent_id,
+            "parent": self.parent and self.parent.cidr,
+            "site_id": self.site_id,
+            "is_ip": self.is_ip,
+            "ip_version": self.ip_version,
+            "network_address": self.network_address,
+            "prefix_length": self.prefix_length,
+            "state": self.state,
+            "attributes": self.get_attributes(),
         }
 
 
@@ -637,6 +668,7 @@ def refresh_assignment_interface_networks(sender, instance, **kwargs):
 
 
 models.signals.post_save.connect(
-    refresh_assignment_interface_networks, sender=Network,
-    dispatch_uid='refresh_interface_assignment_networks_post_save_network'
+    refresh_assignment_interface_networks,
+    sender=Network,
+    dispatch_uid="refresh_interface_assignment_networks_post_save_network",
 )
