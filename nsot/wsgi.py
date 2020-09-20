@@ -20,6 +20,7 @@ from django.conf import settings
 # (provided by dj-static).
 if settings.SERVE_STATIC_FILES:
     from dj_static import Cling
+
     application = Cling(get_wsgi_application())
 else:
     application = get_wsgi_application()

@@ -4,10 +4,11 @@ from __future__ import absolute_import
 import json
 import logging
 
-from cryptography.fernet import (Fernet, InvalidToken)
+from cryptography.fernet import Fernet, InvalidToken
 from custom_user.models import AbstractEmailUser
 from django.conf import settings
 from django.db import models
+import six
 
 from .. import exc, util, validators
 from .site import Site
@@ -18,9 +19,11 @@ log = logging.getLogger(__name__)
 
 class User(AbstractEmailUser):
     """A custom user object that utilizes email as the username."""
+
     secret_key = models.CharField(
-        max_length=44, default=util.generate_secret_key,
-        help_text="The user's secret_key used for API authentication."
+        max_length=44,
+        default=util.generate_secret_key,
+        help_text="The user's secret_key used for API authentication.",
     )
 
     @property
@@ -30,14 +33,14 @@ class User(AbstractEmailUser):
     def get_permissions(self):
         permissions = []
         if self.is_staff or self.is_superuser:
-            permissions.append('admin')
+            permissions.append("admin")
         sites = Site.objects.all()
 
         return {
             str(site.id): {
-                'permissions': permissions,
-                'site_id': site.id,
-                'user_id': self.id
+                "permissions": permissions,
+                "site_id": site.id,
+                "user_id": self.id,
             }
             for site in sites
         }
@@ -48,12 +51,12 @@ class User(AbstractEmailUser):
 
     def generate_auth_token(self):
         """Serialize user data and encrypt token."""
-        # Serialize data
-        data = json.dumps({'email': self.email})
+        # Serialize data and utf-encode
+        data = json.dumps({"email": self.email})
 
-        # Encrypt w/ servers's secret_key
-        f = Fernet(bytes(settings.SECRET_KEY))
-        auth_token = f.encrypt(bytes(data))
+        # Encrypt data w/ servers's secret_key (it must be utf-encoded)
+        f = Fernet(six.text_type(settings.SECRET_KEY))
+        auth_token = f.encrypt(bytes(data, "utf-8"))
         return auth_token
 
     def verify_secret_key(self, secret_key):
@@ -71,38 +74,40 @@ class User(AbstractEmailUser):
         user = query.first()
 
         if user is None:
-            log.debug('Invalid user when verifying token')
-            raise exc.ValidationError({
-                'auth_token': 'Invalid user when verifying token'
-            })
+            log.debug("Invalid user when verifying token")
+            raise exc.ValidationError(
+                {"auth_token": "Invalid user when verifying token"}
+            )
             # return None  # Invalid user
 
         # Decrypt auth_token w/ user's secret_key
-        f = Fernet(bytes(settings.SECRET_KEY))
+        f = Fernet(six.text_type(settings.SECRET_KEY))
         try:
-            decrypted_data = f.decrypt(bytes(auth_token), ttl=expiration)
+            decrypted_data = f.decrypt(
+                bytes(auth_token, "utf-8"), ttl=expiration
+            )
         except InvalidToken:
-            log.debug('Invalid/expired auth_token when decrypting.')
-            raise exc.ValidationError({
-                'auth_token': 'Invalid/expired auth_token.'
-            })
+            log.debug("Invalid/expired auth_token when decrypting.")
+            raise exc.ValidationError(
+                {"auth_token": "Invalid/expired auth_token."}
+            )
             # return None  # Invalid token
 
         # Deserialize data
         try:
             data = json.loads(decrypted_data)
         except ValueError:
-            log.debug('Token could not be deserialized.')
-            raise exc.ValidationError({
-                'auth_token': 'Token could not be deserialized.'
-            })
+            log.debug("Token could not be deserialized.")
+            raise exc.ValidationError(
+                {"auth_token": "Token could not be deserialized."}
+            )
             # return None  # Valid token, but expired
 
-        if email != data['email']:
-            log.debug('Invalid user when deserializing.')
-            raise exc.ValidationError({
-                'auth_token': 'Invalid user when deserializing.'
-            })
+        if email != data["email"]:
+            log.debug("Invalid user when deserializing.")
+            raise exc.ValidationError(
+                {"auth_token": "Invalid user when deserializing."}
+            )
             # return None  # User email did not match payload
         return user
 
@@ -118,14 +123,14 @@ class User(AbstractEmailUser):
 
     def to_dict(self, with_permissions=False, with_secret_key=False):
         out = [
-            ('id', self.id),
-            ('email', self.email),
+            ("id", self.id),
+            ("email", self.email),
         ]
 
         if with_secret_key:
-            out.append(('secret_key', self.secret_key))
+            out.append(("secret_key", self.secret_key))
 
         if with_permissions:
-            out.append(('permissions', self.get_permissions()))
+            out.append(("permissions", self.get_permissions()))
 
         return dict(out)

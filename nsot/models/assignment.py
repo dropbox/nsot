@@ -2,10 +2,12 @@ from __future__ import unicode_literals
 
 from __future__ import absolute_import
 from django.db import models
+from django.utils.encoding import python_2_unicode_compatible
 
 from .. import exc, validators
 
 
+@python_2_unicode_compatible
 class Assignment(models.Model):
     """
     DB object for assignment of addresses to interfaces (on devices).
@@ -13,21 +15,26 @@ class Assignment(models.Model):
     This is used to enforce constraints at the relationship level for addition
     of new address assignments.
     """
+
     address = models.ForeignKey(
-        'Network', related_name='assignments', db_index=True,
-        help_text='Network to which this assignment is bound.'
+        "Network",
+        related_name="assignments",
+        db_index=True,
+        help_text="Network to which this assignment is bound.",
     )
     interface = models.ForeignKey(
-        'Interface', related_name='assignments', db_index=True,
-        help_text='Interface to which this assignment is bound.'
+        "Interface",
+        related_name="assignments",
+        db_index=True,
+        help_text="Interface to which this assignment is bound.",
     )
     created = models.DateTimeField(auto_now_add=True)
 
-    def __unicode__(self):
-        return u'interface=%s, address=%s' % (self.interface, self.address)
+    def __sr__(self):
+        return "interface=%s, address=%s" % (self.interface, self.address)
 
     class Meta:
-        unique_together = ('address', 'interface')
+        unique_together = ("address", "interface")
         index_together = unique_together
 
     def clean_address(self, value):
@@ -37,9 +44,9 @@ class Assignment(models.Model):
         # Enforce uniqueness upon assignment.
         existing = Assignment.objects.filter(address=addr)
         if existing.filter(interface__device=self.interface.device).exists():
-            raise exc.ValidationError({
-                'address': 'Address already assigned to this Device.'
-            })
+            raise exc.ValidationError(
+                {"address": "Address already assigned to this Device."}
+            )
 
         return value
 
@@ -53,10 +60,10 @@ class Assignment(models.Model):
 
     def to_dict(self):
         return {
-            'id': self.id,
-            'device': self.interface.device.id,
-            'hostname': self.interface.device_hostname,
-            'interface': self.interface.id,
-            'interface_name': self.interface.name,
-            'address': self.address.cidr,
+            "id": self.id,
+            "device": self.interface.device.id,
+            "hostname": self.interface.device_hostname,
+            "interface": self.interface.id,
+            "interface_name": self.interface.name,
+            "address": self.address.cidr,
         }

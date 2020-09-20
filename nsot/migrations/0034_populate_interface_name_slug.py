@@ -6,14 +6,14 @@ from django.db import migrations, models
 
 
 def remove_name_slug(apps, schema_editor):
-    Interface = apps.get_model('nsot', 'Interface')
+    Interface = apps.get_model("nsot", "Interface")
     Interface.objects.update(name_slug=None)
 
 
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('nsot', '0033_add_interface_name_slug'),
+        ("nsot", "0033_add_interface_name_slug"),
     ]
 
     operations = [

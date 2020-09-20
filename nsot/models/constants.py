@@ -4,20 +4,25 @@ from django.conf import settings
 # These are constants that becuase they are tied directly to the underlying
 # objects are explicitly NOT USER CONFIGURABLE.
 RESOURCE_BY_IDX = (
-    'Site', 'Network', 'Attribute', 'Device', 'Interface', 'Circuit',
-    'Protocol', 'ProtocolType'
+    "Site",
+    "Network",
+    "Attribute",
+    "Device",
+    "Interface",
+    "Circuit",
+    "Protocol",
+    "ProtocolType",
 )
 RESOURCE_BY_NAME = {
-    obj_type: idx
-    for idx, obj_type in enumerate(RESOURCE_BY_IDX)
+    obj_type: idx for idx, obj_type in enumerate(RESOURCE_BY_IDX)
 }
 
-CHANGE_EVENTS = ('Create', 'Update', 'Delete')
+CHANGE_EVENTS = ("Create", "Update", "Delete")
 
 VALID_CHANGE_RESOURCES = set(RESOURCE_BY_IDX)
-VALID_ATTRIBUTE_RESOURCES = set([
-    'Network', 'Device', 'Interface', 'Circuit', 'Protocol'
-])
+VALID_ATTRIBUTE_RESOURCES = set(
+    ["Network", "Device", "Interface", "Circuit", "Protocol"]
+)
 
 # Lists of 2-tuples of (value, option) for displaying choices in certain model
 # serializer/form fields.

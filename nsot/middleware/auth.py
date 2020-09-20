@@ -15,7 +15,7 @@ from guardian.core import ObjectPermissionChecker
 from ..util import normalize_auth_header
 
 
-log = logging.getLogger('nsot_server')
+log = logging.getLogger("nsot_server")
 
 
 class EmailHeaderMiddleware(middleware.RemoteUserMiddleware):
@@ -24,6 +24,7 @@ class EmailHeaderMiddleware(middleware.RemoteUserMiddleware):
 
 class EmailHeaderBackend(backends.RemoteUserBackend):
     """Custom backend that validates username is an email."""
+
     def authenticate(self, request, remote_user):
         """Override default to return None if username is invalid."""
         if not remote_user:
@@ -43,7 +44,7 @@ class EmailHeaderBackend(backends.RemoteUserBackend):
         try:
             validator(username)  # If invalid, will raise a ValidationError
         except ValidationError:
-            log.debug('Invalid email address: %r', username)
+            log.debug("Invalid email address: %r", username)
             return None
         else:
             return username
@@ -55,12 +56,13 @@ class EmailHeaderBackend(backends.RemoteUserBackend):
             user.is_staff = True
             user.save()
 
-        log.debug('Created new user: %s', user)
+        log.debug("Created new user: %s", user)
         return user
 
 
 class NsotObjectPermissionsBackend(ObjectPermissionBackend):
     """Custom backend that overloads django-guardian's has_perm method."""
+
     def has_perm(self, user_obj, perm, obj=None):
         """
         Returns ``True`` if ``user_obj`` has ``perm`` for ``obj``. If no
@@ -77,11 +79,12 @@ class NsotObjectPermissionsBackend(ObjectPermissionBackend):
         if check:
             return True
 
-        if hasattr(obj, 'get_ancestors'):
+        if hasattr(obj, "get_ancestors"):
             ancestors = obj.get_ancestors()
             ancestor_perm_check = ObjectPermissionChecker(user_obj)
 
-            return any(ancestor_perm_check.has_perm(perm, a)
-                       for a in ancestors)
+            return any(
+                ancestor_perm_check.has_perm(perm, a) for a in ancestors
+            )
 
         return False

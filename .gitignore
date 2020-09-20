@@ -1,4 +1,3 @@
-tests/api_tests/cassettes/*.json
 staticfiles
 
 *.sqlite

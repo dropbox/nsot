@@ -10,13 +10,19 @@ import django_extensions.db.fields.json
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('nsot', '0037_protocoltype_site__unique_together'),
+        ("nsot", "0037_protocoltype_site__unique_together"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='interface',
-            name='speed',
-            field=models.IntegerField(blank=True, db_index=True, default=1000, help_text='Integer of Mbps of interface (e.g. 20000 for 20 Gbps). If not provided, defaults to 1000.', null=True),
+            model_name="interface",
+            name="speed",
+            field=models.IntegerField(
+                blank=True,
+                db_index=True,
+                default=1000,
+                help_text="Integer of Mbps of interface (e.g. 20000 for 20 Gbps). If not provided, defaults to 1000.",
+                null=True,
+            ),
         ),
     ]

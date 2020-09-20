@@ -33,6 +33,7 @@ class ResourceSetTheoryQuerySet(models.query.QuerySet):
 
         >>> qs = Device.objects.set_query('role=br +role=dr')
     """
+
     def set_query(self, query, site_id=None, unique=False):
         """
         Filter objects by set theory attribute-value ``query`` patterns.
@@ -44,92 +45,84 @@ class ResourceSetTheoryQuerySet(models.query.QuerySet):
         try:
             attributes = util.parse_set_query(query)
         except (ValueError, TypeError) as err:
-            raise exc.ValidationError({
-                'query': err.message
-            })
+            raise exc.ValidationError({"query": str(err)})
 
         resource_name = self.model.__name__
 
         # If there aren't any parsed attributes, don't return anything.
         if not attributes:
             if unique:
-                raise exc.ValidationError({
-                    'query': 'Query empty, unable to provide %s'
-                    % resource_name
-                })
+                raise exc.ValidationError(
+                    {
+                        "query": "Query empty, unable to provide %s"
+                        % resource_name
+                    }
+                )
             return objects.none()
 
         # Iterate a/v pairs and combine query results using MySQL-compatible
         # set operations w/ the ORM
-        log.debug('QUERY [start]: objects = %r', objects)
+        log.debug("QUERY [start]: objects = %r", objects)
         for action, name, value in attributes:
             # Is this a regex pattern?
             regex_query = False
-            if name.endswith('_regex'):
-                name = name.replace('_regex', '')  # Keep attribute name
+            if name.endswith("_regex"):
+                name = name.replace("_regex", "")  # Keep attribute name
                 regex_query = True
-                log.debug('Regex enabled for %r' % name)
+                log.debug("Regex enabled for %r" % name)
 
             # Attribute lookup params
-            params = dict(
-                name=name, resource_name=resource_name
-            )
+            params = dict(name=name, resource_name=resource_name)
             # Only include site_id if it's set
             if site_id is not None:
-                params['site_id'] = site_id
+                params["site_id"] = site_id
 
             # If an Attribute doesn't exist, the set query is invalid. Return
             # an empty queryset. (fix #99)
             try:
-                attr = Attribute.objects.get(
-                    **params
-                )
+                attr = Attribute.objects.get(**params)
             except Attribute.DoesNotExist as err:
-                raise exc.ValidationError({
-                    'query': '%s: %r' % (err.message.rstrip('.'), name)
-                })
+                raise exc.ValidationError(
+                    {"query": "%s: %r" % (str(err).rstrip("."), name)}
+                )
 
             # Set lookup params
             next_set_params = {
-                'name': attr.name,
-                'value': value,
-                'resource_name': resource_name
+                "name": attr.name,
+                "value": value,
+                "resource_name": resource_name,
             }
 
             # If it's a regex query, swap ``value`` with ``value__regex``.
             if regex_query:
-                next_set_params['value__regex'] = next_set_params.pop('value')
+                next_set_params["value__regex"] = next_set_params.pop("value")
 
             next_set = Q(
-                id__in=Value.objects.filter(
-                    **next_set_params
-                ).values_list('resource_id', flat=True)
+                id__in=Value.objects.filter(**next_set_params).values_list(
+                    "resource_id", flat=True
+                )
             )
 
             # This is the MySQL-compatible manual implementation of set theory,
             # baby!
-            if action == 'union':
-                log.debug('SQL UNION')
-                objects = (
-                    objects | self.filter(next_set)
-                )
-            elif action == 'difference':
-                log.debug('SQL DIFFERENCE')
+            if action == "union":
+                log.debug("SQL UNION")
+                objects = objects | self.filter(next_set)
+            elif action == "difference":
+                log.debug("SQL DIFFERENCE")
                 objects = objects.exclude(next_set)
-            elif action == 'intersection':
-                log.debug('SQL INTERSECTION')
+            elif action == "intersection":
+                log.debug("SQL INTERSECTION")
                 objects = objects.filter(next_set)
             else:
-                raise exc.BadRequest('BAD SET QUERY: %r' % (action,))
-            log.debug('QUERY [iter]: objects = %r', objects)
+                raise exc.BadRequest("BAD SET QUERY: %r" % (action,))
+            log.debug("QUERY [iter]: objects = %r", objects)
 
         count = objects.count()
         if unique and count != 1:
             # There can be only one
-            raise exc.ValidationError({
-                'query': 'Query returned %r results, but exactly 1 expected'
-                % count
-            })
+            msg = "Query returned %r results, but exactly 1 expected" % count
+            raise exc.ValidationError({"query": msg})
         else:
             # Gotta call .distinct() or we might get dupes.
             return objects.distinct()
@@ -142,7 +135,7 @@ class ResourceSetTheoryQuerySet(models.query.QuerySet):
         query = self.filter(
             id__in=Value.objects.filter(
                 name=name, value=value, resource_name=resource_name
-            ).values_list('resource_id', flat=True)
+            ).values_list("resource_id", flat=True)
         )
 
         if site_id is not None:
@@ -160,6 +153,7 @@ class ResourceManager(models.Manager):
     + ``.by_attribute()`` - For looking up objects by attribute name/value.
 
     """
+
     queryset_class = ResourceSetTheoryQuerySet
 
     def get_queryset(self):
@@ -214,13 +208,15 @@ class ResourceManager(models.Manager):
 
 class Resource(models.Model):
     """Base for heirarchial Resource objects that may have attributes."""
+
     _attributes_cache = fields.JSONField(
-        null=False, blank=True,
-        help_text='Local cache of attributes. (Internal use only)'
+        null=False,
+        blank=True,
+        help_text="Local cache of attributes. (Internal use only)",
     )
 
     def __init__(self, *args, **kwargs):
-        self._set_attributes = kwargs.pop('attributes', None)
+        self._set_attributes = kwargs.pop("attributes", None)
         super(Resource, self).__init__(*args, **kwargs)
 
     class Meta:
@@ -248,19 +244,20 @@ class Resource(models.Model):
 
     def set_attributes(self, attributes, valid_attributes=None, partial=False):
         """Validate and store the attributes dict as a JSON-encoded string."""
-        log.debug('Resource.set_attributes() attributes = %r',
-                  attributes)
+        log.debug("Resource.set_attributes() attributes = %r", attributes)
 
         # If no attributes and it's a partial update, NOOP.
         if attributes is None and partial:
             return None
 
         if not isinstance(attributes, dict):
-            raise exc.ValidationError({
-                'attributes': 'Expected dictionary but received {}'.format(
-                    type(attributes)
-                )
-            })
+            raise exc.ValidationError(
+                {
+                    "attributes": "Expected dictionary but received {}".format(
+                        type(attributes)
+                    )
+                }
+            )
 
         # A dict of valid Attribute objects for this resource, keyed by
         # attribute name. If not provided, defaults to all matching
@@ -269,40 +266,41 @@ class Resource(models.Model):
             valid_attributes = Attribute.all_by_name(
                 self._resource_name, self.site
             )
-        log.debug('Resource.set_attributes() valid_attributes = %r',
-                  valid_attributes)
+        log.debug(
+            "Resource.set_attributes() valid_attributes = %r", valid_attributes
+        )
 
         # Attributes that are required according to ``valid_attributes``, but
         # are not found incoming in ``attributes``.
         missing_attributes = {
-            attribute.name for attribute in six.itervalues(valid_attributes)
+            attribute.name
+            for attribute in six.itervalues(valid_attributes)
             if attribute.required and attribute.name not in attributes
         }
-        log.debug('Resource.set_attributes() missing_attributes = %r',
-                  missing_attributes)
+        log.debug(
+            "Resource.set_attributes() missing_attributes = %r",
+            missing_attributes,
+        )
 
         # It's an error to have any missing attributes
         if missing_attributes:
-            names = ', '.join(missing_attributes)
-            raise exc.ValidationError({
-                'attributes': 'Missing required attributes: {}'.format(names)
-            })
+            names = ", ".join(missing_attributes)
+            raise exc.ValidationError(
+                {"attributes": "Missing required attributes: {}".format(names)}
+            )
 
         # Run validation each attribute value and prepare them for DB
         # insertion, raising any validation errors immediately.
         inserts = []
         for name, value in six.iteritems(attributes):
             if name not in valid_attributes:
-                raise exc.ValidationError({
-                    'attributes': 'Attribute name ({}) does not exist.'.format(
-                        name
-                    )
-                })
+                msg = "Attribute name ({}) does not exist.".format(name)
+                raise exc.ValidationError({"attributes": msg})
 
             if not isinstance(name, six.string_types):
-                raise exc.ValidationError({
-                    'attributes': 'Attribute names must be a string type.'
-                })
+                raise exc.ValidationError(
+                    {"attributes": "Attribute names must be a string type."}
+                )
 
             attribute = valid_attributes[name]
             inserts.extend(attribute.validate_value(value))
@@ -313,8 +311,9 @@ class Resource(models.Model):
         self._purge_attribute_index()
         for insert in inserts:
             Value.objects.create(
-                obj=self, attribute_id=insert['attribute_id'],
-                value=insert['value']
+                obj=self,
+                attribute_id=insert["attribute_id"],
+                value=insert["value"],
             )
 
         self.clean_attributes()
@@ -324,7 +323,7 @@ class Resource(models.Model):
         attrs = {}
 
         # Only fetch the fields we need.
-        for a in self.attributes.only('name', 'value', 'attribute').iterator():
+        for a in self.attributes.only("name", "value", "attribute").iterator():
             if a.attribute.multi:
                 if a.name not in attrs:
                     attrs[a.name] = []
@@ -339,7 +338,7 @@ class Resource(models.Model):
         self._is_new = self.id is None  # Check if this is a new object.
 
         # Use incoming valid_attributes if they are provided.
-        valid_attributes = kwargs.pop('valid_attributes', None)
+        valid_attributes = kwargs.pop("valid_attributes", None)
 
         super(Resource, self).save(*args, **kwargs)
 
@@ -349,8 +348,9 @@ class Resource(models.Model):
         if self._set_attributes is not None:
             try:
                 # And set the attributes (if any)
-                self.set_attributes(self._set_attributes,
-                                    valid_attributes=valid_attributes)
+                self.set_attributes(
+                    self._set_attributes, valid_attributes=valid_attributes
+                )
             except exc.ValidationError:
                 # If attributes fail validation, and I'm a new object, delete
                 # myself and re-raise the error.

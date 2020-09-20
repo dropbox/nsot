@@ -8,7 +8,7 @@ Gettings stats out of NSoT.
 from netaddr import IPNetwork, IPSet
 
 
-__all__ = ('calculate_network_utilization', 'get_network_utilization')
+__all__ = ("calculate_network_utilization", "get_network_utilization")
 
 
 def calculate_network_utilization(parent, hosts, as_string=False):
@@ -32,16 +32,16 @@ def calculate_network_utilization(parent, hosts, as_string=False):
     num_free = parent.size - hosts.size
 
     stats = {
-        'percent_used': used,
-        'num_used': hosts.size,
-        'percent_free': free,
-        'num_free': num_free,
-        'max': parent.size,
+        "percent_used": used,
+        "num_used": hosts.size,
+        "percent_free": free,
+        "num_free": num_free,
+        "max": parent.size,
     }
 
     # 10.47.216.0/22 - 14% used (139), 86% free (885)
     if as_string:
-        return '{} - {:.0%} used ({}), {:.0%} free ({})'.format(
+        return "{} - {:.0%} used ({}), {:.0%} free ({})".format(
             parent, used, hosts.size, free, num_free
         )
 

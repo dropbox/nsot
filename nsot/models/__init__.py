@@ -18,18 +18,18 @@ from .value import Value
 
 
 __all__ = [
-    'Assignment',
-    'Attribute',
-    'Change',
-    'Circuit',
-    'Device',
-    'Interface',
-    'Network',
-    'Protocol',
-    'ProtocolType',
-    'Site',
-    'User',
-    'Value',
+    "Assignment",
+    "Attribute",
+    "Change",
+    "Circuit",
+    "Device",
+    "Interface",
+    "Network",
+    "Protocol",
+    "ProtocolType",
+    "Site",
+    "User",
+    "Value",
 ]
 
 
@@ -45,5 +45,5 @@ for model_class in resource_subclasses:
     djmodels.signals.post_delete.connect(
         delete_resource_values,
         sender=model_class,
-        dispatch_uid='value_post_delete_' + model_class.__name__
+        dispatch_uid="value_post_delete_" + model_class.__name__,
     )

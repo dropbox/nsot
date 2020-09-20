@@ -25,9 +25,9 @@ def validate_mac_address(value):
     try:
         value = netaddr.EUI(value, version=48)
     except (ValueError, TypeError, netaddr.AddrFormatError):
-        raise exc.ValidationError({
-            'mac_address': 'Enter a valid MAC Address.'
-        })
+        raise exc.ValidationError(
+            {"mac_address": "Enter a valid MAC Address."}
+        )
 
     return value
 
@@ -35,9 +35,7 @@ def validate_mac_address(value):
 def validate_name(value):
     """Validate whether ``value`` is a valid name."""
     if not value:
-        raise exc.ValidationError({
-            'name': 'This is a required field.'
-        })
+        raise exc.ValidationError({"name": "This is a required field."})
     return value
 
 
@@ -46,9 +44,12 @@ def validate_cidr(value):
     try:
         cidr = ipaddress.ip_network(six.text_type(value))
     except ValueError:
-        raise exc.ValidationError({
-            'cidr': '%r does not appear to be an IPv4 or IPv6 network' % value
-        })
+        raise exc.ValidationError(
+            {
+                "cidr": "%r does not appear to be an IPv4 or IPv6 network"
+                % value
+            }
+        )
     else:
         return cidr
 
@@ -57,9 +58,9 @@ def validate_host_address(value):
     """Validate whether ``value`` is a host IP address."""
     cidr = validate_cidr(value)
     if cidr.prefixlen not in settings.HOST_PREFIXES:
-        raise exc.ValidationError({
-            'address': '%r is not a valid host address!' % value
-        })
+        raise exc.ValidationError(
+            {"address": "%r is not a valid host address!" % value}
+        )
     return value
 
 
@@ -69,7 +70,5 @@ def validate_email(value):
     try:
         validator(value)
     except exc.DjangoValidationError as err:
-        raise exc.ValidationError({
-            'email': err.message
-        })
+        raise exc.ValidationError({"email": str(err)})
     return value

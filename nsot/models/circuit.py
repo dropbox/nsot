@@ -1,43 +1,58 @@
 from __future__ import unicode_literals
 
 from __future__ import absolute_import
+
 from django.db import models
+from django.utils.encoding import python_2_unicode_compatible
 
 from .. import exc, util
 from .resource import Resource
 
 
+@python_2_unicode_compatible
 class Circuit(Resource):
     """Represents two network Interfaces that are connected"""
 
     # A-side endpoint interface
     endpoint_a = models.OneToOneField(
-        'Interface', on_delete=models.PROTECT, db_index=True, null=False,
-        related_name='circuit_a', verbose_name='A-side endpoint Interface',
-        help_text='Unique ID of Interface at the A-side.'
+        "Interface",
+        on_delete=models.PROTECT,
+        db_index=True,
+        null=False,
+        related_name="circuit_a",
+        verbose_name="A-side endpoint Interface",
+        help_text="Unique ID of Interface at the A-side.",
     )
 
     # Z-side endpoint interface
     endpoint_z = models.OneToOneField(
-        'Interface', on_delete=models.PROTECT, db_index=True, null=True,
-        related_name='circuit_z', verbose_name='Z-side endpoint Interface',
-        help_text='Unique ID of Interface at the Z-side.'
+        "Interface",
+        on_delete=models.PROTECT,
+        db_index=True,
+        null=True,
+        related_name="circuit_z",
+        verbose_name="Z-side endpoint Interface",
+        help_text="Unique ID of Interface at the Z-side.",
     )
 
     # We are currently inferring the site_id from the parent (A-side) Interface
     # in the .save() method
     site = models.ForeignKey(
-        'Site', db_index=True, related_name='circuits',
+        "Site",
+        db_index=True,
+        related_name="circuits",
         on_delete=models.PROTECT,
-        help_text='Unique ID of the Site this Circuit is under.'
+        help_text="Unique ID of the Site this Circuit is under.",
     )
 
     name = models.CharField(
-        max_length=255, unique=True, default='',
+        max_length=255,
+        unique=True,
+        default="",
         help_text=(
-            'Unique display name of the Circuit. If not provided, defaults to '
+            "Unique display name of the Circuit. If not provided, defaults to "
             "'{device_a}:{interface_a}_{device_z}:{interface_z}'"
-        )
+        ),
     )
 
     # This doesn't use the built-in SlugField since we're doing our own
@@ -49,24 +64,24 @@ class Circuit(Resource):
         null=True,
         unique=True,
         help_text=(
-            'Slugified version of the name field, used for the natural key'
-        )
+            "Slugified version of the name field, used for the natural key"
+        ),
     )
 
-    def __unicode__(self):
-        return u'%s' % self.name
+    def __str__(self):
+        return "%s" % self.name
 
     class Meta:
         # TODO(jathan): Benchmark queries on a large database to identify
         # whether we need explicit indices for this model. In my initial
         # testing all of the common lookup fields are already indexed so this
         # may not be necessary.
-        '''
+        """
         index_together = [
             ('endpoint_a', 'endpoint_z'),
             ('site', 'name_slug'),
         ]
-        '''
+        """
 
     @property
     def interfaces(self):
@@ -119,17 +134,17 @@ class Circuit(Resource):
 
     def clean_endpoint_a(self, value):
         if Circuit.objects.filter(endpoint_z=value).exists():
-            raise exc.ValidationError({
-                'endpoint_a': 'Interface already used as an endpoint_z'
-            })
+            raise exc.ValidationError(
+                {"endpoint_a": "Interface already used as an endpoint_z"}
+            )
 
         return self.endpoint_a
 
     def clean_endpoint_z(self, value):
         if Circuit.objects.filter(endpoint_a=value).exists():
-            raise exc.ValidationError({
-                'endpoint_z': 'Interface already used as an endpoint_a'
-            })
+            raise exc.ValidationError(
+                {"endpoint_z": "Interface already used as an endpoint_a"}
+            )
 
         return self.endpoint_z
 
@@ -138,7 +153,7 @@ class Circuit(Resource):
             return value
 
         # Add display name of hostname:intf_hostname:intf
-        name = '{}_{}'.format(self.endpoint_a, self.endpoint_z)
+        name = "{}_{}".format(self.endpoint_a, self.endpoint_z)
         return name
 
     def clean_fields(self, exclude=None):
@@ -155,10 +170,10 @@ class Circuit(Resource):
 
     def to_dict(self):
         return {
-            'id': self.id,
-            'name': self.name,
-            'name_slug': self.name_slug,
-            'endpoint_a': self.endpoint_a and self.endpoint_a.name_slug,
-            'endpoint_z': self.endpoint_z and self.endpoint_z.name_slug,
-            'attributes': self.get_attributes(),
+            "id": self.id,
+            "name": self.name,
+            "name_slug": self.name_slug,
+            "endpoint_a": self.endpoint_a and self.endpoint_a.name_slug,
+            "endpoint_z": self.endpoint_z and self.endpoint_z.name_slug,
+            "attributes": self.get_attributes(),
         }

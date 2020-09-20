@@ -142,21 +142,9 @@ class Client(object):
         if method.lower() in ("put", "post", "patch"):
             headers["Content-type"] = "application/json"
 
-        # Record stuff w/ Betamax for some reason.
-        from betamax import Betamax
-        cassette = sha1(url).hexdigest()  # SHA1 the URI!
-        with Betamax(self.session).use_cassette(cassette):
-            return self.session.request(
-                method, self.base_url + url,
-                headers=headers, **kwargs
-            )
-
-        '''
         return self.session.request(
-            method, self.base_url + url,
-            headers=headers, **kwargs
+            method, self.base_url + url, headers=headers, **kwargs
         )
-        '''
 
     def get(self, url, **kwargs):
         return self.request("GET", url, **kwargs)

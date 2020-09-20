@@ -3,7 +3,6 @@ from __future__ import unicode_literals
 
 from __future__ import absolute_import
 from django.conf import settings
-from django.db.backends.sqlite3.base import DatabaseWrapper
 from django.db import models
 from django.utils.datastructures import DictWrapper
 from django_extensions.db.fields.json import JSONField
@@ -15,47 +14,29 @@ import six
 from . import exc
 
 
-__all__ = (
-    'BinaryIPAddressField', 'JSONField', 'MACAddressField'
-)
+__all__ = ("BinaryIPAddressField", "JSONField", "MACAddressField")
 
 
 log = logging.getLogger(__name__)
 
 
-if not hasattr(DatabaseWrapper, 'get_new_connection_is_patched'):
-    """
-    Monkey-patch SQLite3 driver to handle text as bytes.
-
-    Credit: http://stackoverflow.com/a/28794677/194311
-    """
-    _get_new_connection = DatabaseWrapper.get_new_connection
-
-    def _get_new_connection_tolerant(self, conn_params):
-        conn = _get_new_connection(self, conn_params)
-        conn.text_factory = bytes
-        return conn
-
-    DatabaseWrapper.get_new_connection = _get_new_connection_tolerant
-    DatabaseWrapper.get_new_connection_is_patched = True
-
-
 class BinaryIPAddressField(models.Field):
     """IP Address field that stores values as varbinary."""
+
     def __init__(self, *args, **kwargs):
         super(BinaryIPAddressField, self).__init__(*args, **kwargs)
         self.editable = True
 
     def db_type(self, connection):
-        engine = connection.settings_dict['ENGINE']
+        engine = connection.settings_dict["ENGINE"]
 
         # Use the native 'inet' type for Postgres.
-        if 'postgres' in engine:
-            return 'inet'
+        if "postgres" in engine:
+            return "inet"
 
         # Or 'varbinary' for everyone else.
         data = DictWrapper(self.__dict__, connection.ops.quote_name, "qn_")
-        return 'varbinary(%(max_length)s)' % data
+        return "varbinary(%(max_length)s)" % data
 
     def _parse_ip_address(self, value):
         try:
@@ -92,10 +73,10 @@ class BinaryIPAddressField(models.Field):
         if value is None:
             return None
 
-        engine = connection.settings_dict['ENGINE']
+        engine = connection.settings_dict["ENGINE"]
 
         # Send the value as-is to Postgres.
-        if 'postgres' in engine:
+        if "postgres" in engine:
             return value
 
         # Or packed binary for everyone else.
@@ -110,6 +91,7 @@ class MACAddressField(BaseMACAddressField):
     always expect the DRF version, for better consistency in debugging and
     testing.
     """
+
     def from_db_value(self, value, expression, connection, context):
         # If value is an integer that is a string, make it an int
         if isinstance(value, six.string_types) and value.isdigit():
@@ -120,7 +102,7 @@ class MACAddressField(BaseMACAddressField):
                 value, expression, connection, context
             )
         except exc.DjangoValidationError as err:
-            raise exc.ValidationError(err.message)
+            raise exc.ValidationError(str(err))
 
     def to_python(self, value):
         # If value is an integer that is a string, make it an int
@@ -130,4 +112,4 @@ class MACAddressField(BaseMACAddressField):
         try:
             return super(MACAddressField, self).to_python(value)
         except exc.DjangoValidationError as err:
-            raise exc.ValidationError(err.message)
+            raise exc.ValidationError(str(err))

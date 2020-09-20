@@ -13,13 +13,14 @@ from django.utils.encoding import force_text
 log = logging.getLogger(__name__)
 
 
-__all__ = ('object_key_func', 'list_key_func')
+__all__ = ("object_key_func", "list_key_func")
 
 
 class UpdatedAtKeyBit(bits.KeyBitBase):
     """Used to store/retrieve timestamp from the cache."""
+
     def get_data(self, **kwargs):
-        key = 'api_updated_at_timestamp'
+        key = "api_updated_at_timestamp"
         value = djcache.get(key, None)
         if not value:
             value = timezone.now()
@@ -30,6 +31,7 @@ class UpdatedAtKeyBit(bits.KeyBitBase):
 
 class ObjectKeyConstructor(constructors.DefaultKeyConstructor):
     """Cache key generator for object/detail views."""
+
     retrieve_sql = bits.RetrieveSqlQueryKeyBit()
     updated_at = UpdatedAtKeyBit()
     kwargs = bits.KwargsKeyBit()
@@ -43,6 +45,7 @@ object_key_func = ObjectKeyConstructor()
 
 class ListKeyConstructor(constructors.DefaultKeyConstructor):
     """Cache key generator for list views."""
+
     list_sql = bits.ListSqlQueryKeyBit()
     pagination = bits.PaginationKeyBit()
     updated_at = UpdatedAtKeyBit()

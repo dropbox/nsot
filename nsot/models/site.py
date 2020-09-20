@@ -2,20 +2,23 @@ from __future__ import unicode_literals
 
 from __future__ import absolute_import
 from django.db import models
+from django.utils.encoding import python_2_unicode_compatible
 
 from .. import validators
 
 
+@python_2_unicode_compatible
 class Site(models.Model):
     """A namespace for attribtues, devices, and networks."""
+
     name = models.CharField(
-        max_length=255, unique=True, help_text='The name of the Site.'
+        max_length=255, unique=True, help_text="The name of the Site."
     )
     description = models.TextField(
-        default='', blank=True, help_text='A helpful description for the Site.'
+        default="", blank=True, help_text="A helpful description for the Site."
     )
 
-    def __unicode__(self):
+    def __str__(self):
         return self.name
 
     def clean_name(self, value):
@@ -30,7 +33,7 @@ class Site(models.Model):
 
     def to_dict(self):
         return {
-            'id': self.id,
-            'name': self.name,
-            'description': self.description,
+            "id": self.id,
+            "name": self.name,
+            "description": self.description,
         }

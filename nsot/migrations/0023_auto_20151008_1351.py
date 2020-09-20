@@ -8,12 +8,14 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('nsot', '0022_auto_20151007_1847'),
+        ("nsot", "0022_auto_20151007_1847"),
     ]
 
     operations = [
         migrations.AlterIndexTogether(
-            name='value',
-            index_together=set([('resource_name', 'resource_id'), ('name', 'value', 'resource_name')]),
+            name="value",
+            index_together=set(
+                [("resource_name", "resource_id"), ("name", "value", "resource_name")]
+            ),
         ),
     ]
