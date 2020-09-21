@@ -30,6 +30,7 @@ class Migration(migrations.Migration):
                 related_name="interfaces",
                 verbose_name="Device",
                 to="nsot.Device",
+                on_delete=django.db.models.deletion.CASCADE,
                 help_text="Unique ID of the connected Device.",
             ),
         ),

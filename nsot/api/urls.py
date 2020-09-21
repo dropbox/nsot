@@ -2,11 +2,10 @@
 from __future__ import unicode_literals
 
 from __future__ import absolute_import
-from django.conf.urls import url, include
+from django.urls import include, path
 from django.conf import settings
 
 from . import routers, views
-
 
 # Register all endpoints as a top-level resource
 router = routers.BulkRouter(trailing_slash=settings.APPEND_SLASH)
@@ -44,18 +43,18 @@ sites_router.register(r"values", views.ValueViewSet)
 # Additionally, we include login URLs for the browsable API.
 urlpatterns = [
     # API routes
-    url(r"^", include(router.urls)),
-    url(r"^", include(sites_router.urls)),
+    path("", include(router.urls)),
+    path("", include(sites_router.urls)),
     # Browsable API auth login
-    url(r"^auth/", include("rest_framework.urls", namespace="rest_framework")),
+    path("auth/", include("rest_framework.urls", namespace="rest_framework")),
     # API auth_token login/verify (email/secret_key)
-    url(
-        r"^authenticate/",
+    path(
+        "authenticate/",
         views.AuthTokenLoginView.as_view(),
         name="authenticate",
     ),
-    url(
-        r"^verify_token/",
+    path(
+        "verify_token/",
         views.AuthTokenVerifyView.as_view(),
         name="verify_token",
     ),

@@ -9,7 +9,7 @@ from hashlib import sha1
 import json
 import os
 
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 import macaddress
 import netaddr
 from rest_framework import status

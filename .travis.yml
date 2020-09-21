@@ -6,9 +6,14 @@ python:
   - '3.7'
   - '3.8'
 
-install:
+before:install:
   - pip install -U pip
   - pip install poetry
+
+env:
+  POETRY_VIRTUALENVS_CREATE: false
+
+install:
   - poetry install
 
 script:

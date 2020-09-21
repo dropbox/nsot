@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 
 from __future__ import absolute_import
 from django.db import models, migrations
+import django.db.models.deletion
 import macaddress.fields
 
 
@@ -26,7 +27,10 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 ("created", models.DateTimeField(auto_now_add=True)),
-                ("address", models.ForeignKey(to="nsot.Network")),
+                ("address", models.ForeignKey(
+                    to="nsot.Network",
+                    on_delete=django.db.models.deletion.CASCADE
+                )),
             ],
         ),
         migrations.CreateModel(
@@ -40,6 +44,7 @@ class Migration(migrations.Migration):
                         primary_key=True,
                         serialize=False,
                         to="nsot.Resource",
+                        on_delete=django.db.models.deletion.CASCADE,
                     ),
                 ),
                 ("name", models.CharField(max_length=255, db_index=True)),
@@ -79,7 +84,11 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "device",
-                    models.ForeignKey(related_name="interfaces", to="nsot.Device"),
+                    models.ForeignKey(
+                        related_name="interfaces",
+                        to="nsot.Device",
+                        on_delete=django.db.models.deletion.CASCADE,
+                    ),
                 ),
             ],
             bases=("nsot.resource",),
@@ -87,7 +96,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="assignment",
             name="interface",
-            field=models.ForeignKey(to="nsot.Interface"),
+            field=models.ForeignKey(to="nsot.Interface", on_delete=django.db.models.deletion.CASCADE),
         ),
         migrations.AlterUniqueTogether(
             name="interface",

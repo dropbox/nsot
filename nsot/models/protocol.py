@@ -31,6 +31,7 @@ class Protocol(Resource):
         "ProtocolType",
         db_index=True,
         related_name="protocols",
+        on_delete=models.CASCADE,
         help_text="The type of this Protocol",
     )
     device = models.ForeignKey(
@@ -38,6 +39,7 @@ class Protocol(Resource):
         db_index=True,
         null=False,
         related_name="protocols",
+        on_delete=models.CASCADE,
         help_text="Device that this protocol is running on",
     )
     interface = models.ForeignKey(
@@ -46,6 +48,7 @@ class Protocol(Resource):
         blank=True,
         null=True,
         related_name="protocols",
+        on_delete=models.CASCADE,
         help_text=(
             "Interface this protocol is running on. Either interface or"
             " circuit must be populated."
@@ -57,6 +60,7 @@ class Protocol(Resource):
         blank=True,
         null=True,
         related_name="protocols",
+        on_delete=models.CASCADE,
         help_text="Circuit that this protocol is running over.",
     )
     auth_string = models.CharField(

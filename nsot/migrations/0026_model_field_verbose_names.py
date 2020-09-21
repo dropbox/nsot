@@ -23,6 +23,7 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(
                 related_name="assignments",
                 to="nsot.Network",
+                on_delete=django.db.models.deletion.CASCADE,
                 help_text="Network to which this assignment is bound.",
             ),
         ),
@@ -32,6 +33,7 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(
                 related_name="assignments",
                 to="nsot.Interface",
+                on_delete=django.db.models.deletion.CASCADE,
                 help_text="Interface to which this assignment is bound.",
             ),
         ),
@@ -171,6 +173,7 @@ class Migration(migrations.Migration):
                 related_name="changes",
                 verbose_name="Site",
                 to="nsot.Site",
+                on_delete=django.db.models.deletion.CASCADE,
                 help_text="Unique ID of the Site this Change is under.",
             ),
         ),
@@ -180,6 +183,7 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(
                 related_name="changes",
                 to=settings.AUTH_USER_MODEL,
+                on_delete=django.db.models.deletion.CASCADE,
                 help_text="The User that initiated this Change.",
             ),
         ),

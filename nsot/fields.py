@@ -50,7 +50,7 @@ class BinaryIPAddressField(models.Field):
 
         return obj.exploded
 
-    def from_db_value(self, value, expression, connection, context):
+    def from_db_value(self, value, expression, connection):
         """DB -> Python."""
         if value is None:
             return value
@@ -92,14 +92,14 @@ class MACAddressField(BaseMACAddressField):
     testing.
     """
 
-    def from_db_value(self, value, expression, connection, context):
+    def from_db_value(self, value, expression, connection):
         # If value is an integer that is a string, make it an int
         if isinstance(value, six.string_types) and value.isdigit():
             value = int(value)
 
         try:
             return super(MACAddressField, self).from_db_value(
-                value, expression, connection, context
+                value, expression, connection
             )
         except exc.DjangoValidationError as err:
             raise exc.ValidationError(str(err))

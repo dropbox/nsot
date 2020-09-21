@@ -8,7 +8,7 @@ import pytest
 pytestmark = pytest.mark.django_db
 
 import copy
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 import json
 import logging
 from rest_framework import status

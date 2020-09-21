@@ -24,12 +24,14 @@ class Change(models.Model):
         db_index=True,
         related_name="changes",
         verbose_name="Site",
+        on_delete=models.CASCADE,
         help_text="Unique ID of the Site this Change is under.",
     )
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         related_name="changes",
         db_index=True,
+        on_delete=models.CASCADE,
         help_text="The User that initiated this Change.",
     )
     change_at = models.DateTimeField(

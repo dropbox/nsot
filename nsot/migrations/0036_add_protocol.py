@@ -57,6 +57,7 @@ class Migration(migrations.Migration):
                         related_name="protocols",
                         blank=True,
                         to="nsot.Circuit",
+                        on_delete=django.db.models.deletion.CASCADE,
                         help_text="Circuit that this protocol is running over.",
                         null=True,
                     ),
@@ -66,6 +67,7 @@ class Migration(migrations.Migration):
                     models.ForeignKey(
                         related_name="protocols",
                         to="nsot.Device",
+                        on_delete=django.db.models.deletion.CASCADE,
                         help_text="Device that this protocol is running on",
                     ),
                 ),
@@ -75,6 +77,7 @@ class Migration(migrations.Migration):
                         related_name="protocols",
                         blank=True,
                         to="nsot.Interface",
+                        on_delete=django.db.models.deletion.CASCADE,
                         help_text="Interface this protocol is running on. Either interface or circuit must be populated.",
                         null=True,
                     ),
@@ -209,6 +212,7 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(
                 related_name="protocols",
                 to="nsot.ProtocolType",
+                on_delete=django.db.models.deletion.CASCADE,
                 help_text="The type of this Protocol",
             ),
         ),

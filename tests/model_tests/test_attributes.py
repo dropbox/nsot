@@ -161,7 +161,7 @@ def test_constraints(site):
 
     pattern = models.Attribute.objects.create(
         resource_name='Network', site=site, name='pattern',
-        constraints={'pattern': '\d\d\d+'}
+        constraints={'pattern': r'\d\d\d+'}
     )
 
     valid = models.Attribute.objects.create(

@@ -76,6 +76,7 @@ class Interface(Resource):
         db_index=True,
         related_name="interfaces",
         null=False,
+        on_delete=models.CASCADE,
         verbose_name="Device",
         help_text="Unique ID of the connected Device.",
     )

@@ -12,6 +12,7 @@ class Migration(migrations.Migration):
     dependencies = [
         ("nsot", "0020_move_value_data"),
     ]
+    atomic = False
 
     operations = [
         #########
@@ -109,12 +110,19 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "address",
-                    models.ForeignKey(related_name="assignments", to="nsot.Network"),
+                    models.ForeignKey(
+                        related_name="assignments",
+                        to="nsot.Network",
+                        on_delete=django.db.models.deletion.CASCADE
+                    ),
                 ),
                 (
                     "interface",
                     models.ForeignKey(
-                        related_name="assignments", to="nsot.Interface", db_index=True
+                        related_name="assignments",
+                        to="nsot.Interface",
+                        db_index=True,
+                        on_delete=django.db.models.deletion.CASCADE,
                     ),
                 ),
                 ("created", models.DateTimeField(auto_now_add=True)),
@@ -143,6 +151,7 @@ class Migration(migrations.Migration):
                 related_name="interfaces",
                 verbose_name="Device",
                 to="nsot.Device",
+                on_delete=django.db.models.deletion.CASCADE,
                 help_text="Unique ID of the connected Device.",
             ),
         ),
