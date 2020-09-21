@@ -8,7 +8,7 @@ import pytest
 pytestmark = pytest.mark.django_db
 
 import copy
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 import json
 import logging
 from rest_framework import status
@@ -580,14 +580,6 @@ def test_mptt_detail_routes(site, client):
     expected = []
     assert_success(client.retrieve(uri), expected)
     assert_success(client.retrieve(natural_uri), expected)
-
-    # descendents (spelled incorrectly) should send along a "Warning" header
-    # TODO(jathan): This should be removed no earlier than v1.3 release.
-    uri = reverse('network-descendents', args=(site.id, net_14['id']))
-    expected = [net_25, ip1, ip2]
-    response = client.retrieve(uri)
-    assert_success(response, expected)
-    assert response.headers.get('Warning') is not None
 
     # parent
     uri = reverse('network-parent', args=(site.id, ip2['id']))

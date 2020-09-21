@@ -68,14 +68,13 @@ AUTHENTICATION_BACKENDS = (
 
 # A tuple of middleware classes to use.
 # https://docs.djangoproject.com/en/1.8/topics/http/middleware/
-MIDDLEWARE_CLASSES = (
+MIDDLEWARE = (
     "nsot.middleware.request_logging.LoggingMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "nsot.middleware.auth.EmailHeaderMiddleware",
-    "django.contrib.auth.middleware.SessionAuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django.middleware.security.SecurityMiddleware",

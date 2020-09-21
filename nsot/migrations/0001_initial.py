@@ -260,6 +260,7 @@ class Migration(migrations.Migration):
                         primary_key=True,
                         serialize=False,
                         to="nsot.Resource",
+                        on_delete=django.db.models.deletion.CASCADE,
                     ),
                 ),
                 ("hostname", models.CharField(max_length=255, db_index=True)),
@@ -285,6 +286,7 @@ class Migration(migrations.Migration):
                         primary_key=True,
                         serialize=False,
                         to="nsot.Resource",
+                        on_delete=django.db.models.deletion.CASCADE,
                     ),
                 ),
                 (
@@ -318,7 +320,10 @@ class Migration(migrations.Migration):
             model_name="value",
             name="resource",
             field=models.ForeignKey(
-                related_name="attributes", blank=True, to="nsot.Resource"
+                related_name="attributes",
+                blank=True,
+                to="nsot.Resource",
+                on_delete=django.db.models.deletion.CASCADE,
             ),
         ),
         migrations.AddField(
@@ -340,19 +345,26 @@ class Migration(migrations.Migration):
                 related_name="polymorphic_nsot.resource_set+",
                 editable=False,
                 to="contenttypes.ContentType",
+                on_delete=django.db.models.deletion.CASCADE,
                 null=True,
             ),
         ),
         migrations.AddField(
             model_name="change",
             name="site",
-            field=models.ForeignKey(related_name="changes", to="nsot.Site"),
+            field=models.ForeignKey(
+                related_name="changes",
+                to="nsot.Site",
+                on_delete=django.db.models.deletion.CASCADE,
+            ),
         ),
         migrations.AddField(
             model_name="change",
             name="user",
             field=models.ForeignKey(
-                related_name="changes", to=settings.AUTH_USER_MODEL
+                related_name="changes",
+                to=settings.AUTH_USER_MODEL,
+                on_delete=django.db.models.deletion.CASCADE,
             ),
         ),
         migrations.AddField(

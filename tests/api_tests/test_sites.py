@@ -7,7 +7,7 @@ import pytest
 # Allow everything in here to access the DB
 pytestmark = pytest.mark.django_db
 
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 import logging
 from rest_framework import status
 

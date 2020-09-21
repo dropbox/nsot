@@ -147,7 +147,7 @@ class Migration(migrations.Migration):
                         primary_key=True,
                     ),
                 ),
-                ("address", models.ForeignKey(to="nsot.Network_temp")),
+                ("address", models.ForeignKey(to="nsot.Network_temp", on_delete=django.db.models.deletion.CASCADE)),
                 # ('interface', models.ForeignKey(to='nsot.Interface_temp')),
                 ("created", models.DateTimeField(auto_now_add=True)),
             ],
@@ -244,6 +244,7 @@ class Migration(migrations.Migration):
                         related_name="interfaces",
                         verbose_name="Device",
                         to="nsot.Device_temp",
+                        on_delete=django.db.models.deletion.CASCADE,
                         help_text="Unique ID of the connected Device.",
                     ),
                 ),
@@ -299,7 +300,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="assignment_temp",
             name="interface",
-            field=models.ForeignKey(to="nsot.Interface_temp"),
+            field=models.ForeignKey(to="nsot.Interface_temp", on_delete=django.db.models.deletion.CASCADE),
         ),
         migrations.AlterUniqueTogether(
             name="interface_temp",

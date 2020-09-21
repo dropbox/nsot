@@ -3,7 +3,6 @@ from __future__ import absolute_import
 from collections import namedtuple, OrderedDict
 import logging
 import six
-import warnings
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -586,33 +585,6 @@ class NetworkViewSet(ResourceViewSet):
 
         return self.list(request, queryset=descendants, *args, **kwargs)
 
-    # TODO(jathan): Remove this no earlier than v1.3 release.
-    @detail_route(methods=["get"])
-    def descendents(self, request, pk=None, site_pk=None, *args, **kwargs):
-        """
-        Return descendants of this Network.
-
-        .. deprecated:: 1.1
-
-        This endpoint is pending deprecation. Use the ``descendants`` endpoint
-        instead.
-        """
-        warning_message = (
-            "The `descendents` API endpoint is pending deprecation. "
-            "Use the `descendants` API endpoint instead."
-        )
-
-        # Display pending until v1.2, and remove in v1.3
-        warnings.warn(warning_message, PendingDeprecationWarning)
-        log.warn(warning_message)
-
-        # Inject the Warning header (per RFC 7234)
-        self.kwargs["headers"] = {"Warning": '299 - "%s"' % warning_message}
-
-        return self.descendants(
-            request, pk=pk, site_pk=site_pk, *args, **kwargs
-        )
-
     @detail_route(methods=["get"])
     def parent(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return the parent of this Network."""
@@ -1000,8 +972,8 @@ class UserViewSet(BaseNsotViewSet, mixins.CreateModelMixin):
 class NotFoundViewSet(viewsets.GenericViewSet):
     """Catchall for bad API endpoints."""
 
-    exclude_from_schema = True
     permission_classes = (permissions.IsAuthenticated,)
+    schema = None
 
     def get_queryset(self):
         return None

@@ -20,12 +20,14 @@ class Assignment(models.Model):
         "Network",
         related_name="assignments",
         db_index=True,
+        on_delete=models.CASCADE,
         help_text="Network to which this assignment is bound.",
     )
     interface = models.ForeignKey(
         "Interface",
         related_name="assignments",
         db_index=True,
+        on_delete=models.CASCADE,
         help_text="Interface to which this assignment is bound.",
     )
     created = models.DateTimeField(auto_now_add=True)

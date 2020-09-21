@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 
 from __future__ import absolute_import
 from django.db import models, migrations
+import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
@@ -15,6 +16,10 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="assignment",
             name="address",
-            field=models.ForeignKey(related_name="assignments", to="nsot.Network"),
+            field=models.ForeignKey(
+                related_name="assignments",
+                to="nsot.Network",
+                on_delete=django.db.models.deletion.CASCADE,
+            ),
         ),
     ]

@@ -6,11 +6,13 @@ from __future__ import absolute_import
 import logging
 from time import time
 
+from django.utils.deprecation import MiddlewareMixin
 
-class LoggingMiddleware(object):
-    def __init__(self):
-        self.logger = logging.getLogger("nsot_server")
 
+logger = logging.getLogger("nsot_server")
+
+
+class LoggingMiddleware(MiddlewareMixin):
     def process_request(self, request):
         request.timer = time()
         return None
@@ -23,7 +25,7 @@ class LoggingMiddleware(object):
             )
         else:
             request_ip_path = request.META.get("REMOTE_ADDR")
-        self.logger.info(
+        logger.info(
             "%s %s %s (%s) %.2fms",
             response.status_code,
             request.method,

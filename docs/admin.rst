@@ -183,18 +183,31 @@ useful for direct access to manipulating database objects.
     from django.contrib.auth.models import Group, Permission
     from django.contrib.contenttypes.models import ContentType
     from django.contrib.sessions.models import Session
-    from nsot.models import Assignment, Attribute, Change, Device, Interface, Network, Site, User, Value
+    from guardian.models import GroupObjectPermission, UserObjectPermission
+    from nsot.models.assignment import Assignment
+    from nsot.models.attribute import Attribute
+    from nsot.models.change import Change
+    from nsot.models.circuit import Circuit
+    from nsot.models.device import Device
+    from nsot.models.interface import Interface
+    from nsot.models.network import Network
+    from nsot.models.protocol import Protocol
+    from nsot.models.protocol_type import ProtocolType
+    from nsot.models.site import Site
+    from nsot.models.user import User
+    from nsot.models.value import Value
     # Shell Plus Django Imports
-    from django.utils import timezone
-    from django.conf import settings
     from django.core.cache import cache
-    from django.db.models import Avg, Count, F, Max, Min, Sum, Q, Prefetch
-    from django.core.urlresolvers import reverse
+    from django.conf import settings
+    from django.contrib.auth import get_user_model
     from django.db import transaction
-    Python 2.7.8 (default, Oct 19 2014, 16:02:00)
+    from django.db.models import Avg, Case, Count, F, Max, Min, Prefetch, Q, Sum, When, Exists, OuterRef, Subquery
+    from django.utils import timezone
+    from django.urls import reverse
+    Python 3.8.5 (default, Jul 21 2020, 10:48:26)
     Type "copyright", "credits" or "license" for more information.
 
-    IPython 3.1.0 -- An enhanced Interactive Python.
+    IPython 5.10.0 -- An enhanced Interactive Python.
     ?         -> Introduction and overview of IPython's features.
     %quickref -> Quick reference.
     help      -> Python's own help system.

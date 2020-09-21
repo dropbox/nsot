@@ -62,7 +62,7 @@ $ docker run -p 8990:8990 -ti --rm nsot/nsot shell_plus
     from django.conf import settings
     from django.core.cache import cache
     from django.db.models import Avg, Count, F, Max, Min, Sum, Q, Prefetch
-    from django.core.urlresolvers import reverse
+    from django.urls import reverse
     from django.db import transaction
     Python 2.7.6 (default, Jun 22 2015, 17:58:13)
     Type "copyright", "credits" or "license" for more information.
