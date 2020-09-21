@@ -14,7 +14,7 @@ from rest_framework import (
     viewsets,
 )
 from rest_framework.views import APIView
-from rest_framework.decorators import detail_route, list_route
+from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework_bulk import mixins as bulk_mixins
 from rest_framework_extensions.cache.decorators import cache_response
@@ -198,9 +198,9 @@ class ChangeViewSet(BaseNsotViewSet):
 
     queryset = models.Change.objects.order_by("-change_at")
     serializer_class = serializers.ChangeSerializer
-    filter_fields = ("event", "resource_name", "resource_id")
+    filterset_fields = ("event", "resource_name", "resource_id")
 
-    @detail_route(methods=["get"])
+    @action(methods=["get"], detail=True)
     def diff(self, request, *args, **kwargs):
         return self.success(self.get_object().diff)
 
@@ -306,7 +306,7 @@ class SiteViewSet(NsotViewSet):
 
     queryset = models.Site.objects.all()
     serializer_class = serializers.SiteSerializer
-    filter_fields = ("name",)
+    filterset_fields = ("name",)
 
 
 class ValueViewSet(NsotViewSet):
@@ -316,7 +316,7 @@ class ValueViewSet(NsotViewSet):
 
     queryset = models.Value.objects.all()
     serializer_class = serializers.ValueSerializer
-    filter_fields = ("name", "value", "resource_name", "resource_id")
+    filterset_fields = ("name", "value", "resource_name", "resource_id")
 
     def get_serializer_class(self):
         if self.request.method == "POST":
@@ -343,7 +343,7 @@ class ResourceViewSet(
     Resource views that include set query list endpoints.
     """
 
-    @list_route(methods=["get"])
+    @action(methods=["get"], detail=False)
     def query(self, request, site_pk=None, *args, **kwargs):
         """Perform a set query."""
         query = request.query_params.get("query", "")
@@ -378,7 +378,7 @@ class AttributeViewSet(ResourceViewSet):
 
     queryset = models.Attribute.objects.all()
     serializer_class = serializers.AttributeSerializer
-    filter_class = filters.AttributeFilter
+    filterset_class = filters.AttributeFilter
 
     def get_serializer_class(self):
         if self.request.method == "POST":
@@ -395,7 +395,7 @@ class DeviceViewSet(ResourceViewSet):
 
     queryset = models.Device.objects.all()
     serializer_class = serializers.DeviceSerializer
-    filter_class = filters.DeviceFilter
+    filterset_class = filters.DeviceFilter
     natural_key = "hostname"
 
     def get_serializer_class(self):
@@ -408,7 +408,7 @@ class DeviceViewSet(ResourceViewSet):
 
         return self.serializer_class
 
-    @detail_route(methods=["get"])
+    @action(methods=["get"], detail=True)
     def interfaces(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return all interfaces for this Device."""
         device = self.get_resource_object(pk, site_pk)
@@ -416,7 +416,7 @@ class DeviceViewSet(ResourceViewSet):
 
         return self.list(request, queryset=interfaces, *args, **kwargs)
 
-    @detail_route(methods=["get"])
+    @action(methods=["get"], detail=True)
     def circuits(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return a list of Circuits for this Device"""
         device = self.get_resource_object(pk, site_pk)
@@ -432,7 +432,7 @@ class NetworkViewSet(ResourceViewSet):
 
     queryset = models.Network.objects.all()
     serializer_class = serializers.NetworkSerializer
-    filter_class = filters.NetworkFilter
+    filterset_class = filters.NetworkFilter
     lookup_value_regex = "[a-fA-F0-9:./]+"
     natural_key = "cidr"
 
@@ -462,7 +462,7 @@ class NetworkViewSet(ResourceViewSet):
         """Return a dict of kwargs for natural_key lookup."""
         return cidr_to_dict(filter_value)
 
-    @list_route(methods=["get"])
+    @action(methods=["get"], detail=False)
     def query(self, request, site_pk=None, *args, **kwargs):
         """Override base query to inherit filtering by query params."""
         self.queryset = self.get_queryset()
@@ -470,7 +470,7 @@ class NetworkViewSet(ResourceViewSet):
             request, site_pk, *args, **kwargs
         )
 
-    @detail_route(methods=["get"])
+    @action(methods=["get"], detail=True)
     def closest_parent(self, request, pk=None, site_pk=None, *args, **kwargs):
         """
         Return the closest matching parent of this Network even if it doesn't
@@ -490,7 +490,7 @@ class NetworkViewSet(ResourceViewSet):
 
         return self.retrieve(request, pk, site_pk, *args, **kwargs)
 
-    @detail_route(methods=["get"])
+    @action(methods=["get"], detail=True)
     def subnets(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return subnets of this Network."""
         network = self.get_resource_object(pk, site_pk)
@@ -508,7 +508,7 @@ class NetworkViewSet(ResourceViewSet):
 
         return self.list(request, queryset=networks, *args, **kwargs)
 
-    @detail_route(methods=["get"])
+    @action(methods=["get"], detail=True)
     def supernets(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return supernets of this Network."""
         network = self.get_resource_object(pk, site_pk)
@@ -520,7 +520,7 @@ class NetworkViewSet(ResourceViewSet):
 
         return self.list(request, queryset=networks, *args, **kwargs)
 
-    @detail_route(methods=["get", "post"])
+    @action(methods=["get", "post"], detail=True)
     def next_network(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return next available networks from this Network."""
         network = self.get_resource_object(pk, site_pk)
@@ -542,7 +542,7 @@ class NetworkViewSet(ResourceViewSet):
             self.allocate_networks(networks, site_pk, state)
         return self.success(networks)
 
-    @detail_route(methods=["get", "post"])
+    @action(methods=["get", "post"], detail=True)
     def next_address(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return next available IPs from this Network."""
         network = self.get_resource_object(pk, site_pk)
@@ -560,7 +560,7 @@ class NetworkViewSet(ResourceViewSet):
             self.allocate_networks(addresses, site_pk, state)
         return self.success(addresses)
 
-    @detail_route(methods=["get"])
+    @action(methods=["get"], detail=True)
     def ancestors(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return ancestors of this Network."""
         network = self.get_resource_object(pk, site_pk)
@@ -569,7 +569,7 @@ class NetworkViewSet(ResourceViewSet):
 
         return self.list(request, queryset=ancestors, *args, **kwargs)
 
-    @detail_route(methods=["get"])
+    @action(methods=["get"], detail=True)
     def children(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return the immediate children of this Network."""
         network = self.get_resource_object(pk, site_pk)
@@ -577,7 +577,7 @@ class NetworkViewSet(ResourceViewSet):
 
         return self.list(request, queryset=children, *args, **kwargs)
 
-    @detail_route(methods=["get"])
+    @action(methods=["get"], detail=True)
     def descendants(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return descendants of this Network."""
         network = self.get_resource_object(pk, site_pk)
@@ -585,7 +585,7 @@ class NetworkViewSet(ResourceViewSet):
 
         return self.list(request, queryset=descendants, *args, **kwargs)
 
-    @detail_route(methods=["get"])
+    @action(methods=["get"], detail=True)
     def parent(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return the parent of this Network."""
         network = self.get_resource_object(pk, site_pk)
@@ -597,7 +597,7 @@ class NetworkViewSet(ResourceViewSet):
 
         return self.retrieve(request, pk, site_pk, *args, **kwargs)
 
-    @detail_route(methods=["get"])
+    @action(methods=["get"], detail=True)
     def root(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return the parent of all ancestors for this Network."""
         network = self.get_resource_object(pk, site_pk)
@@ -609,7 +609,7 @@ class NetworkViewSet(ResourceViewSet):
 
         return self.retrieve(request, pk, site_pk, *args, **kwargs)
 
-    @detail_route(methods=["get"])
+    @action(methods=["get"], detail=True)
     def siblings(self, request, pk=None, site_pk=None, *args, **kwargs):
         """
         Return Networks with the same parent. Root nodes are
@@ -621,7 +621,7 @@ class NetworkViewSet(ResourceViewSet):
 
         return self.list(request, queryset=descendents, *args, **kwargs)
 
-    @detail_route(methods=["get"])
+    @action(methods=["get"], detail=True)
     def assignments(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return the interface assignments for this Network."""
         network = self.get_resource_object(pk, site_pk)
@@ -629,7 +629,7 @@ class NetworkViewSet(ResourceViewSet):
 
         return self.list(request, queryset=assignments, *args, **kwargs)
 
-    @list_route(methods=["get"])
+    @action(methods=["get"], detail=False)
     def reserved(self, request, site_pk=None, *args, **kwargs):
         """Display all reserved Networks."""
         objects = models.Network.objects.reserved()
@@ -665,7 +665,7 @@ class InterfaceViewSet(ResourceViewSet):
 
     queryset = models.Interface.objects.all()
     serializer_class = serializers.InterfaceSerializer
-    filter_class = filters.InterfaceFilter
+    filterset_class = filters.InterfaceFilter
     # Match on device_hostname:name or pk id
     # Being pretty vague here, so as to be minimally prescriptive
     lookup_value_regex = "[a-zA-Z0-9:./-]*[0-9]"
@@ -690,27 +690,27 @@ class InterfaceViewSet(ResourceViewSet):
             return serializers.InterfacePartialUpdateSerializer
         return self.serializer_class
 
-    @detail_route(methods=["get"])
+    @action(methods=["get"], detail=True)
     def addresses(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return a list of addresses for this Interface."""
         interface = self.get_resource_object(pk, site_pk)
         addresses = interface.addresses.all()
         return self.list(request, queryset=addresses, *args, **kwargs)
 
-    @detail_route(methods=["get"])
+    @action(methods=["get"], detail=True)
     def assignments(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return a list of information about my assigned addresses."""
         interface = self.get_resource_object(pk, site_pk)
         assignments = interface.assignments.all()
         return self.list(request, queryset=assignments, *args, **kwargs)
 
-    @detail_route(methods=["get"])
+    @action(methods=["get"], detail=True)
     def networks(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return all the containing Networks for my assigned addresses."""
         interface = self.get_resource_object(pk, site_pk)
         return self.list(request, queryset=interface.networks, *args, **kwargs)
 
-    @detail_route(methods=["get"])
+    @action(methods=["get"], detail=True)
     def parent(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return the parent of this Interface."""
         interface = self.get_resource_object(pk, site_pk)
@@ -721,7 +721,7 @@ class InterfaceViewSet(ResourceViewSet):
             pk = None
         return self.retrieve(request, pk, site_pk, *args, **kwargs)
 
-    @detail_route(methods=["get"])
+    @action(methods=["get"], detail=True)
     def ancestors(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return all the ancestors of this Interface."""
         interface = self.get_resource_object(pk, site_pk)
@@ -729,7 +729,7 @@ class InterfaceViewSet(ResourceViewSet):
             request, queryset=interface.get_ancestors(), *args, **kwargs
         )
 
-    @detail_route(methods=["get"])
+    @action(methods=["get"], detail=True)
     def children(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return all the immediate children of this Interface."""
         interface = self.get_resource_object(pk, site_pk)
@@ -737,7 +737,7 @@ class InterfaceViewSet(ResourceViewSet):
             request, queryset=interface.get_children(), *args, **kwargs
         )
 
-    @detail_route(methods=["get"])
+    @action(methods=["get"], detail=True)
     def descendants(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return all the descendants of this Interface."""
         interface = self.get_resource_object(pk, site_pk)
@@ -745,7 +745,7 @@ class InterfaceViewSet(ResourceViewSet):
             request, queryset=interface.get_descendants(), *args, **kwargs
         )
 
-    @detail_route(methods=["get"])
+    @action(methods=["get"], detail=True)
     def siblings(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return all the siblings of this Interface."""
         interface = self.get_resource_object(pk, site_pk)
@@ -753,7 +753,7 @@ class InterfaceViewSet(ResourceViewSet):
             request, queryset=interface.get_siblings(), *args, **kwargs
         )
 
-    @detail_route(methods=["get"])
+    @action(methods=["get"], detail=True)
     def root(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return the root of the tree this Interface is part of."""
         interface = self.get_resource_object(pk, site_pk)
@@ -761,7 +761,7 @@ class InterfaceViewSet(ResourceViewSet):
         pk = root.id
         return self.retrieve(request, pk, site_pk, *args, **kwargs)
 
-    @detail_route(methods=["get"])
+    @action(methods=["get"], detail=True)
     def circuit(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return the Circuit I am associated with"""
         interface = self.get_resource_object(pk, site_pk)
@@ -781,7 +781,7 @@ class CircuitViewSet(ResourceViewSet):
 
     queryset = models.Circuit.objects.all()
     serializer_class = serializers.CircuitSerializer
-    filter_class = filters.CircuitFilter
+    filterset_class = filters.CircuitFilter
     natural_key = "name_slug"
 
     # TODO(jathan): Revisit this if and when we upgrade or replace
@@ -854,7 +854,7 @@ class CircuitViewSet(ResourceViewSet):
 
         return self.serializer_class
 
-    @detail_route(methods=["get"])
+    @action(methods=["get"], detail=True)
     def addresses(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return a list of addresses for the interfaces on this Circuit."""
         circuit = self.get_resource_object(pk, site_pk)
@@ -862,7 +862,7 @@ class CircuitViewSet(ResourceViewSet):
 
         return self.list(request, queryset=addresses, *args, **kwargs)
 
-    @detail_route(methods=["get"])
+    @action(methods=["get"], detail=True)
     def devices(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return a list of devices for this Circuit."""
         circuit = self.get_resource_object(pk, site_pk)
@@ -870,7 +870,7 @@ class CircuitViewSet(ResourceViewSet):
 
         return self.list(request, queryset=devices, *args, **kwargs)
 
-    @detail_route(methods=["get"])
+    @action(methods=["get"], detail=True)
     def interfaces(self, request, pk=None, site_pk=None, *args, **kwargs):
         """Return a list of interfaces for this Circuit."""
         circuit = self.get_resource_object(pk, site_pk)
@@ -886,7 +886,7 @@ class ProtocolTypeViewSet(NsotViewSet):
 
     queryset = models.ProtocolType.objects.all()
     serializer_class = serializers.ProtocolTypeSerializer
-    filter_class = filters.ProtocolTypeFilter
+    filterset_class = filters.ProtocolTypeFilter
     natural_key = "name"
 
 
@@ -897,7 +897,7 @@ class ProtocolViewSet(ResourceViewSet):
 
     queryset = models.Protocol.objects.all()
     serializer_class = serializers.ProtocolSerializer
-    filter_class = filters.ProtocolFilter
+    filterset_class = filters.ProtocolFilter
 
     def get_serializer_class(self):
         if self.request.method == "POST":
@@ -921,7 +921,7 @@ class UserViewSet(BaseNsotViewSet, mixins.CreateModelMixin):
 
     queryset = get_user_model().objects.all()
     serializer_class = serializers.UserSerializer
-    filter_fields = ("email",)
+    filterset_fields = ("email",)
 
     def get_user_and_pk(self, request, pk=None, site_pk=None):
         # If pk is 0, return the current user.
@@ -956,7 +956,7 @@ class UserViewSet(BaseNsotViewSet, mixins.CreateModelMixin):
             request, pk, site_pk, *args, **kwargs
         )
 
-    @detail_route(methods=["post"])
+    @action(methods=["post"], detail=True)
     def rotate_secret_key(self, request, pk=None, *args, **kwargs):
         user, pk = self.get_user_and_pk(request, pk)
 
