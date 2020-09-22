@@ -49,7 +49,7 @@ class EmailHeaderBackend(backends.RemoteUserBackend):
         else:
             return username
 
-    def configure_user(self, user):
+    def configure_user(self, request, user):
         """Check whether to make new users superusers."""
         if settings.NSOT_NEW_USERS_AS_SUPERUSER:
             user.is_superuser = True

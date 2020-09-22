@@ -220,10 +220,11 @@ description = "A high-level Python Web framework that encourages rapid developme
 name = "django"
 optional = false
 python-versions = ">=3.5"
-version = "2.1.15"
+version = "2.2.16"
 
 [package.dependencies]
 pytz = "*"
+sqlparse = ">=0.2.2"
 
 [package.extras]
 argon2 = ["argon2-cffi (>=16.1.0)"]
@@ -943,6 +944,14 @@ sphinx = ">=1.3"
 
 [[package]]
 category = "main"
+description = "Non-validating SQL parser"
+name = "sqlparse"
+optional = false
+python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
+version = "0.3.1"
+
+[[package]]
+category = "main"
 description = "A really simple WSGI way to serve static (or mixed) content."
 name = "static3"
 optional = false
@@ -1056,7 +1065,7 @@ docs = ["sphinx", "jaraco.packaging (>=3.2)", "rst.linker (>=1.9)"]
 testing = ["jaraco.itertools", "func-timeout"]
 
 [metadata]
-content-hash = "cdc7779e1e15934ff57bdeeb057c0e8b66820889b53e8b763685086a02a37fa7"
+content-hash = "c40a0389ab1fc1862af81c49e1999870480c6203798552a5e4e68989053f3d9b"
 lock-version = "1.0"
 python-versions = ">=3.6"
 
@@ -1190,8 +1199,8 @@ dj-static = [
     {file = "dj-static-0.0.6.tar.gz", hash = "sha256:032ec1c532617922e6e3e956d504a6fb1acce4fc1c7c94612d0fda21828ce8ef"},
 ]
 django = [
-    {file = "Django-2.1.15-py3-none-any.whl", hash = "sha256:48522428f4a285cf265af969f4744c5ebb027c7f41958ba48b639ace2068ffe7"},
-    {file = "Django-2.1.15.tar.gz", hash = "sha256:a794f7a2f4b7c928eecfbc4ebad03712ff27fb545abe269bf01aa8500781eb1c"},
+    {file = "Django-2.2.16-py3-none-any.whl", hash = "sha256:83ced795a0f239f41d8ecabf51cc5fad4b97462a6008dc12e5af3cb9288724ec"},
+    {file = "Django-2.2.16.tar.gz", hash = "sha256:62cf45e5ee425c52e411c0742e641a6588b7e8af0d2c274a27940931b2786594"},
 ]
 django-custom-user = [
     {file = "django-custom-user-0.7.tar.gz", hash = "sha256:3968acd67454746334aca940075774cb3c975284f5d1cbf96194927de426e501"},
@@ -1517,6 +1526,10 @@ sphinx-rtd-theme = [
     {file = "sphinx_rtd_theme-0.1.9-py2-none-any.whl", hash = "sha256:3c38d037713bd78043486eea5bf771d71ed697ec25c09e16f49e44887f7fe184"},
     {file = "sphinx_rtd_theme-0.1.9-py3-none-any.whl", hash = "sha256:46c2ca8b482b0398b9621bb5a8ec7c9c5c7226926e5363e18d744f5f0d39d78f"},
     {file = "sphinx_rtd_theme-0.1.9.tar.gz", hash = "sha256:273846f8aacac32bf9542365a593b495b68d8035c2e382c9ccedcac387c9a0a1"},
+]
+sqlparse = [
+    {file = "sqlparse-0.3.1-py2.py3-none-any.whl", hash = "sha256:022fb9c87b524d1f7862b3037e541f68597a730a8843245c349fc93e1643dc4e"},
+    {file = "sqlparse-0.3.1.tar.gz", hash = "sha256:e162203737712307dfe78860cc56c8da8a852ab2ee33750e33aeadf38d12c548"},
 ]
 static3 = [
     {file = "static3-0.6.2.tar.gz", hash = "sha256:25dccf5decf46046a3890a7d8b90e6aed5589e5cc6a6f5dc07249ea66468dfc7"},
