@@ -30,17 +30,17 @@ def render_error(request, status_code, template_name="ui/error.html"):
     return render(request, template_name, context, status=status_code)
 
 
-def handle400(request):
+def handle400(request, exception):
     """Handler for 400."""
     return render_error(request, 400)
 
 
-def handle403(request):
+def handle403(request, exception):
     """Handler for 403."""
     return render_error(request, 403)
 
 
-def handle404(request):
+def handle404(request, exception):
     """Handler for 404."""
     return render_error(request, 404)
 

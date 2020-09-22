@@ -88,7 +88,7 @@ an existing database.
 
    $ nsot-server upgrade
    Operations to perform:
-     Synchronize unmigrated apps: django_filters, staticfiles, messages, smart_selects, rest_framework_swagger, django_extensions, rest_framework, custom_user
+     Synchronize unmigrated apps: django_filters, staticfiles, messages, smart_selects, django_extensions, rest_framework, custom_user
      Apply all migrations: admin, contenttypes, nsot, auth, sessions
    Synchronizing apps without migrations:
      Creating tables...

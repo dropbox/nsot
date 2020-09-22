@@ -341,17 +341,8 @@ def initialize_app(config):
     :param config:
         Config object
     """
-    # FIXME(jathan): Move this to a setting/parameter that can be toggled when
-    # gevent workers are not used.
-    USE_GEVENT = True  # Hard-coding gevent for now.
-
-    if USE_GEVENT:
-        # TODO(jathan): We need to keep an eye on this. If we run into any race
-        # conditions w/ database updates, this should be the first place we
-        # look.
-        from django.db import connections
-
-        connections["default"].allow_thread_sharing = True
+    # This currently does nothing but it's here in case we need it.
+    pass
 
 
 def main():
