@@ -48,7 +48,6 @@ INSTALLED_APPS = (
     "django_filters",
     "guardian",
     "rest_framework",
-    "rest_framework_swagger",
     "custom_user",
     "nsot",
 )
@@ -216,7 +215,7 @@ CACHES = {
 # The type of workers to use.
 # http://docs.gunicorn.org/en/latest/settings.html#worker-class
 # Default: 'gevent'
-NSOT_WORKER_CLASS = "gevent"
+NSOT_WORKER_CLASS = "gthread"
 
 # Load application code before the worker processes are forked.
 # http://docs.gunicorn.org/en/latest/settings.html#preload-app
