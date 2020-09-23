@@ -7,7 +7,7 @@ import logging
 from rest_framework_extensions.key_constructor import bits, constructors
 from django.core.cache import cache as djcache
 from django.utils import timezone
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 
 
 log = logging.getLogger(__name__)
@@ -26,7 +26,7 @@ class UpdatedAtKeyBit(bits.KeyBitBase):
             value = timezone.now()
             djcache.set(key, value=value)
 
-        return force_text(value)
+        return force_str(value)
 
 
 class ObjectKeyConstructor(constructors.DefaultKeyConstructor):

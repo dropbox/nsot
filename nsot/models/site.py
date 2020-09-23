@@ -2,12 +2,10 @@ from __future__ import unicode_literals
 
 from __future__ import absolute_import
 from django.db import models
-from django.utils.encoding import python_2_unicode_compatible
 
 from .. import validators
 
 
-@python_2_unicode_compatible
 class Site(models.Model):
     """A namespace for attribtues, devices, and networks."""
 

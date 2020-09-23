@@ -5,14 +5,12 @@ import re
 
 from django.conf import settings
 from django.db import models
-from django.utils.encoding import python_2_unicode_compatible
 import six
 
 from .. import exc, fields, validators
 from . import constants
 
 
-@python_2_unicode_compatible
 class Attribute(models.Model):
     """Represents a flexible attribute for Resource objects."""
 

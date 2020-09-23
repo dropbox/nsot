@@ -1,11 +1,9 @@
 from __future__ import absolute_import
 from django.db import models
-from django.utils.encoding import python_2_unicode_compatible
 
 from .. import exc
 
 
-@python_2_unicode_compatible
 class ProtocolType(models.Model):
     """
     Representation of protocol types (e.g. bgp, is-is, ospf, etc.)

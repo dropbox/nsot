@@ -2,14 +2,12 @@ from __future__ import unicode_literals
 
 from __future__ import absolute_import
 from django.db import models
-from django.utils.encoding import python_2_unicode_compatible
 
 from .. import exc
 from . import constants
 from .attribute import Attribute
 
 
-@python_2_unicode_compatible
 class Value(models.Model):
     """Represents a value for an attribute attached to a Resource."""
 

@@ -7,7 +7,6 @@ from operator import attrgetter
 
 from django.conf import settings
 from django.db import models
-from django.utils.encoding import python_2_unicode_compatible
 import ipaddress
 import netaddr
 import six
@@ -20,7 +19,6 @@ from .resource import Resource, ResourceManager
 log = logging.getLogger(__name__)
 
 
-@python_2_unicode_compatible
 class NetworkManager(ResourceManager):
     """Manager for NetworkInterface objects."""
 
