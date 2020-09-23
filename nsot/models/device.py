@@ -3,14 +3,12 @@ from __future__ import unicode_literals
 from __future__ import absolute_import
 from django.conf import settings
 from django.db import models
-from django.utils.encoding import python_2_unicode_compatible
 
 from .. import exc
 from .circuit import Circuit
 from .resource import Resource
 
 
-@python_2_unicode_compatible
 class Device(Resource):
     """Represents a network device."""
 

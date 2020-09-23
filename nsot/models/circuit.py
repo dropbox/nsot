@@ -3,13 +3,11 @@ from __future__ import unicode_literals
 from __future__ import absolute_import
 
 from django.db import models
-from django.utils.encoding import python_2_unicode_compatible
 
 from .. import exc, util
 from .resource import Resource
 
 
-@python_2_unicode_compatible
 class Circuit(Resource):
     """Represents two network Interfaces that are connected"""
 

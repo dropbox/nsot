@@ -8,14 +8,12 @@ import json
 from django.apps import apps
 from django.conf import settings
 from django.db import models
-from django.utils.encoding import python_2_unicode_compatible
 
 from .. import exc, fields
 from . import constants
 from .site import Site
 
 
-@python_2_unicode_compatible
 class Change(models.Model):
     """Record of all changes in NSoT."""
 

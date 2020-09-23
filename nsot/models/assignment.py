@@ -2,12 +2,10 @@ from __future__ import unicode_literals
 
 from __future__ import absolute_import
 from django.db import models
-from django.utils.encoding import python_2_unicode_compatible
 
 from .. import exc, validators
 
 
-@python_2_unicode_compatible
 class Assignment(models.Model):
     """
     DB object for assignment of addresses to interfaces (on devices).

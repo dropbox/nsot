@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 from django.db import models
-from django.utils.encoding import python_2_unicode_compatible
 import six
 
 from .. import exc
@@ -8,7 +7,6 @@ from .attribute import Attribute
 from .resource import Resource
 
 
-@python_2_unicode_compatible
 class Protocol(Resource):
     """
     Representation of a routing protocol
