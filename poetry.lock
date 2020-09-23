@@ -308,7 +308,10 @@ description = "Web APIs for Django, made easy."
 name = "djangorestframework"
 optional = false
 python-versions = ">=3.5"
-version = "3.10.3"
+version = "3.11.1"
+
+[package.dependencies]
+django = ">=1.11"
 
 [[package]]
 category = "main"
@@ -1028,7 +1031,7 @@ docs = ["sphinx", "jaraco.packaging (>=3.2)", "rst.linker (>=1.9)"]
 testing = ["pytest (>=3.5,<3.7.3 || >3.7.3)", "pytest-checkdocs (>=1.2.3)", "pytest-flake8", "pytest-cov", "jaraco.test (>=3.2.0)", "jaraco.itertools", "func-timeout", "pytest-black (>=0.3.7)", "pytest-mypy"]
 
 [metadata]
-content-hash = "df9732f28ebe6f83d52cff40a3d0479b90ef95355e4d87f06324472aa1208ffe"
+content-hash = "d395d8f26bd622a10596f2748c1595c3510ecee475ee001123a4ce0625f4a173"
 lock-version = "1.0"
 python-versions = ">=3.6"
 
@@ -1194,8 +1197,8 @@ django-macaddress = [
     {file = "django_macaddress-1.5.0-py2.py3-none-any.whl", hash = "sha256:bc2006629a0b81b34e99b45e21bb9cd8551f00dd783b3b1c766677450e9fa3c9"},
 ]
 djangorestframework = [
-    {file = "djangorestframework-3.10.3-py3-none-any.whl", hash = "sha256:5488aed8f8df5ec1d70f04b2114abc52ae6729748a176c453313834a9ee179c8"},
-    {file = "djangorestframework-3.10.3.tar.gz", hash = "sha256:dc81cbf9775c6898a580f6f1f387c4777d12bd87abf0f5406018d32ccae71090"},
+    {file = "djangorestframework-3.11.1-py3-none-any.whl", hash = "sha256:8b1ac62c581dbc5799b03e535854b92fc4053ecfe74bad3f9c05782063d4196b"},
+    {file = "djangorestframework-3.11.1.tar.gz", hash = "sha256:6dd02d5a4bd2516fb93f80360673bf540c3b6641fec8766b1da2870a5aa00b32"},
 ]
 djangorestframework-bulk = [
     {file = "djangorestframework-bulk-0.2.1.tar.gz", hash = "sha256:39230d8379acebd86d313df6c9150cafecb636eae1d097c30a26389ab9fee5b1"},
