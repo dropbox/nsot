@@ -7,6 +7,7 @@ import logging
 
 from django.contrib.auth import get_user_model
 from rest_framework import fields, serializers
+from rest_framework import validators as drf_validators
 from rest_framework_bulk import BulkSerializerMixin, BulkListSerializer
 
 from . import auth
@@ -390,6 +391,15 @@ class DeviceCreateSerializer(DeviceSerializer):
     class Meta:
         model = models.Device
         fields = ("hostname", "attributes", "site_id")
+        # TODO(jathan): Manaully set unique_together validator required due to
+        # bug in DRF 3.11. Remove me in DRF 3.12 when it is fixed.
+        # Ref: https://github.com/encode/django-rest-framework/issues/7100
+        validators = [
+            drf_validators.UniqueTogetherValidator(
+                queryset=models.Device.objects.all(),
+                fields=["site_id", "hostname"],
+            )
+        ]
 
 
 class DevicePartialUpdateSerializer(
