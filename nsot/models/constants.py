@@ -1,5 +1,12 @@
+"""
+Constants for working with models.
+"""
+
 from __future__ import absolute_import
+from collections import OrderedDict
+
 from django.conf import settings
+
 
 # These are constants that becuase they are tied directly to the underlying
 # objects are explicitly NOT USER CONFIGURABLE.
@@ -13,15 +20,23 @@ RESOURCE_BY_IDX = (
     "Protocol",
     "ProtocolType",
 )
-RESOURCE_BY_NAME = {
-    obj_type: idx for idx, obj_type in enumerate(RESOURCE_BY_IDX)
-}
+RESOURCE_BY_NAME = OrderedDict(
+    (obj_type, idx) for idx, obj_type in enumerate(RESOURCE_BY_IDX)
+)
 
+# Valid change event types
 CHANGE_EVENTS = ("Create", "Update", "Delete")
 
-VALID_CHANGE_RESOURCES = set(RESOURCE_BY_IDX)
-VALID_ATTRIBUTE_RESOURCES = set(
-    ["Network", "Device", "Interface", "Circuit", "Protocol"]
+# Resource objects that can be used for Change events
+VALID_CHANGE_RESOURCES = tuple(RESOURCE_BY_IDX)
+
+# Resource objects that can have attributes
+VALID_ATTRIBUTE_RESOURCES = (
+    "Network",
+    "Device",
+    "Interface",
+    "Circuit",
+    "Protocol",
 )
 
 # Lists of 2-tuples of (value, option) for displaying choices in certain model
