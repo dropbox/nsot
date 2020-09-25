@@ -605,7 +605,20 @@ class Network(Resource):
                             )
                 # Otherwise, update all children to use the new parent and
                 # delete the old parent of these child nodes.
-                err.protected_objects.update(parent=new_parent)
+                try:
+                    err.protected_objects.update(parent=new_parent)
+                # FIXME(jathan): This is a temporary workaround for a
+                # regression in Django 3.1.1 where ``.protected_objects`` is an
+                # ``itertools.chain`` vs. ``QuerySet``. Remove me when fixed.
+                # Ref: https://code.djangoproject.com/ticket/31219
+                except AttributeError:
+                    # Extract the pk for reach protected object
+                    protected_ids = (p.pk for p in err.protected_objects)
+                    # Explicitly craft a new QuerySet and then update the
+                    # parent
+                    Network.objects.filter(pk__in=protected_ids).update(
+                        parent=new_parent
+                    )
                 super(Network, self).delete(**kwargs)
             else:
                 raise

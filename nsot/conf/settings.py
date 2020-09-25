@@ -6,10 +6,8 @@ Django settings for nsot project.
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 from __future__ import absolute_import
 
-# FIXME(jathan): Temporarily default this t 0 or whatever because it's blocking
-# the startup while I get Python 3.6 going.
-# import macaddress
-# from netaddr import eui
+import macaddress
+from netaddr import eui
 import os
 import re
 import sys
@@ -97,7 +95,7 @@ APPEND_SLASH = True
 # templates.
 TEMPLATES = [
     {
-        "BACKEND": "django_jinja.backend.Jinja2",
+        "BACKEND": "django.template.backends.jinja2.Jinja2",
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -110,19 +108,6 @@ TEMPLATES = [
                 "django.template.context_processors.static",
                 "django.template.context_processors.tz",
                 "django.contrib.messages.context_processors.messages",
-            ],
-            "extensions": [
-                "jinja2.ext.do",
-                "jinja2.ext.loopcontrols",
-                "jinja2.ext.with_",
-                "jinja2.ext.i18n",
-                "jinja2.ext.autoescape",
-                "django_jinja.builtins.extensions.CsrfExtension",
-                "django_jinja.builtins.extensions.CacheExtension",
-                "django_jinja.builtins.extensions.TimezoneExtension",
-                "django_jinja.builtins.extensions.UrlsExtension",
-                "django_jinja.builtins.extensions.StaticFilesExtension",
-                "django_jinja.builtins.extensions.DjangoFiltersExtension",
             ],
         },
     },
@@ -413,14 +398,10 @@ MACADDRESS_DEFAULT_DIALECT = "macaddress.mac_linux"
 INTERFACE_DEFAULT_SPEED = 1000  # In Mbps (e.g. 1Gbps)
 
 # Default MAC address ('00:00:00:00:00:00')
-# FIXME(jathan): Temporarily default this t 0 or whatever because it's blocking
-# the startup while I get Python 3.6 going.
-INTERFACE_DEFAULT_MAC = 0
-"""
-INTERFACE_DEFAULT_MAC = eui.EUI(
-    0, dialect=macaddress.default_dialect(), version=48
-)
-"""
+# TODO(jathan): Dialect is hard-coded instead of reading from
+# ``macaddress.default_dialect()`` because of a race condition in evaluating
+# settings in Django >=2.x
+INTERFACE_DEFAULT_MAC = eui.EUI(0, dialect=macaddress.mac_linux, version=48)
 
 # These are mappings to the formal integer types from SNMP IF-MIB::ifType. The
 # types listed here are the most commonly found in the wild.
