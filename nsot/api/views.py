@@ -17,11 +17,10 @@ from rest_framework.views import APIView
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework_bulk import mixins as bulk_mixins
-from rest_framework_extensions.cache.decorators import cache_response
 
 from . import auth, filters, serializers
 from .. import exc, models
-from ..util import cache, qpbool, cidr_to_dict
+from ..util import qpbool, cidr_to_dict
 
 
 log = logging.getLogger(__name__)
@@ -671,16 +670,6 @@ class InterfaceViewSet(ResourceViewSet):
     lookup_value_regex = "[a-zA-Z0-9:./-]*[0-9]"
     natural_key = "name_slug"
 
-    @cache_response(cache_errors=False, key_func=cache.list_key_func)
-    def list(self, *args, **kwargs):
-        """Override default list so we can cache results."""
-        return super(InterfaceViewSet, self).list(*args, **kwargs)
-
-    @cache_response(cache_errors=False, key_func=cache.object_key_func)
-    def retrieve(self, *args, **kwargs):
-        """Override default retrieve so we can cache results."""
-        return super(InterfaceViewSet, self).retrieve(*args, **kwargs)
-
     def get_serializer_class(self):
         if self.request.method == "POST":
             return serializers.InterfaceCreateSerializer
@@ -833,16 +822,6 @@ class CircuitViewSet(ResourceViewSet):
         self.perform_bulk_update(serializer)
 
         return self.success(serializer.data)
-
-    @cache_response(cache_errors=False, key_func=cache.list_key_func)
-    def list(self, *args, **kwargs):
-        """Override default list so we can cache results."""
-        return super(CircuitViewSet, self).list(*args, **kwargs)
-
-    @cache_response(cache_errors=False, key_func=cache.object_key_func)
-    def retrieve(self, *args, **kwargs):
-        """Override default retrieve so we can cache results."""
-        return super(CircuitViewSet, self).retrieve(*args, **kwargs)
 
     def get_serializer_class(self):
         if self.request.method == "POST":

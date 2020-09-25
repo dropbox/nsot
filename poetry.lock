@@ -239,10 +239,10 @@ description = "A high-level Python Web framework that encourages rapid developme
 name = "django"
 optional = false
 python-versions = ">=3.6"
-version = "3.0.10"
+version = "3.1.1"
 
 [package.dependencies]
-asgiref = ">=3.2,<4.0"
+asgiref = ">=3.2.10,<3.3.0"
 pytz = "*"
 sqlparse = ">=0.2.2"
 
@@ -293,23 +293,11 @@ Django = ">=2.2"
 
 [[package]]
 category = "main"
-description = "Jinja2 templating language integrated in Django."
-name = "django-jinja"
-optional = false
-python-versions = "*"
-version = "2.6.0"
-
-[package.dependencies]
-django = ">=1.11,<3.1"
-jinja2 = ">=2.10"
-
-[[package]]
-category = "main"
 description = "MAC address model and form fields for Django apps."
 name = "django-macaddress"
 optional = false
 python-versions = "*"
-version = "1.5.0"
+version = "1.7.0"
 
 [package.dependencies]
 netaddr = "*"
@@ -1043,7 +1031,7 @@ docs = ["sphinx", "jaraco.packaging (>=3.2)", "rst.linker (>=1.9)"]
 testing = ["pytest (>=3.5,<3.7.3 || >3.7.3)", "pytest-checkdocs (>=1.2.3)", "pytest-flake8", "pytest-cov", "jaraco.test (>=3.2.0)", "jaraco.itertools", "func-timeout", "pytest-black (>=0.3.7)", "pytest-mypy"]
 
 [metadata]
-content-hash = "bd8e1cf012e6c15b74009e5adf20a1cf6cca4f4e5231988489e4af1fe3f1f458"
+content-hash = "ef1df37ed8b202c1688f20b23de1c7ed8a74d8bce826ef0105ee865eb40eb396"
 lock-version = "1.0"
 python-versions = ">=3.6"
 
@@ -1185,8 +1173,8 @@ dj-static = [
     {file = "dj-static-0.0.6.tar.gz", hash = "sha256:032ec1c532617922e6e3e956d504a6fb1acce4fc1c7c94612d0fda21828ce8ef"},
 ]
 django = [
-    {file = "Django-3.0.10-py3-none-any.whl", hash = "sha256:313d0b8f96685e99327785cc600a5178ca855f8e6f4ed162e671e8c3cf749739"},
-    {file = "Django-3.0.10.tar.gz", hash = "sha256:2d14be521c3ae24960e5e83d4575e156a8c479a75c935224b671b1c6e66eddaf"},
+    {file = "Django-3.1.1-py3-none-any.whl", hash = "sha256:b5fbb818e751f660fa2d576d9f40c34a4c615c8b48dd383f5216e609f383371f"},
+    {file = "Django-3.1.1.tar.gz", hash = "sha256:59c8125ca873ed3bdae9c12b146fbbd6ed8d0f743e4cf5f5817af50c51f1fc2f"},
 ]
 django-custom-user = [
     {file = "django-custom-user-0.7.tar.gz", hash = "sha256:3968acd67454746334aca940075774cb3c975284f5d1cbf96194927de426e501"},
@@ -1204,13 +1192,9 @@ django-guardian = [
     {file = "django-guardian-2.3.0.tar.gz", hash = "sha256:ed2de26e4defb800919c5749fb1bbe370d72829fbd72895b6cf4f7f1a7607e1b"},
     {file = "django_guardian-2.3.0-py3-none-any.whl", hash = "sha256:0e70706c6cda88ddaf8849bddb525b8df49de05ba0798d4b3506049f0d95cbc8"},
 ]
-django-jinja = [
-    {file = "django-jinja-2.6.0.tar.gz", hash = "sha256:7459985c25ddb6584c6bab345761c8c5557713448e6fbb322af1b6dd7f5512bd"},
-    {file = "django_jinja-2.6.0-py3-none-any.whl", hash = "sha256:4e3e97d7b40669926a9517eb4522cd98dce2e32dcba908aad156810b74744148"},
-]
 django-macaddress = [
-    {file = "django-macaddress-1.5.0.tar.gz", hash = "sha256:21a08619ba9af8cb3eb684a7430a63d63b7634b71c5830da0548f452cc78e3a1"},
-    {file = "django_macaddress-1.5.0-py2.py3-none-any.whl", hash = "sha256:bc2006629a0b81b34e99b45e21bb9cd8551f00dd783b3b1c766677450e9fa3c9"},
+    {file = "django-macaddress-1.7.0.tar.gz", hash = "sha256:342aa3421ee19acc3661d1705dad2ae674eaa7d06a02799f7a5dc394d6233275"},
+    {file = "django_macaddress-1.7.0-py2.py3-none-any.whl", hash = "sha256:db8beedcbd708aba3a6c9e83de6527efa2f9cc7dbe698406cebdfdbaf98c896d"},
 ]
 djangorestframework = [
     {file = "djangorestframework-3.11.1-py3-none-any.whl", hash = "sha256:8b1ac62c581dbc5799b03e535854b92fc4053ecfe74bad3f9c05782063d4196b"},
