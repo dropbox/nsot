@@ -32,7 +32,7 @@ snot-server = "nsot.util:main"
 [tool.poetry.dependencies]
 python = ">=3.6"
 "backports.ssl-match-hostname" = "^3.4.0"
-cryptography = "~=2.9.2"
+cryptography = "~=3.4.7"
 dj-static = "==0.0.*,>=0.0.6"
 django = "~=3.1.0"
 django-custom-user = "==0.7.*,>=0.7.0"
