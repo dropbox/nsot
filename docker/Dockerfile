@@ -32,14 +32,14 @@ RUN apt-get --quiet=2 install -y \
 
 RUN apt-get --quiet=2 install -y python-psycopg2
 RUN apt-get --quiet=2 install -y sqlite3
-RUN pip install MySQL-Python
-RUN pip install psycopg2
+RUN pip install --no-cache-dir MySQL-Python
+RUN pip install --no-cache-dir psycopg2
 # upgrade pip to fix https://github.com/dropbox/nsot/issues/277
-RUN pip install -U setuptools
+RUN pip install --no-cache-dir -U setuptools
 
 # Try to run this as late as possible for layer caching - this version will be
 # updated every update so let the build not take longer than necessary
-RUN pip install nsot==1.4.6
+RUN pip install --no-cache-dir nsot==1.4.6
 
 COPY conf /etc/nsot
 
