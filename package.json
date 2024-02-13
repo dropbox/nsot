@@ -3,7 +3,7 @@
   "description": "NSoT is a Network Source of Truth API and Frontend for managing Network Assets.",
   "private": true,
   "dependencies": {
-    "angular": "1.3.15",
+    "angular": "1.8.3",
     "angular-chart.js": "~0.8.5",
     "angular-resource": "1.3.15",
     "angular-route": "1.3.15",
